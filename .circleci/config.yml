@@ -1,0 +1,18 @@
+version: 2.1
+
+workflows:
+  build-and-push:
+    jobs:
+      - build-and-push
+
+jobs:
+  build-and-push:
+    docker:
+      - image: cimg/base:2020.11
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 19.03.13
+      - run: |
+          docker build -t docker.io/tartale/kmttg-plus:latest .
+          docker push docker.io/tartale/kmttg-plus:latest
