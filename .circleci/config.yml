@@ -15,6 +15,6 @@ jobs:
       - setup_remote_docker:
           version: 19.03.13
       - run: |
-          echo "${DOCKER_IO_ACCESS_TOKEN} | docker login -u tartale --password-stdin
+          echo "${DOCKER_IO_ACCESS_TOKEN}" | docker login -u tartale --password-stdin
           docker build -t docker.io/tartale/kmttg-plus:latest .
           docker push docker.io/tartale/kmttg-plus:latest
