@@ -4,7 +4,10 @@ USER root
 
 RUN apk update
 RUN apk upgrade
-RUN apk add mkvtoolnix mplayer
+RUN apk add mediainfo mkvtoolnix mplayer \
+ && ln -s /usr/bin/mediainfo /usr/local/bin/mediainfo \
+ && ln -s /usr/bin/mencoder /usr/local/bin/mencoder \
+ && ln -s /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 
 RUN curl -L -o ./AtomicParsleyAlpine.zip https://github.com/wez/atomicparsley/releases/download/20210715.151551.e7ad03a/AtomicParsleyAlpine.zip \
  && unzip -d /usr/local/bin ./AtomicParsleyAlpine.zip \
@@ -33,6 +36,25 @@ RUN apk --no-cache add python ffmpeg tzdata bash \
  && rm -rf /var/cache/apk/* /tmp/* /tmp/.[!.]*
 COPY --from=plexinc/pms-docker /usr/lib/plexmediaserver/Resources/comskip.ini /opt/comskip.ini
 
+RUN apk add gettext
+ENV APP_DIR /home/kmttg/app
+ENV OUTPUT_DIR /mnt/kmttg/output
+ENV TOOLS_DIR /usr/local/bin 
+COPY --chown=kmttg:kmttg auto.ini .
+COPY --chown=kmttg:kmttg config.ini.personal .
+COPY --chown=kmttg:kmttg config.ini.template .
+COPY --chown=kmttg:kmttg comskip.ini.us-ota ./comskip.ini
+
+RUN envsubst < ./config.ini.personal > ./config.ini \
+ && envsubst < ./config.ini.template >> ./config.ini \
+ && ln -f -s /mnt/kmttg/output/auto.history ./ \
+ && ln -f -s /mnt/kmttg/output/auto.log.0 ./
+
+USER kmttg
+
+CMD ["/home/kmttg/app/kmttg", "-a"]
+
+### unsuccessful attempt to install handbrake vvv
 # RUN apk add flatpak
 # RUN flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
@@ -62,5 +84,3 @@ COPY --from=plexinc/pms-docker /usr/lib/plexmediaserver/Resources/comskip.ini /o
     # meson \
     # nasm \
     # cmake
-
-USER kmttg
