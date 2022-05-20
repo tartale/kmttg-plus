@@ -13,10 +13,10 @@ RUN curl -L -o ./AtomicParsleyAlpine.zip https://github.com/wez/atomicparsley/re
  && unzip -d /usr/local/bin ./AtomicParsleyAlpine.zip \
  && rm ./AtomicParsleyAlpine.zip
 
-RUN apk add --no-cache libc-dev gcc gawk make \
- && curl -L -o ./tivodecode.tar.gz http://sourceforge.net/projects/tivodecode/files/tivodecode/0.2pre4/tivodecode-0.2pre4.tar.gz \
- && tar xvfz tivodecode.tar.gz -C /opt/ && rm tivodecode.tar.gz \
- && cd /opt/tivodecode-0.2pre4 \
+RUN apk add --no-cache g++ make \
+ && curl -L -o ./tivodecode-ng.tar.gz https://github.com/wmcbrine/tivodecode-ng/archive/refs/tags/0.5.tar.gz \
+ && tar xvfz tivodecode-ng.tar.gz -C /opt/ && rm tivodecode-ng.tar.gz \
+ && cd /opt/tivodecode-ng-0.5 \
  && ./configure \
  && make \
  && make install 
@@ -50,7 +50,7 @@ RUN envsubst < ./config.ini.personal > ./config.ini \
  && ln -f -s /mnt/kmttg/output/auto.history ./ \
  && ln -f -s /mnt/kmttg/output/auto.log.0 ./
 
-USER kmttg
+USER root
 
 CMD ["/home/kmttg/app/kmttg", "-a"]
 

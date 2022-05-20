@@ -42,8 +42,18 @@ run-local: check-env output-paths
 
 run-image: check-env build output-paths
 	echo "running kmttg container on the local machine"; \
-  docker run --network=host --rm -v $(OUTPUT_DIR):/mnt/kmttg/output --platform=linux/amd64 tartale/kmttg-plus:latest
+  docker run --network=host --rm \
+		-v $(OUTPUT_DIR):/mnt/kmttg/output \
+		-v $(OUTPUT_DIR)/auto.ini:/home/kmttg/app/auto.ini \
+		-v $(OUTPUT_DIR)/auto.history:/home/kmttg/app/auto.history \
+		-v $(OUTPUT_DIR)/auto.log.0:/home/kmttg/app/auto.log.0 \
+		--platform=linux/amd64 tartale/kmttg-plus:latest
 
 debug-image: check-env build output-paths
 	echo "debugging kmttg container on the local machine"; \
-  docker run -it --network=host --rm -v $(OUTPUT_DIR):/mnt/kmttg/output --platform=linux/amd64 tartale/kmttg-plus:latest /bin/bash
+  docker run -it --network=host --rm \
+		-v $(OUTPUT_DIR):/mnt/kmttg/output \
+		-v $(OUTPUT_DIR)/auto.ini:/home/kmttg/app/auto.ini \
+		-v $(OUTPUT_DIR)/auto.history:/home/kmttg/app/auto.history \
+		-v $(OUTPUT_DIR)/auto.log.0:/home/kmttg/app/auto.log.0 \
+		--platform=linux/amd64 tartale/kmttg-plus:latest /bin/bash
