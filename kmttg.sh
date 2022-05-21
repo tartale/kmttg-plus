@@ -84,6 +84,8 @@ export OUTPUT_DIR="${OUTPUT_DIR:-${MOUNT_DIR}/output}"
 export INPUT_DIR="${INPUT_DIR:-${MOUNT_DIR}/input}"
 export COMSKIP_FILE="${COMSKIP_FILE:-comskip.ini.us-ota}"
 
+umask 000
+
 echo "creating required files/directories in ${MOUNT_DIR}"
 mkdir -p "${TMPDIR}"
 mkdir -p "${INPUT_DIR}/files"
