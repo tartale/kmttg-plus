@@ -1,5 +1,8 @@
 app
 project
-config.ini.personal
+config.ini
+config.ini.overrides
+auto.ini
+auto.ini.overrides
 .DS_Store
 .envrc

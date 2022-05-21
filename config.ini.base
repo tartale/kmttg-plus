@@ -1,4 +1,6 @@
 
+# kmttg config.ini file
+${OVERRIDES}
 <FontSize>
 10
 
@@ -99,10 +101,10 @@ ${OUTPUT_DIR}/webcache
 false
 
 <tivoFileNameFormat>
-[title] ([monthNum]_[mday]_[year])
+[mainTitle][" (" movieYear ")"][/][mainTitle][" (" movieYear ")"][" - " episodeTitle][" - " SeriesEpNumber]
 
 <outputDir>
-${OUTPUT_DIR}/output
+${OUTPUT_DIR}/download
 
 <mpegDir>
 ${OUTPUT_DIR}/mpeg

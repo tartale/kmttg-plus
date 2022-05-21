@@ -1,5 +1,5 @@
-
 # kmttg auto.ini file
+${OVERRIDES}
 <check_tivos_interval>
 30
 
