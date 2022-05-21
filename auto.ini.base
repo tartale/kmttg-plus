@@ -7,7 +7,7 @@ ${OVERRIDES}
 0
 
 <noJobWait>
-0
+1
 
 <dateFilter>
 0
