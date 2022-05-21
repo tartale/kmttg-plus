@@ -103,10 +103,12 @@ echo "merging configuration base and overrides files"
 mergeIniFiles "${THIS_SCRIPT_DIR}/config.ini.base" "${INPUT_DIR}/config.ini.overrides" "${INPUT_DIR}/config.ini"
 mergeIniFiles "${THIS_SCRIPT_DIR}/auto.ini.base" "${INPUT_DIR}/auto.ini.overrides" "${INPUT_DIR}/auto.ini"
 
-echo "linking input files to app home directory"
+echo "linking input/output files to app home directory"
 ln -f -s "${INPUT_DIR}/config.ini" "${APP_DIR}/config.ini"
 ln -f -s "${INPUT_DIR}/auto.ini" "${APP_DIR}/auto.ini"
 ln -f -s "${APP_DIR}/${COMSKIP_FILE}" "${APP_DIR}/comskip.ini"
+ln -f -s "${OUTPUT_DIR}/logs/auto.history" "${APP_DIR}/auto.history"
+ln -f -s "${OUTPUT_DIR}/logs/auto.log.0" "${APP_DIR}/auto.log.0"
 
 echo "running kmttg"
 ${APP_DIR}/kmttg -a
