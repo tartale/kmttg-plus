@@ -23,13 +23,13 @@ ${OUTPUT_DIR}/webcache
 0
 
 <RemoveTivoFile>
-0
+1
 
 <RemoveComcutFiles>
 0
 
 <RemoveComcutFiles_mpeg>
-0
+1
 
 <RemoveMpegFile>
 0
@@ -188,7 +188,7 @@ last
 
 
 <CheckDiskSpace>
-0
+1
 
 <LowSpaceSize>
 0
