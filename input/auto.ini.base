@@ -41,7 +41,7 @@ rpcdelete 0
 comskip 1
 comcut 1
 captions 0
-encode 0
+encode ${ENCODE}
 custom 0
 suggestionsFilter 0
 useProgramId_unique 0

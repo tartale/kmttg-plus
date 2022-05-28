@@ -87,6 +87,11 @@ export INPUT_DIR="${INPUT_DIR:-${MOUNT_DIR}/input}"
 export COMSKIP_FILE="${COMSKIP_FILE:-comskip.ini.us-ota}"
 export ENCODER_DIR="${ENCODER_DIR:-${INPUT_DIR}/encoders}"
 export ENCODER_NAME="${ENCODER_NAME:-none}"
+if [[ "${ENCODER_NAME}" == "none" ]]; then
+  export ENCODE=0
+else
+  export ENCODE=1
+fi
 
 umask 000
 
