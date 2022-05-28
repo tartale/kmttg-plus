@@ -45,5 +45,5 @@ encode 0
 custom 0
 suggestionsFilter 0
 useProgramId_unique 0
-encode_name ff_mobile_720p
+encode_name ${ENCODER_NAME}
 comskipIni none

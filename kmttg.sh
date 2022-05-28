@@ -21,6 +21,8 @@ TOOLS_DIR
 INPUT_DIR
 OUTPUT_DIR
 COMSKIP_FILE
+ENCODER_DIR
+ENCODER_NAME
 
 " >&2
 
@@ -83,12 +85,15 @@ export TMPDIR="${TMPDIR:-${PWD}/tmp}"
 export OUTPUT_DIR="${OUTPUT_DIR:-${MOUNT_DIR}/output}"
 export INPUT_DIR="${INPUT_DIR:-${MOUNT_DIR}/input}"
 export COMSKIP_FILE="${COMSKIP_FILE:-comskip.ini.us-ota}"
+export ENCODER_DIR="${ENCODER_DIR:-${INPUT_DIR}/encoders}"
+export ENCODER_NAME="${ENCODER_NAME:-none}"
 
 umask 000
 
 echo "creating required files/directories in ${MOUNT_DIR}"
 mkdir -p "${TMPDIR}"
 mkdir -p "${INPUT_DIR}/files"
+mkdir -p "${ENCODER_DIR}"
 mkdir -p "${OUTPUT_DIR}/download"
 mkdir -p "${OUTPUT_DIR}/mpeg"
 mkdir -p "${OUTPUT_DIR}/encode"
@@ -109,6 +114,10 @@ ln -f -s "${INPUT_DIR}/auto.ini" "${APP_DIR}/auto.ini"
 ln -f -s "${APP_DIR}/${COMSKIP_FILE}" "${APP_DIR}/comskip.ini"
 ln -f -s "${OUTPUT_DIR}/logs/auto.history" "${APP_DIR}/auto.history"
 ln -f -s "${OUTPUT_DIR}/logs/auto.log.0" "${APP_DIR}/auto.log.0"
+
+if [[ -e "${ENCODER_DIR}/${ENCODER_NAME}.enc" ]]; then
+  ln -f -s "${ENCODER_DIR}/${ENCODER_NAME}.enc" "${APP_DIR}/encode/"
+fi
 
 echo "running kmttg"
 ${APP_DIR}/kmttg -a

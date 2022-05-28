@@ -1,8 +1,10 @@
 app
 project
-config.ini
-config.ini.overrides
-auto.ini
-auto.ini.overrides
+input/files
+input/encoders
+input/config.ini
+input/config.ini.overrides
+input/auto.ini
+input/auto.ini.overrides
 .DS_Store
 .envrc

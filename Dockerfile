@@ -44,9 +44,10 @@ RUN apk add gettext
 ENV APP_DIR /home/kmttg/app
 ENV MOUNT_DIR /mnt/kmttg
 ENV TOOLS_DIR /usr/local/bin 
-COPY --chown=kmttg:kmttg auto.ini.* .
-COPY --chown=kmttg:kmttg config.ini.* .
-COPY --chown=kmttg:kmttg comskip.ini.* .
+COPY --chown=kmttg:kmttg input/auto.ini.* .
+COPY --chown=kmttg:kmttg input/config.ini.* .
+COPY --chown=kmttg:kmttg input/comskip.ini.* .
+COPY --chown=kmttg:kmttg input/encoders/* ./encode/
 COPY --chown=kmttg:kmttg kmttg.sh .
 
 USER kmttg
