@@ -35,7 +35,7 @@ tivo all
 TSDownload 1
 metadata 1
 decrypt 1
-qsfix 1
+qsfix 0
 twpdelete 0
 rpcdelete 0
 comskip 1

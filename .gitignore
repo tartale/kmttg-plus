@@ -8,3 +8,5 @@ input/auto.ini
 input/auto.ini.overrides
 .DS_Store
 .envrc
+.vscode
+.idea/

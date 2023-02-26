@@ -23,13 +23,13 @@ ${OUTPUT_DIR}/webcache
 0
 
 <RemoveTivoFile>
-1
+0
 
 <RemoveComcutFiles>
 0
 
 <RemoveComcutFiles_mpeg>
-1
+0
 
 <RemoveMpegFile>
 0
