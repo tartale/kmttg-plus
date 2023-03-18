@@ -42,3 +42,21 @@
   justify-content: center;
   align-items: center;
 }
+
+body {
+  background: linear-gradient(to bottom, #162c4f, #000000);
+  color: #fff;
+  padding: 1rem;
+  border-radius: 5px;
+  border: none;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 16px;
+  font-family: TivoSans-Regular;
+  font-weight: normal;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}

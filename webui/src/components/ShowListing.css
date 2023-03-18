@@ -11,6 +11,7 @@
   font-weight: 700;
   height: 60px;
   text-align: left;
+  padding: 20px;
   margin-left: 10px;
 }
 
@@ -30,6 +31,7 @@
   padding: 20px;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
 }
 
 .table tbody td:first-child {

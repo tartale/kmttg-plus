@@ -2,21 +2,25 @@ import React, {useState, useEffect} from "react";
 import yaml from "js-yaml";
 import TivoStyle from "./TivoStyle";
 
-interface TivoList {
-  [key: string]: string[];
+interface TivoConfig {
+  devices: {
+    name: string
+    address: string
+  }[]
 }
 
 function TivoSelector(props: any) {
   const [options, setOptions] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch(props.file)
+    fetch("config/tivo.yaml")
       .then((response) => response.text())
       .then((text) => {
-        const data: TivoList = yaml.load(text) as TivoList;
-        setOptions(data[props.field]);
+        const data: TivoConfig = yaml.load(text) as TivoConfig;
+        const names: string[] = data.devices.map(device => device.name)
+        setOptions(names);
       });
-  }, [props.file, props.field]);
+  });
 
   function handleChange(event: any) {
     props.onChange(event.target.value);
