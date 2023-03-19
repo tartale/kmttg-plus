@@ -16,11 +16,11 @@
 }
 
 .table tbody tr:nth-child(odd) {
-  background-color: #111;
+  background: linear-gradient(to bottom, #162c4f, #000000);
 }
 
 .table tbody tr:nth-child(even) {
-  background-color: #222;
+  background: linear-gradient(to bottom, #162c4f, #000000);
 }
 
 .table tbody td {
@@ -50,6 +50,7 @@
   width: 20%;
 }
 
-.table tbody td:hover {
-  background-color: #555;
+.table tbody tr:hover {
+  background-color: #fff;
+  color: #162c4f;
 }

@@ -3,7 +3,6 @@ import "./App.css";
 import {Show, ShowListing} from "./components/ShowListing";
 import TiVoLogo from "./components/TivoLogo";
 import TivoSelector from "./components/TivoSelector";
-import TivoStyle from "./components/TivoStyle";
 
 function handleDropdownChange(value: any) {
   console.log("Selected value:", value);
@@ -13,7 +12,7 @@ const shows: Show[] = [
   {
     recordedOn: new Date().toISOString(),
     title: "The Big Bang Theory",
-    episodeTitle: "The Proposal Proposal"
+    episodeTitle: "The Proposal Proposal",
   },
   {
     recordedOn: new Date().toISOString(),
@@ -25,12 +24,10 @@ const shows: Show[] = [
 
 function App() {
   return (
-    <div style={TivoStyle}>
+    <div>
       <TiVoLogo />
-      <TivoSelector
-        onChange={handleDropdownChange}
-      />
-      <ShowListing shows={shows}/>
+      <TivoSelector onChange={handleDropdownChange} />
+      <ShowListing shows={shows} />
     </div>
   );
 }
