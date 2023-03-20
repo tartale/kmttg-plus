@@ -1,6 +1,5 @@
 import React, {useState, useEffect} from "react";
 import yaml from "js-yaml";
-import TivoStyle from "./TivoStyle";
 
 interface TivoConfig {
   devices: {
@@ -31,7 +30,7 @@ function TivoSelector(props: any) {
   }
 
   return (
-    <select onChange={handleChange} style={TivoStyle}>
+    <select onChange={handleChange}>
       {options.map((option, index) => (
         <option key={index} value={option}>
           {option}

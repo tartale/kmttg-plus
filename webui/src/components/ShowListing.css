@@ -5,22 +5,13 @@
   table-layout: fixed;
 }
 
-.table thead th {
-  color: #fff;
-  background-color: #000;
-  font-weight: 700;
-  height: 60px;
-  text-align: left;
-  padding: 20px;
-  margin-left: 10px;
-}
-
-.table tbody tr:nth-child(odd) {
+.table tbody tr {
   background: linear-gradient(to bottom, #162c4f, #000000);
 }
 
-.table tbody tr:nth-child(even) {
-  background: linear-gradient(to bottom, #162c4f, #000000);
+.table tbody tr:hover {
+  background-color: lightblue;
+  color: #162c4f;
 }
 
 .table tbody td {
@@ -34,23 +25,15 @@
   text-align: left;
 }
 
-.table tbody td:first-child {
-  width: 80px;
-}
 
-.table tbody td:nth-child(2) {
-  width: 30%;
+.table tbody td:first-child {
+  width: 2rem;
 }
 
 .table tbody td:nth-child(3) {
-  width: 50%;
+  width: 10%;
 }
 
 .table tbody td:nth-child(4) {
-  width: 20%;
-}
-
-.table tbody td:hover {
-  background-color: #87a1eb;
-  color: #162c4f;
+  width: 10%;
 }
