@@ -12,13 +12,13 @@ export function ShowListing(props: {shows: Show[]}) {
   const {shows} = props;
   return (
     <table className="table">
-      <thead>
+      {/* <thead>
         <tr>
           <th>Recorded On</th>
           <th>Title</th>
           <th>Episode Title</th>
         </tr>
-      </thead>
+      </thead> */}
       <tbody>
         {shows.map((show: Show, index: number) => (
           <tr key={index}>

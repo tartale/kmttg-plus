@@ -50,7 +50,7 @@
   width: 20%;
 }
 
-.table tbody tr:hover {
-  background-color: #fff;
+.table tbody td:hover {
+  background-color: #87a1eb;
   color: #162c4f;
 }

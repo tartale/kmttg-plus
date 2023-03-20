@@ -25,7 +25,9 @@ const shows: Show[] = [
 function App() {
   return (
     <div>
-      <TiVoLogo />
+      <div style={{ position: "absolute", top: 10, left: 10 }}>
+        <TiVoLogo />
+      </div>
       <TivoSelector onChange={handleDropdownChange} />
       <ShowListing shows={shows} />
     </div>
