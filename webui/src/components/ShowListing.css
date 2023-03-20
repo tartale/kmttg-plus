@@ -1,39 +1,38 @@
-.table {
+.showListingTable {
   border-collapse: collapse;
   font-size: 16px;
   width: 100%;
   table-layout: fixed;
 }
 
-.table tbody tr {
+.showListingTable tbody tr {
   background: linear-gradient(to bottom, #162c4f, #000000);
-}
-
-.table tbody tr:hover {
-  background-color: lightblue;
-  color: #162c4f;
-}
-
-.table tbody td {
   border: none;
-  color: #fff;
+  color: white;
   height: 80px;
   overflow: hidden;
-  padding: 20px;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
 }
 
+.showListingTable tbody tr:hover {
+  background: lightblue;
+  color: darkblue;
+}
 
-.table tbody td:first-child {
+.showListingTable tbody td {
+  padding: 20px;
+}
+
+.showListingTable tbody td:first-child {
   width: 2rem;
 }
 
-.table tbody td:nth-child(3) {
+.showListingTable tbody td:nth-child(3) {
   width: 10%;
 }
 
-.table tbody td:nth-child(4) {
+.showListingTable tbody td:nth-child(4) {
   width: 10%;
 }

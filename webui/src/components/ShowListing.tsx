@@ -39,13 +39,16 @@ export function ShowListing() {
   return (
     <div>
       <label style={{ fontSize: "2rem", color: "lightblue", paddingLeft: "1rem" }}>My Shows</label>
-      <table className="table" style={{ marginTop: "30px" }}>
+      <table className="showListingTable" style={{ marginTop: "30px" }}>
         <tbody>
           {shows.map((show: Show, index: number) => {
-            const icon = show.movieYear ? "./movie.png" :
-              show.episodes?.length === 1 ? "./television.png" : "./folder.png"
+            const episodeCount = show.episodes?.length || 0
+            const episodeCountLabel = episodeCount > 1 ? `[${episodeCount}]` : ""
+            const icon = show.movieYear ? "./images/movie.png" :
+              episodeCount === 1 ? "./images/television.png" : "./images/folder.png"
             const dayOfWeek = show.recordedOn.toLocaleDateString('en-US', { weekday: 'short' });
-              
+            const monthDay = show.recordedOn.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
+
             return (
               <tr key={index}>
                 <td>
@@ -55,8 +58,9 @@ export function ShowListing() {
                     alt=""
                   />
                 </td>
-                <td>{show.title}</td>
+                <td>{show.title} {episodeCountLabel}</td>
                 <td>{dayOfWeek}</td>
+                <td>{monthDay}</td>
               </tr>
             );
           })}
