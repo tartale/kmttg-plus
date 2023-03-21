@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from "react";
-import Box from '@mui/material/Box';
-import Collapse from '@mui/material/Collapse';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
+import React, {useState, useEffect} from "react";
+import Box from "@mui/material/Box";
+import Collapse from "@mui/material/Collapse";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableRow from "@mui/material/TableRow";
+import Paper from "@mui/material/Paper";
 import "./TivoStyle.css";
-import "./MuiShowListing.css";
+import "./ShowListing.css";
 
 export interface Show {
   id?: number;
@@ -31,62 +31,68 @@ export interface Episode extends Show {
   season?: number;
   episode?: number;
   episodeTitle?: string;
-  episodeDescription?: string
+  episodeDescription?: string;
 }
 
 const ShowImageFile = (show: Show, open: boolean): string => {
   switch (show.kind) {
     case "series": {
-      const episodeCount = (show as Series).episodes.length
-      if (episodeCount == 1) {
-        return "./images/television.png"
+      const episodeCount = (show as Series).episodes.length;
+      if (episodeCount === 1) {
+        return "./images/television.png";
       }
       if (open) {
-        return "./images/folder-open.png"
+        return "./images/folder-open.png";
       } else {
-        return "./images/folder-closed.png"
+        return "./images/folder-closed.png";
       }
     }
     case "episode": {
-      return "./images/television.png"
+      return "./images/television.png";
     }
     case "movie": {
-      return "./images/movie.png"
+      return "./images/movie.png";
     }
     default: {
-      return "./images/television-unknown.png"
+      return "./images/television-unknown.png";
     }
   }
-}
+};
 
-function Row(props: { show: Movie | Series | Episode }) {
-  const { show } = props;
+function Row(props: {show: Movie | Series | Episode}) {
+  const {show} = props;
   const [open, setOpen] = React.useState(false);
 
-  const episodeCount = (show as Series).episodes?.length || 0
-  const episodeCountLabel = episodeCount > 1 ? `[${episodeCount}]` : ""
-  const dayOfWeek = show.recordedOn.toLocaleDateString('en-US', { weekday: 'short' });
-  const monthDay = show.recordedOn.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
+  const episodeCount = (show as Series).episodes?.length || 0;
+  const episodeCountLabel = episodeCount > 1 ? `[${episodeCount}]` : "";
+  const dayOfWeek = show.recordedOn.toLocaleDateString("en-US", {
+    weekday: "short",
+  });
+  const monthDay = show.recordedOn.toLocaleDateString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+  });
 
-  const ShowIcon = (props: { show: Show }) => {
-    const imageFile: string = ShowImageFile(show, open)
+  const ShowIcon = (props: {show: Show}) => {
+    const imageFile: string = ShowImageFile(show, open);
 
     return (
       <TableCell>
-        <img
-          src={imageFile}
-          style={{ width: "3rem", height: "3rem" }}
-          alt=""
-        />
+        <img src={imageFile} style={{width: "3rem", height: "3rem"}} alt="" />
       </TableCell>
-    )
-  }
+    );
+  };
 
   return (
     <React.Fragment>
-      <TableRow sx={{ '& > *': { borderBottom: 'unset' } }} onClick={() => setOpen(!open)} >
+      <TableRow
+        sx={{"& > *": {borderBottom: "unset"}}}
+        onClick={() => setOpen(!open)}
+      >
         <ShowIcon show={show} />
-        <TableCell>{show.title} {episodeCountLabel}</TableCell>
+        <TableCell>
+          {show.title} {episodeCountLabel}
+        </TableCell>
         <TableCell>{dayOfWeek}</TableCell>
         <TableCell>{monthDay}</TableCell>
       </TableRow>
@@ -152,7 +158,7 @@ export default function ShowListing() {
       .then((data) => {
         const parsedShows = data.map((show: Movie | Series) => ({
           ...show,
-          kind: (show as Series).episodes? "series" : "movie",
+          kind: (show as Series).episodes ? "series" : "movie",
           recordedOn: new Date(show.recordedOn),
         }));
         setShows(parsedShows);
