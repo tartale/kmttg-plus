@@ -8,7 +8,6 @@
 .showListingTable tbody tr {
   background: linear-gradient(to bottom, #162c4f, #000000);
   border: none;
-  color: white;
   height: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -17,16 +16,18 @@
 }
 
 .showListingTable tbody tr:hover {
-  background: lightblue;
-  color: darkblue;
+  background: rgb(3, 136, 180);
+  color: black;
 }
 
 .showListingTable tbody td {
+  color: white;
   padding: 20px;
+  font-weight: bold;
 }
-
+ 
 .showListingTable tbody td:first-child {
-  width: 2rem;
+  width: 5%;
 }
 
 .showListingTable tbody td:nth-child(3) {
@@ -36,3 +37,4 @@
 .showListingTable tbody td:nth-child(4) {
   width: 10%;
 }
+
