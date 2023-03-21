@@ -1,89 +1,109 @@
 import React, { useState, useEffect } from "react";
 import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
-import Icon from '@mui/material';
-import IconButton from '@mui/material/IconButton';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { FolderOpenRounded, FolderRounded } from "@mui/icons-material";
 import "./TivoStyle.css";
 import "./MuiShowListing.css";
-import { lightBlue } from "@mui/material/colors";
 
 export interface Show {
   id?: number;
+  kind: string;
   title: string;
   recordedOn: Date;
-  episodes?: Episode[];
-  movieYear?: number;
+  description: string;
 }
 
-export interface Episode {
-  id?: number;
-  recordedOn?: Date;
+export interface Movie extends Show {
+  movieYear: number;
+}
+
+export interface Series extends Show {
+  episodes: Episode[];
+}
+
+export interface Episode extends Show {
   firstAiredOn?: Date;
   season?: number;
   episode?: number;
   episodeTitle?: string;
+  episodeDescription?: string
 }
 
-function Row(props: { row: Show }) {
-  const { row } = props;
+const ShowImageFile = (show: Show, open: boolean): string => {
+  switch (show.kind) {
+    case "series": {
+      const episodeCount = (show as Series).episodes.length
+      if (episodeCount == 1) {
+        return "./images/television.png"
+      }
+      if (open) {
+        return "./images/folder-open.png"
+      } else {
+        return "./images/folder-closed.png"
+      }
+    }
+    case "episode": {
+      return "./images/television.png"
+    }
+    case "movie": {
+      return "./images/movie.png"
+    }
+    default: {
+      return "./images/television-unknown.png"
+    }
+  }
+}
+
+function Row(props: { show: Movie | Series | Episode }) {
+  const { show } = props;
   const [open, setOpen] = React.useState(false);
 
-  const episodeCount = row.episodes?.length || 0
+  const episodeCount = (show as Series).episodes?.length || 0
   const episodeCountLabel = episodeCount > 1 ? `[${episodeCount}]` : ""
-  const isMovie = row.movieYear || false
-  const dayOfWeek = row.recordedOn.toLocaleDateString('en-US', { weekday: 'short' });
-  const monthDay = row.recordedOn.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
+  const dayOfWeek = show.recordedOn.toLocaleDateString('en-US', { weekday: 'short' });
+  const monthDay = show.recordedOn.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
 
-  const ShowIcon = (props: { episodeCount: number }) => {
-    if (episodeCount > 1) {
-      return (
-        open ?
-          <img
-            src={"./images/folder-open.png"}
-            style={{ width: "3rem", height: "3rem" }}
-            alt=""
-          />
-          :
-          <img
-            src={"./images/folder-closed.png"}
-            style={{ width: "3rem", height: "3rem" }}
-            alt=""
-          />
+  const ShowIcon = (props: { show: Show }) => {
+    const imageFile: string = ShowImageFile(show, open)
 
-      )
-    } else {
-      const icon = isMovie ? "./images/movie.png" : "./images/television.png"
-      return (
+    return (
+      <TableCell>
         <img
-          src={icon}
+          src={imageFile}
           style={{ width: "3rem", height: "3rem" }}
           alt=""
         />
-      )
-    }
+      </TableCell>
+    )
   }
 
   return (
     <React.Fragment>
       <TableRow sx={{ '& > *': { borderBottom: 'unset' } }} onClick={() => setOpen(!open)} >
-        <TableCell>
-          <ShowIcon episodeCount={episodeCount} />
-        </TableCell>
-        <TableCell>{row.title} {episodeCountLabel}</TableCell>
+        <ShowIcon show={show} />
+        <TableCell>{show.title} {episodeCountLabel}</TableCell>
         <TableCell>{dayOfWeek}</TableCell>
         <TableCell>{monthDay}</TableCell>
       </TableRow>
+      {/* <TableRow>
+        <Collapse in={open} timeout="auto" unmountOnExit>
+          <Box sx={{ margin: 1 }}>
+            <Table className="showListingTable">
+              <TableBody>
+                {show.episodes?.map((episode) => (
+                  <Row key={episode.id} show={episode} />
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        </Collapse>
+      </TableRow> */}
+
       {/* <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
           <Collapse in={open} timeout="auto" unmountOnExit>
@@ -130,8 +150,9 @@ export default function ShowListing() {
     fetch("input/shows.json")
       .then((response) => response.json())
       .then((data) => {
-        const parsedShows = data.map((show: Show) => ({
+        const parsedShows = data.map((show: Movie | Series) => ({
           ...show,
+          kind: (show as Series).episodes? "series" : "movie",
           recordedOn: new Date(show.recordedOn),
         }));
         setShows(parsedShows);
@@ -144,7 +165,7 @@ export default function ShowListing() {
       <Table className="showListingTable">
         <TableBody>
           {shows.map((show) => (
-            <Row key={show.id} row={show} />
+            <Row key={show.id} show={show} />
           ))}
         </TableBody>
       </Table>
