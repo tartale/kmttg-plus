@@ -1,7 +1,7 @@
 import React from "react";
 import "./App.css";
 import "./components/TivoStyle.css";
-import {ShowListing} from "./components/ShowListing";
+import ShowListing from "./components/MuiShowListing"
 import TiVoLogo from "./components/TivoLogo";
 import TivoSelector from "./components/TivoSelector";
 
