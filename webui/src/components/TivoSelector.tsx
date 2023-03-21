@@ -3,9 +3,9 @@ import yaml from "js-yaml";
 
 interface TivoConfig {
   devices: {
-    name: string
-    address: string
-  }[]
+    name: string;
+    address: string;
+  }[];
 }
 
 function TivoSelector(props: any) {
@@ -16,10 +16,10 @@ function TivoSelector(props: any) {
       .then((response) => response.text())
       .then((text) => {
         const data: TivoConfig = yaml.load(text) as TivoConfig;
-        const names: string[] = data.devices.map(device => device.name)
+        const names: string[] = data.devices.map((device) => device.name);
         setOptions(names);
       });
-  });
+  }, []);
 
   function handleChange(event: any) {
     props.onChange(event.target.value);

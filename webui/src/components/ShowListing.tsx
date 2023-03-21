@@ -9,6 +9,7 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import "./TivoStyle.css";
 import "./ShowListing.css";
+import {v4 as uuidv4} from "uuid";
 
 export interface Show {
   id?: number;
@@ -59,7 +60,7 @@ const ShowImageFile = (show: Show, open: boolean): string => {
   }
 };
 
-function Row(props: {show: Movie | Series | Episode}) {
+function Row(props: {show: Show}) {
   const {show} = props;
   const [open, setOpen] = React.useState(false);
 
@@ -159,6 +160,7 @@ export default function ShowListing() {
         const parsedShows = data.map((show: Movie | Series) => ({
           ...show,
           kind: (show as Series).episodes ? "series" : "movie",
+          id: show.id || uuidv4(),
           recordedOn: new Date(show.recordedOn),
         }));
         setShows(parsedShows);
