@@ -1,5 +1,4 @@
 import React, {useState, useEffect} from "react";
-import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -81,13 +80,17 @@ const parseRecordingDate = (show: Show) => {
   return {dayOfWeek, monthDay};
 };
 
-function IconCell(props: {show: Show; open: boolean}) {
-  const {show, open} = props;
+function IconCell(props: {show: Show; open: boolean; indent: boolean}) {
+  const {show, open, indent} = props;
   const imageFile: string = getImageFileForShow(show, open);
+
+  const style = indent
+    ? {paddingLeft: "2rem", width: "3rem", height: "3rem"}
+    : {width: "3rem", height: "3rem"};
 
   return (
     <TableCell>
-      <img src={imageFile} style={{width: "3rem", height: "3rem"}} alt="" />
+      <img src={imageFile} style={style} alt="" />
     </TableCell>
   );
 }
@@ -102,7 +105,7 @@ function Row(props: {show: Show}) {
   return (
     <React.Fragment>
       <TableRow onClick={() => setOpen(!open)}>
-        <IconCell show={show} open={open} />
+        <IconCell show={show} open={open} indent={false} />
         <TableCell>
           {show.title} {episodeCountLabel}
         </TableCell>
@@ -114,13 +117,13 @@ function Row(props: {show: Show}) {
   );
 }
 
-function EpisodeRow(props: {key: string; show: Show}) {
-  const {key, show} = props;
+function EpisodeRow(props: {episodeID: string; show: Show}) {
+  const {episodeID, show} = props;
   const {dayOfWeek, monthDay} = parseRecordingDate(show);
 
   return (
-    <TableRow key={key}>
-      <IconCell show={show} open={false} />
+    <TableRow key={episodeID} className="indented">
+      <IconCell show={show} open={false} indent={true} />
       <TableCell>{show.title}</TableCell>
       <TableCell>{dayOfWeek}</TableCell>
       <TableCell>{monthDay}</TableCell>
@@ -140,11 +143,15 @@ function EpisodeRows(props: {show: Show; open: boolean}) {
   }
 
   return (
-    <Box sx={{margin: "1rem"}}>
+    <React.Fragment>
       {(show as Series).episodes?.map((episode) => (
-        <EpisodeRow key={episode.id} show={{...show, ...episode}} />
+        <EpisodeRow
+          key={episode.id}
+          episodeID={episode.id}
+          show={{...show, ...episode}}
+        />
       ))}
-    </Box>
+    </React.Fragment>
   );
 }
 
