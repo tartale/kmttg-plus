@@ -1,6 +1,5 @@
 import React, {useState, useEffect} from "react";
 import Box from "@mui/material/Box";
-import Collapse from "@mui/material/Collapse";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -142,22 +141,13 @@ function EpisodeRows(props: {show: Show; open: boolean}) {
   ) {
     return <React.Fragment />;
   }
-
   return (
     <React.Fragment>
-      <TableRow>
-        <Collapse in={open} timeout="auto" unmountOnExit>
-          <Box sx={{margin: 1}}>
-            <Table className="showListingTable">
-              <TableBody>
-                {(show as Series).episodes?.map((episode) => (
-                  <EpisodeRow key={episode.id} show={{...show, ...episode}} />
-                ))}
-              </TableBody>
-            </Table>
-          </Box>
-        </Collapse>
-      </TableRow>
+      <Box sx={{margin: "1px"}}>
+        {(show as Series).episodes?.map((episode) => (
+          <EpisodeRow key={episode.id} show={{...show, ...episode}} />
+        ))}
+      </Box>
     </React.Fragment>
   );
 }
@@ -200,39 +190,3 @@ export default function ShowListing() {
     </TableContainer>
   );
 }
-
-// {/* <TableRow>
-//   <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-//     <Collapse in={open} timeout="auto" unmountOnExit>
-//       <Box sx={{ margin: 1 }}>
-//         <Typography variant="h6" gutterBottom component="div">
-//           History
-//         </Typography>
-//         <Table size="small" aria-label="purchases">
-//           <TableHead>
-//             <TableRow>
-//               <TableCell>Date</TableCell>
-//               <TableCell>Customer</TableCell>
-//               <TableCell align="right">Amount</TableCell>
-//               <TableCell align="right">Total price ($)</TableCell>
-//             </TableRow>
-//           </TableHead>
-//           <TableBody>
-//             {row.history.map((historyRow) => (
-//               <TableRow key={historyRow.date}>
-//                 <TableCell component="th" scope="row">
-//                   {historyRow.date}
-//                 </TableCell>
-//                 <TableCell>{historyRow.customerId}</TableCell>
-//                 <TableCell align="right">{historyRow.amount}</TableCell>
-//                 <TableCell align="right">
-//                   {Math.round(historyRow.amount * row.price * 100) / 100}
-//                 </TableCell>
-//               </TableRow>
-//             ))}
-//           </TableBody>
-//         </Table>
-//       </Box>
-//     </Collapse>
-//   </TableCell>
-// </TableRow> */}
