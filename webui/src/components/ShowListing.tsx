@@ -101,10 +101,7 @@ function Row(props: {show: Show}) {
 
   return (
     <React.Fragment>
-      <TableRow
-        sx={{"& > *": {borderBottom: "unset"}}}
-        onClick={() => setOpen(!open)}
-      >
+      <TableRow onClick={() => setOpen(!open)}>
         <IconCell show={show} open={open} />
         <TableCell>
           {show.title} {episodeCountLabel}
@@ -122,7 +119,7 @@ function EpisodeRow(props: {key: string; show: Show}) {
   const {dayOfWeek, monthDay} = parseRecordingDate(show);
 
   return (
-    <TableRow key={key} sx={{"& > *": {borderBottom: "unset"}}}>
+    <TableRow key={key}>
       <IconCell show={show} open={false} />
       <TableCell>{show.title}</TableCell>
       <TableCell>{dayOfWeek}</TableCell>
@@ -141,14 +138,13 @@ function EpisodeRows(props: {show: Show; open: boolean}) {
   ) {
     return <React.Fragment />;
   }
+
   return (
-    <React.Fragment>
-      <Box sx={{margin: "1px"}}>
-        {(show as Series).episodes?.map((episode) => (
-          <EpisodeRow key={episode.id} show={{...show, ...episode}} />
-        ))}
-      </Box>
-    </React.Fragment>
+    <Box sx={{margin: "1rem"}}>
+      {(show as Series).episodes?.map((episode) => (
+        <EpisodeRow key={episode.id} show={{...show, ...episode}} />
+      ))}
+    </Box>
   );
 }
 
@@ -179,7 +175,10 @@ export default function ShowListing() {
   }, []);
 
   return (
-    <TableContainer component={Paper}>
+    <TableContainer
+      component={Paper}
+      sx={{background: "linear-gradient(to bottom, #162c4f, #000000);"}}
+    >
       <Table className="showListingTable">
         <TableBody>
           {shows.map((show) => (
