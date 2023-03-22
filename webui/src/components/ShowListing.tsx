@@ -35,7 +35,17 @@ export interface Episode extends Show {
   episodeDescription?: string;
 }
 
-const ShowImageFile = (show: Show, open: boolean): string => {
+export const recordedOn = (show: Show): Date | undefined =>
+  (show as Movie).recordedOn ||
+  (show as Episode).recordedOn ||
+  (show as Series).episodes.reduce(
+    (latest, episode) =>
+      episode.recordedOn > latest ? episode.recordedOn : latest,
+    new Date(0)
+  ) ||
+  undefined;
+
+export const getImageFileForShow = (show: Show, open: boolean): string => {
   switch (show.kind) {
     case "series": {
       const episodeCount = (show as Series).episodes.length;
@@ -62,20 +72,21 @@ const ShowImageFile = (show: Show, open: boolean): string => {
 
 function Row(props: {show: Show}) {
   const {show} = props;
+  console.log(show);
   const [open, setOpen] = React.useState(false);
 
   const episodeCount = (show as Series).episodes?.length || 0;
   const episodeCountLabel = episodeCount > 1 ? `[${episodeCount}]` : "";
-  const dayOfWeek = show.recordedOn.toLocaleDateString("en-US", {
+  const dayOfWeek = recordedOn(show)?.toLocaleDateString("en-US", {
     weekday: "short",
   });
-  const monthDay = show.recordedOn.toLocaleDateString("en-US", {
+  const monthDay = recordedOn(show)?.toLocaleDateString("en-US", {
     month: "2-digit",
     day: "2-digit",
   });
 
   const ShowIcon = (props: {show: Show}) => {
-    const imageFile: string = ShowImageFile(show, open);
+    const imageFile: string = getImageFileForShow(show, open);
 
     return (
       <TableCell>
@@ -97,19 +108,19 @@ function Row(props: {show: Show}) {
         <TableCell>{dayOfWeek}</TableCell>
         <TableCell>{monthDay}</TableCell>
       </TableRow>
-      {/* <TableRow>
+      <TableRow>
         <Collapse in={open} timeout="auto" unmountOnExit>
-          <Box sx={{ margin: 1 }}>
+          <Box sx={{margin: 1}}>
             <Table className="showListingTable">
               <TableBody>
-                {show.episodes?.map((episode) => (
-                  <Row key={episode.id} show={episode} />
+                {(show as Series).episodes?.map((episode) => (
+                  <Row key={episode.id} show={{...show, ...episode}} />
                 ))}
               </TableBody>
             </Table>
           </Box>
         </Collapse>
-      </TableRow> */}
+      </TableRow>
 
       {/* <TableRow>
         <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
@@ -156,12 +167,12 @@ export default function ShowListing() {
   useEffect(() => {
     fetch("input/shows.json")
       .then((response) => response.json())
-      .then((data) => {
-        const parsedShows = data.map((show: Movie | Series) => ({
-          ...show,
-          kind: (show as Series).episodes ? "series" : "movie",
-          id: show.id || uuidv4(),
-          recordedOn: new Date(show.recordedOn),
+      .then((jsonArray) => {
+        const parsedShows = jsonArray.map((obj: any): Show[] => ({
+          ...obj,
+          kind: (obj as Series).episodes ? "series" : "movie",
+          id: obj.id || uuidv4(),
+          recordedOn: new Date(obj.recordedOn),
         }));
         setShows(parsedShows);
       })
