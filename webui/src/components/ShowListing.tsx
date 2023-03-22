@@ -173,6 +173,12 @@ export default function ShowListing() {
           kind: (obj as Series).episodes ? "series" : "movie",
           id: obj.id || uuidv4(),
           recordedOn: new Date(obj.recordedOn),
+          episodes: obj.episodes?.map(
+            (episode: Episode): Episode => ({
+              ...episode,
+              recordedOn: new Date(episode.recordedOn),
+            })
+          ),
         }));
         setShows(parsedShows);
       })
