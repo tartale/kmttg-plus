@@ -10,7 +10,9 @@ function App() {
       <div style={{position: "absolute", top: 10, left: 10}}>
         <TiVoLogo />
       </div>
-      <ShowListing />
+      <div style={{position: "absolute", top: 150, left: 10}}>
+        <ShowListing />
+      </div>
     </div>
   );
 }

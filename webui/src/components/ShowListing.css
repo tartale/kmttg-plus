@@ -8,8 +8,6 @@
 .showListingTable tbody tr {
   background: linear-gradient(to bottom, #162c4f, #000000);
   border: none;
-  height: 80px;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
@@ -25,7 +23,7 @@
   padding: 20px;
   font-weight: bold;
 }
- 
+
 .showListingTable tbody td:first-child {
   width: 5%;
 }
@@ -37,4 +35,3 @@
 .showListingTable tbody td:nth-child(4) {
   width: 10%;
 }
-
