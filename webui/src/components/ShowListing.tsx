@@ -68,6 +68,49 @@ export const getImageFileForShow = (show: Show, open: boolean): string => {
   }
 };
 
+type ShowSetter = React.Dispatch<React.SetStateAction<Show[]>>
+
+const getShows = (setShows: ShowSetter) => () => {
+  fetch("http://localhost:8181/getMyShows?limit=50&tivo=Living%20Room&offset=0", {
+    "credentials": "omit",
+    "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0) Gecko/20100101 Firefox/102.0",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "en-US,en;q=0.5",
+        "X-Requested-With": "XMLHttpRequest",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-GPC": "1",
+        "Pragma": "no-cache",
+        "Cache-Control": "no-cache",
+        "Access-Control-Allow-Origin": "true"
+    },
+    "method": "GET",
+    "mode": "cors"
+  })
+    .then((response) => response.json())
+    .then((jsonArray) => {
+      const parsedShows = jsonArray.map((obj: any): Show[] => ({
+        ...obj,
+        kind: (obj as Series).episodes ? "series" : "movie",
+        id: obj.id || uuidv4(),
+        recordedOn: new Date(obj.startTime),
+        episodes: obj.episodes?.map(
+          (episode: any): Episode => ({
+            ...episode,
+            kind: "episode",
+            recordingId: obj.id || uuidv4(),
+            recordedOn: new Date(episode.startTime),
+          })
+        ),
+      }));
+      setShows(parsedShows);
+    })
+    .catch((error) => console.error(error));
+
+}
+
 const parseRecordingDate = (show: Show) => {
   const dayOfWeek = recordedOn(show)?.toLocaleDateString("en-US", {
     weekday: "short",
@@ -158,28 +201,30 @@ function EpisodeRows(props: {show: Show; open: boolean}) {
 export default function ShowListing() {
   const [shows, setShows] = useState<Show[]>([]);
 
-  useEffect(() => {
-    fetch("input/shows.json")
-      .then((response) => response.json())
-      .then((jsonArray) => {
-        const parsedShows = jsonArray.map((obj: any): Show[] => ({
-          ...obj,
-          kind: (obj as Series).episodes ? "series" : "movie",
-          id: obj.id || uuidv4(),
-          recordedOn: new Date(obj.startTime),
-          episodes: obj.episodes?.map(
-            (episode: any): Episode => ({
-              ...episode,
-              kind: "episode",
-              recordingId: obj.id || uuidv4(),
-              recordedOn: new Date(episode.startTime),
-            })
-          ),
-        }));
-        setShows(parsedShows);
-      })
-      .catch((error) => console.error(error));
-  }, []);
+  // useEffect(() => {
+  //   fetch("input/shows.json")
+  //     .then((response) => response.json())
+  //     .then((jsonArray) => {
+  //       const parsedShows = jsonArray.map((obj: any): Show[] => ({
+  //         ...obj,
+  //         kind: (obj as Series).episodes ? "series" : "movie",
+  //         id: obj.id || uuidv4(),
+  //         recordedOn: new Date(obj.startTime),
+  //         episodes: obj.episodes?.map(
+  //           (episode: any): Episode => ({
+  //             ...episode,
+  //             kind: "episode",
+  //             recordingId: obj.id || uuidv4(),
+  //             recordedOn: new Date(episode.startTime),
+  //           })
+  //         ),
+  //       }));
+  //       setShows(parsedShows);
+  //     })
+  //     .catch((error) => console.error(error));
+  // }, []);
+
+  useEffect(getShows(setShows), []);
 
   return (
     <TableContainer
