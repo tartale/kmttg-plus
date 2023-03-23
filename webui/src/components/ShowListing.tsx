@@ -10,7 +10,7 @@ import "./ShowListing.css";
 import "./TivoStyle.css";
 
 export interface Show {
-  id: string;
+  recordingId: string;
   kind: string;
   title: string;
   recordedOn: Date;
@@ -146,8 +146,8 @@ function EpisodeRows(props: {show: Show; open: boolean}) {
     <React.Fragment>
       {(show as Series).episodes?.map((episode) => (
         <EpisodeRow
-          key={episode.id}
-          episodeID={episode.id}
+          key={episode.recordingId}
+          episodeID={episode.recordingId}
           show={{...show, ...episode}}
         />
       ))}
@@ -166,13 +166,13 @@ export default function ShowListing() {
           ...obj,
           kind: (obj as Series).episodes ? "series" : "movie",
           id: obj.id || uuidv4(),
-          recordedOn: new Date(obj.recordedOn),
+          recordedOn: new Date(obj.startTime),
           episodes: obj.episodes?.map(
-            (episode: Episode): Episode => ({
+            (episode: any): Episode => ({
               ...episode,
               kind: "episode",
-              id: obj.id || uuidv4(),
-              recordedOn: new Date(episode.recordedOn),
+              recordingId: obj.id || uuidv4(),
+              recordedOn: new Date(episode.startTime),
             })
           ),
         }));
@@ -189,7 +189,7 @@ export default function ShowListing() {
       <Table className="showListingTable">
         <TableBody>
           {shows.map((show) => (
-            <Row key={show.id} show={show} />
+            <Row key={show.recordingId} show={show} />
           ))}
         </TableBody>
       </Table>

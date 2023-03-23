@@ -1,16 +1,16 @@
 [
   {
     "title": "Law & Order",
-    "recordedOn": "2022-05-27T10:00:00",
+    "startTime": "2022-05-27T10:00:00",
     "episodes": [
       {
-        "recordedOn": "2022-05-27T10:00:00",
+        "startTime": "2022-05-27T10:00:00",
         "season": 6,
         "episode": 17,
         "episodeTitle": "Deceit"
       },
       {
-        "recordedOn": "2022-05-27T09:00",
+        "startTime": "2022-05-27T09:00",
         "season": 6,
         "episode": 18,
         "episodeTitle": "Atonement"
@@ -19,10 +19,10 @@
   },
   {
     "title": "CSI: Miami",
-    "recordedOn": "2022-05-12T23:00",
+    "startTime": "2022-05-12T23:00",
     "episodes": [
       {
-        "recordedOn": "2022-05-12T23:00",
+        "startTime": "2022-05-12T23:00",
         "season": 10,
         "episode": 14,
         "episodeTitle": "Last Straw"
@@ -32,6 +32,6 @@
   {
     "title": "Curious George 2: Follow That Monkey!",
     "movieYear": 2009,
-    "recordedOn": "2022-01-09T19:00"
+    "startTime": "2022-01-09T19:00"
   }
 ]
