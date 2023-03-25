@@ -89,24 +89,31 @@ const getShows = (setShows: ShowSetter) => () => {
   })
     .then((response) => response.json())
     .then((jsonArray) => {
-      const parsedShows = jsonArray.map((obj: any): Show[] => ({
-        ...obj,
-        kind: (obj as Series).episodes ? "series" : "movie",
-        id: obj.id || uuidv4(),
-        recordedOn: new Date(obj.startTime),
-        episodes: obj.episodes?.map(
-          (episode: any): Episode => ({
-            ...episode,
-            kind: "episode",
-            recordingId: obj.id || uuidv4(),
-            recordedOn: new Date(episode.startTime),
-          })
-        ),
-      }));
+      const parsedShows = jsonArray.map(parseShow)
       setShows(parsedShows);
     })
     .catch((error) => console.error(error));
 
+}
+
+const parseShow = (obj: any): Show => {
+  var show: Show;
+
+  show = {
+    ...obj,
+    kind: obj.episodic ? "series" : "movie",
+    recordedOn: new Date(obj.startTime),
+    episodes: obj.episodes?.map(
+      (episode: any): Episode => ({
+        ...episode,
+        kind: "episode",
+        recordingId: obj.id || uuidv4(),
+        recordedOn: new Date(episode.startTime),
+      })
+    ),
+  }
+
+  return show
 }
 
 const parseRecordingDate = (show: Show) => {
