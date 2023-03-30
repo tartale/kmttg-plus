@@ -26,9 +26,9 @@ export interface Series extends Show {
 }
 
 export interface Episode extends Show {
-  firstAiredOn?: Date;
-  season?: number;
-  episode?: number;
+  originalAirDate?: Date;
+  seasonNumber?: number;
+  episodeNumber?: number;
   episodeTitle?: string;
   episodeDescription?: string;
 }
@@ -89,31 +89,55 @@ const getShows = (setShows: ShowSetter) => () => {
   })
     .then((response) => response.json())
     .then((jsonArray) => {
-      const parsedShows = jsonArray.map(parseShow)
-      setShows(parsedShows);
+      const shows = mergeEpisodes(jsonArray.map(parseShow))
+      setShows(shows);
     })
     .catch((error) => console.error(error));
 
 }
 
 const parseShow = (obj: any): Show => {
-  var show: Show;
-
-  show = {
-    ...obj,
-    kind: obj.episodic ? "series" : "movie",
-    recordedOn: new Date(obj.startTime),
-    episodes: obj.episodes?.map(
-      (episode: any): Episode => ({
-        ...episode,
+  const recording = obj.recording[0]
+  const show: Series | Movie = {
+    recordingId: recording.recordingId,
+    kind: recording.episodic ? "series" : "movie",
+    title: recording.title,
+    recordedOn: new Date(recording.startTime),
+    description: recording.descrtipion,
+    movieYear: recording.movieYear,
+    episodes: recording.episodic? [
+      {
+        recordingId: recording.recordingId,
         kind: "episode",
-        recordingId: obj.id || uuidv4(),
-        recordedOn: new Date(episode.startTime),
-      })
-    ),
+        title: recording.title,
+        recordedOn: new Date(recording.startTime),
+        description: recording.descrtipion,
+        episodeNumber: recording.episodeNum? recording.episodeNum[0] : 0,
+        episodeTitle: recording.subtitle,
+        episodeDescription: recording.description,
+      }
+    ]: []
   }
 
   return show
+}
+
+const mergeEpisodes = (shows: Show[]): Show[] => {
+  const combinedShows: Show[] = Object.values(shows.reduce((acc: any, show) => {
+    if (show.kind === "series") {
+      const series = (show as Series)
+      if (acc[series.title]) {
+        acc[series.title].episodes.push(...series.episodes);
+      } else {
+        acc[series.title] = {...series};
+      }
+    } else {
+      acc[show.title] = {...show}
+    }
+    return acc;
+  }, {}));
+  
+  return combinedShows
 }
 
 const parseRecordingDate = (show: Show) => {
