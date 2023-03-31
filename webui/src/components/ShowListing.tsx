@@ -26,11 +26,11 @@ export interface Series extends Show {
 }
 
 export interface Episode extends Show {
-  originalAirDate?: Date;
-  seasonNumber?: number;
-  episodeNumber?: number;
-  episodeTitle?: string;
-  episodeDescription?: string;
+  originalAirDate: Date;
+  seasonNumber: number;
+  episodeNumber: number;
+  episodeTitle: string;
+  episodeDescription: string;
 }
 
 export const recordedOn = (show: Show): Date | undefined =>
@@ -112,6 +112,8 @@ const parseShow = (obj: any): Show => {
         title: recording.title,
         recordedOn: new Date(recording.startTime),
         description: recording.descrtipion,
+        originalAirDate: new Date(recording.originalAirDate),
+        seasonNumber: recording.seasonNumber? recording.seasonNumber : 0,
         episodeNumber: recording.episodeNum? recording.episodeNum[0] : 0,
         episodeTitle: recording.subtitle,
         episodeDescription: recording.description,
@@ -152,6 +154,29 @@ const parseRecordingDate = (show: Show) => {
   return {dayOfWeek, monthDay};
 };
 
+const getTitleExtension = (show: Show): string => {
+  var titleExtension = ""
+  switch (show.kind) {
+    case "movie":
+      const movie = (show as Movie);
+      titleExtension = `(${movie.movieYear})`
+      break
+    case "series":
+      const series = (show as Series);
+      const episodeCount = series.episodes.length
+      titleExtension = `[${episodeCount}]`
+      break
+    case "episode":
+      const episode = (show as Episode);
+      const seasonLabel = episode.seasonNumber ? `S${episode.seasonNumber.toString().padStart(2, '0')}` : ""
+      const episodeLabel = episode.episodeNumber ? `E${episode.episodeNumber.toString().padStart(2, '0')}` : ""
+      titleExtension = `[${seasonLabel}${episodeLabel}]`
+      break
+  }
+
+  return titleExtension
+}
+
 function IconCell(props: {show: Show; open: boolean; indent: boolean}) {
   const {show, open, indent} = props;
   const imageFile: string = getImageFileForShow(show, open);
@@ -170,8 +195,6 @@ function IconCell(props: {show: Show; open: boolean; indent: boolean}) {
 function Row(props: {show: Show}) {
   const {show} = props;
   const [open, setOpen] = React.useState(false);
-  const episodeCount = (show as Series).episodes?.length || 0;
-  const episodeCountLabel = episodeCount > 1 ? `[${episodeCount}]` : "";
   const {dayOfWeek, monthDay} = parseRecordingDate(show);
 
   return (
@@ -179,7 +202,7 @@ function Row(props: {show: Show}) {
       <TableRow onClick={() => setOpen(!open)}>
         <IconCell show={show} open={open} indent={false} />
         <TableCell>
-          {show.title} {episodeCountLabel}
+          {show.title} {getTitleExtension(show)}
         </TableCell>
         <TableCell>{dayOfWeek}</TableCell>
         <TableCell>{monthDay}</TableCell>
@@ -196,7 +219,7 @@ function EpisodeRow(props: {episodeID: string; show: Show}) {
   return (
     <TableRow key={episodeID} className="indented">
       <IconCell show={show} open={false} indent={true} />
-      <TableCell>{show.title}</TableCell>
+      <TableCell>{show.title} {getTitleExtension(show)}</TableCell>
       <TableCell>{dayOfWeek}</TableCell>
       <TableCell>{monthDay}</TableCell>
     </TableRow>
