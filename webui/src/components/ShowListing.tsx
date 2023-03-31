@@ -46,10 +46,6 @@ export const recordedOn = (show: Show): Date | undefined =>
 export const getImageFileForShow = (show: Show, open: boolean): string => {
   switch (show.kind) {
     case "series": {
-      const episodeCount = (show as Series).episodes.length;
-      if (episodeCount === 1) {
-        return "./images/television.png";
-      }
       if (open) {
         return "./images/folder-open.png";
       } else {
@@ -231,8 +227,7 @@ function EpisodeRows(props: {show: Show; open: boolean}) {
 
   if (
     !open ||
-    show.kind !== "series" ||
-    (show as Series).episodes.length <= 1
+    show.kind !== "series"
   ) {
     return <React.Fragment />;
   }
