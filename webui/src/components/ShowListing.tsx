@@ -9,9 +9,15 @@ import { getImageFileForShow, getShows, getTitleExtension, recordedOn } from "./
 import "./ShowListing.css";
 import "./TivoStyle.css";
 
+export enum ShowKind {
+  Movie,
+  Series,
+  Episode
+}
+
 export interface Show {
   recordingId: string;
-  kind: string;
+  kind: ShowKind;
   title: string;
   recordedOn: Date;
   description: string;
@@ -60,8 +66,8 @@ function DescriptionCell(props: any) {
   const { show } = props;
 
   switch (show.kind) {
-    case "movie":
-    case "episode":
+    case ShowKind.Movie:
+    case ShowKind.Episode:
       return (
         <TableCell {...props} style={{ whiteSpace: 'normal' }} >{show.description}</TableCell>
       )
@@ -121,7 +127,7 @@ function EpisodeRows(props: any) {
 
   if (
     !open ||
-    show.kind !== "series"
+    show.kind !== ShowKind.Series
   ) {
     return <React.Fragment />;
   }

@@ -1,4 +1,4 @@
-import { Episode, Movie, Series, Show } from "./ShowListing";
+import { Episode, Movie, Series, Show, ShowKind } from "./ShowListing";
 
 type ShowSetter = React.Dispatch<React.SetStateAction<Show[]>>
 
@@ -40,17 +40,17 @@ export const recordedOn = (show: Show): Date | undefined =>
 
 export const getImageFileForShow = (show: Show, open: boolean): string => {
   switch (show.kind) {
-    case "series": {
+    case ShowKind.Series: {
       if (open) {
         return "./images/folder-open.png";
       } else {
         return "./images/folder-closed.png";
       }
     }
-    case "episode": {
+    case ShowKind.Episode: {
       return "./images/television.png";
     }
-    case "movie": {
+    case ShowKind.Movie: {
       return "./images/movie.png";
     }
     default: {
@@ -62,16 +62,16 @@ export const getImageFileForShow = (show: Show, open: boolean): string => {
 export const getTitleExtension = (show: Show): string => {
   var titleExtension = ""
   switch (show.kind) {
-    case "movie":
+    case ShowKind.Movie:
       const movie = (show as Movie);
       titleExtension = `(${movie.movieYear})`
       break
-    case "series":
+    case ShowKind.Series:
       const series = (show as Series);
       const episodeCount = series.episodes.length
       titleExtension = `[${episodeCount}]`
       break
-    case "episode":
+    case ShowKind.Episode:
       const episode = (show as Episode);
       const seasonLabel = episode.seasonNumber ? `S${episode.seasonNumber.toString().padStart(2, '0')}` : ""
       const episodeLabel = episode.episodeNumber ? `E${episode.episodeNumber.toString().padStart(2, '0')}` : ""
@@ -86,7 +86,7 @@ const parseShow = (obj: any): Show => {
   const recording = obj.recording[0]
   const show: Series | Movie = {
     recordingId: recording.recordingId,
-    kind: recording.episodic ? "series" : "movie",
+    kind: recording.episodic ? ShowKind.Series : ShowKind.Movie,
     title: recording.title,
     recordedOn: new Date(recording.startTime),
     description: recording.description,
@@ -94,7 +94,7 @@ const parseShow = (obj: any): Show => {
     episodes: recording.episodic ? [
       {
         recordingId: recording.recordingId,
-        kind: "episode",
+        kind: ShowKind.Episode,
         title: recording.title,
         recordedOn: new Date(recording.startTime),
         description: recording.description,
@@ -112,7 +112,7 @@ const parseShow = (obj: any): Show => {
 
 const mergeEpisodes = (shows: Show[]): Show[] => {
   const combinedShows: Show[] = Object.values(shows.reduce((acc: any, show) => {
-    if (show.kind === "series") {
+    if (show.kind === ShowKind.Series) {
       const series = (show as Series)
       if (acc[series.title]) {
         acc[series.title].episodes.push(...series.episodes);
