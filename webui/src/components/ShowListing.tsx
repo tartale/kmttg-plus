@@ -4,8 +4,8 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableRow from "@mui/material/TableRow";
-import React, {useEffect, useState} from "react";
-import {v4 as uuidv4} from "uuid";
+import React, { useEffect, useState } from "react";
+import { getImageFileForShow, getShows, getTitleExtension, recordedOn } from "./showListingHelpers";
 import "./ShowListing.css";
 import "./TivoStyle.css";
 
@@ -33,197 +33,91 @@ export interface Episode extends Show {
   episodeDescription: string;
 }
 
-export const recordedOn = (show: Show): Date | undefined =>
-  (show as Movie).recordedOn ||
-  (show as Episode).recordedOn ||
-  (show as Series).episodes.reduce(
-    (latest, episode) =>
-      episode.recordedOn > latest ? episode.recordedOn : latest,
-    new Date(0)
-  ) ||
-  undefined;
-
-export const getImageFileForShow = (show: Show, open: boolean): string => {
-  switch (show.kind) {
-    case "series": {
-      if (open) {
-        return "./images/folder-open.png";
-      } else {
-        return "./images/folder-closed.png";
-      }
-    }
-    case "episode": {
-      return "./images/television.png";
-    }
-    case "movie": {
-      return "./images/movie.png";
-    }
-    default: {
-      return "./images/television-unknown.png";
-    }
-  }
-};
-
-type ShowSetter = React.Dispatch<React.SetStateAction<Show[]>>
-
-const getShows = (setShows: ShowSetter) => () => {
-  fetch("http://localhost:8181/getMyShows?limit=50&tivo=Living%20Room&offset=0", {
-    "credentials": "omit",
-    "headers": {
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "Accept-Language": "en-US,en;q=0.5",
-        "X-Requested-With": "XMLHttpRequest",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-origin",
-        "Sec-GPC": "1",
-        "Pragma": "no-cache",
-        "Cache-Control": "no-cache",
-    },
-    "method": "GET",
-    "mode": "cors"
-  })
-    .then((response) => response.json())
-    .then((jsonArray) => {
-      const shows = mergeEpisodes(jsonArray.map(parseShow))
-      setShows(shows);
-    })
-    .catch((error) => console.error(error));
-
-}
-
-const parseShow = (obj: any): Show => {
-  const recording = obj.recording[0]
-  const show: Series | Movie = {
-    recordingId: recording.recordingId,
-    kind: recording.episodic ? "series" : "movie",
-    title: recording.title,
-    recordedOn: new Date(recording.startTime),
-    description: recording.descrtipion,
-    movieYear: recording.movieYear,
-    episodes: recording.episodic? [
-      {
-        recordingId: recording.recordingId,
-        kind: "episode",
-        title: recording.title,
-        recordedOn: new Date(recording.startTime),
-        description: recording.descrtipion,
-        originalAirDate: new Date(recording.originalAirDate),
-        seasonNumber: recording.seasonNumber? recording.seasonNumber : 0,
-        episodeNumber: recording.episodeNum? recording.episodeNum[0] : 0,
-        episodeTitle: recording.subtitle,
-        episodeDescription: recording.description,
-      }
-    ]: []
-  }
-
-  return show
-}
-
-const mergeEpisodes = (shows: Show[]): Show[] => {
-  const combinedShows: Show[] = Object.values(shows.reduce((acc: any, show) => {
-    if (show.kind === "series") {
-      const series = (show as Series)
-      if (acc[series.title]) {
-        acc[series.title].episodes.push(...series.episodes);
-      } else {
-        acc[series.title] = {...series};
-      }
-    } else {
-      acc[show.title] = {...show}
-    }
-    return acc;
-  }, {}));
-  
-  return combinedShows
-}
-
-const parseRecordingDate = (show: Show) => {
-  const dayOfWeek = recordedOn(show)?.toLocaleDateString("en-US", {
-    weekday: "short",
-  });
-  const monthDay = recordedOn(show)?.toLocaleDateString("en-US", {
-    month: "2-digit",
-    day: "2-digit",
-  });
-
-  return {dayOfWeek, monthDay};
-};
-
-const getTitleExtension = (show: Show): string => {
-  var titleExtension = ""
-  switch (show.kind) {
-    case "movie":
-      const movie = (show as Movie);
-      titleExtension = `(${movie.movieYear})`
-      break
-    case "series":
-      const series = (show as Series);
-      const episodeCount = series.episodes.length
-      titleExtension = `[${episodeCount}]`
-      break
-    case "episode":
-      const episode = (show as Episode);
-      const seasonLabel = episode.seasonNumber ? `S${episode.seasonNumber.toString().padStart(2, '0')}` : ""
-      const episodeLabel = episode.episodeNumber ? `E${episode.episodeNumber.toString().padStart(2, '0')}` : ""
-      titleExtension = `[${seasonLabel}${episodeLabel}]`
-      break
-  }
-
-  return titleExtension
-}
-
-function IconCell(props: {show: Show; open: boolean; indent: boolean}) {
-  const {show, open, indent} = props;
+function IconCell(props: any) {
+  const { show, open, indent } = props;
   const imageFile: string = getImageFileForShow(show, open);
 
   const style = indent
-    ? {paddingLeft: "2rem", width: "3rem", height: "3rem"}
-    : {width: "3rem", height: "3rem"};
+    ? { paddingLeft: "2rem", width: "3rem", height: "3rem" }
+    : { width: "3rem", height: "3rem" };
 
   return (
-    <TableCell>
+    <TableCell {...props}>
       <img src={imageFile} style={style} alt="" />
     </TableCell>
   );
 }
 
-function Row(props: {show: Show}) {
-  const {show} = props;
+function TitleCell(props: any) {
+  const { show } = props;
+
+  return (
+    <TableCell width={"20%"} style={{ whiteSpace: 'normal' }}>{show.title} {getTitleExtension(show)} </TableCell>
+  )
+}
+
+function DescriptionCell(props: any) {
+  const { show } = props;
+
+  switch (show.kind) {
+    case "movie":
+    case "episode":
+      return (
+        <TableCell {...props} style={{ whiteSpace: 'normal' }} >{show.description}</TableCell>
+      )
+    default:
+      return (<TableCell {...props} style={{ whiteSpace: 'normal' }} />)
+  }
+}
+
+function RecordingDateCell(props: any) {
+  const { show } = props;
+  const recordingDate = recordedOn(show)?.toLocaleDateString("en-US", {
+    dateStyle: "medium"
+  });
+  const recordingTime = recordedOn(show)?.toLocaleTimeString("en-US", {
+    timeStyle: "short"
+  });
+
+  return (
+    <React.Fragment>
+      <TableCell width={"10%"} >{recordingDate} {recordingTime}</TableCell>
+    </React.Fragment>
+  )
+}
+
+function Row(props: any) {
+  const { show } = props;
   const [open, setOpen] = React.useState(false);
-  const {dayOfWeek, monthDay} = parseRecordingDate(show);
 
   return (
     <React.Fragment>
       <TableRow onClick={() => setOpen(!open)}>
-        <IconCell show={show} open={open} indent={false} />
-        <TableCell>
-          {show.title} {getTitleExtension(show)}
-        </TableCell>
-        <TableCell>{dayOfWeek}</TableCell>
-        <TableCell>{monthDay}</TableCell>
+        <IconCell show={show} open={open} indent={false} width={"5%"} />
+        <TitleCell show={show} />
+        <DescriptionCell show={show} />
+        <RecordingDateCell show={show} />
       </TableRow>
       <EpisodeRows show={show} open={open} />
     </React.Fragment>
   );
 }
 
-function EpisodeRow(props: {episodeID: string; show: Show}) {
-  const {episodeID, show} = props;
-  const {dayOfWeek, monthDay} = parseRecordingDate(show);
+function EpisodeRow(props: any) {
+  const { episodeID, show } = props;
 
   return (
     <TableRow key={episodeID} className="indented">
-      <IconCell show={show} open={false} indent={true} />
+      <IconCell show={show} open={false} indent={true} width={"5%"} />
       <TableCell>{show.title} {getTitleExtension(show)}</TableCell>
-      <TableCell>{dayOfWeek}</TableCell>
-      <TableCell>{monthDay}</TableCell>
+      <DescriptionCell show={show} />
+      <RecordingDateCell show={show} />
     </TableRow>
   );
 }
 
-function EpisodeRows(props: {show: Show; open: boolean}) {
-  const {show, open} = props;
+function EpisodeRows(props: any) {
+  const { show, open } = props;
 
   if (
     !open ||
@@ -238,7 +132,7 @@ function EpisodeRows(props: {show: Show; open: boolean}) {
         <EpisodeRow
           key={episode.recordingId}
           episodeID={episode.recordingId}
-          show={{...show, ...episode}}
+          show={{ ...show, ...episode }}
         />
       ))}
     </React.Fragment>
@@ -253,7 +147,7 @@ export default function ShowListing() {
   return (
     <TableContainer
       component={Paper}
-      sx={{background: "linear-gradient(to bottom, #162c4f, #000000);"}}
+      sx={{ background: "linear-gradient(to bottom, #162c4f, #000000);" }}
     >
       <Table className="showListingTable">
         <TableBody>

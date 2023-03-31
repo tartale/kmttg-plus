@@ -23,15 +23,3 @@
   padding: 20px;
   font-weight: bold;
 }
-
-.showListingTable tbody td:first-child {
-  width: 5%;
-}
-
-.showListingTable tbody td:nth-child(3) {
-  width: 2%;
-}
-
-.showListingTable tbody td:nth-child(4) {
-  width: 2%;
-}
