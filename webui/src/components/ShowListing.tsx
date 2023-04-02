@@ -22,6 +22,8 @@ export interface Show {
   description: string;
 }
 
+export type ShowSortField = 'kind' | 'title' | 'recordedOn';
+
 export interface Movie extends Show {
   movieYear: number;
 }
