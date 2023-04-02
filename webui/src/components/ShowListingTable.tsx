@@ -1,114 +1,73 @@
-import React, { useEffect, useMemo, useState } from "react";
 // import Paper from "@mui/material/Paper";
 // import Table from "@mui/material/Table";
 // import TableBody from "@mui/material/TableBody";
 // import TableContainer from "@mui/material/TableContainer";
-// import TableHead from "@mui/material/TableHead";
 // import TableRow from "@mui/material/TableRow";
 // import TableCell from "@mui/material/TableCell";
-// import TableSortLabel from "@mui/material/TableSortLabel";
-// import { useTable, useSortBy, useFilters } from "react-table";
+// import TableHead from "@mui/material/TableHead";
+import { useEffect, useState } from "react";
+// import "./ShowListing.css";
 // import { getShows } from "./showListingHelpers";
-// import { ShowRow } from "./ShowRow";
+// import { Show, ShowKind } from "./ShowListing";
 // import "./TivoStyle.css";
-
-// export enum ShowKind {
-//   Movie,
-//   Series,
-//   Episode
-// }
-
-// export interface Show {
-//   recordingId: string;
-//   kind: ShowKind;
-//   title: string;
-//   recordedOn: Date;
-//   description: string;
-// }
-
-// export interface Movie extends Show {
-//   movieYear: number;
-// }
-
-// export interface Series extends Show {
-//   episodes: Episode[];
-// }
-
-// export interface Episode extends Show {
-//   originalAirDate: Date;
-//   seasonNumber: number;
-//   episodeNumber: number;
-//   episodeTitle: string;
-//   episodeDescription: string;
-// }
 
 // export default function ShowListing() {
 //   const [shows, setShows] = useState<Show[]>([]);
+//   const [sortedShows, setSortedShows] = useState<Show[]>([]);
 
 //   useEffect(() => {
-//     getShows(setShows);
+//     getShows((shows) => {
+//       setShows(shows);
+//       setSortedShows(shows);
+//     });
 //   }, []);
 
-//   const columns = useMemo(
-//     () => [
-//       {
-//         Header: "Title",
-//         accessor: "title"
-//       },
-//       {
-//         Header: "Recorded On",
-//         accessor: "recordedOn"
-//       },
-//       {
-//         Header: "Description",
-//         accessor: "description"
+//   const handleSort = (field: string) => {
+//     const sorted = [...sortedShows].sort((a, b) => {
+//       if (a[field] < b[field]) {
+//         return -1;
 //       }
-//     ],
-//     []
-//   );
+//       if (a[field] > b[field]) {
+//         return 1;
+//       }
+//       return 0;
+//     });
+//     setSortedShows(sorted);
+//   };
 
-//   const tableData = useMemo(() => shows, [shows]);
-
-//   const {
-//     getTableProps,
-//     getTableBodyProps,
-//     headerGroups,
-//     rows,
-//     prepareRow
-//   } = useTable(
-//     {
-//       columns,
-//       data: tableData
-//     },
-//     useFilters,
-//     useSortBy
-//   );
+//   const handleFilter = (event: React.ChangeEvent<HTMLInputElement>) => {
+//     const filtered = shows.filter((show) =>
+//       show.title.toLowerCase().includes(event.target.value.toLowerCase())
+//     );
+//     setSortedShows(filtered);
+//   };
 
 //   return (
-//     <TableContainer component={Paper}>
-//       <Table {...getTableProps()}>
+//     <TableContainer
+//       component={Paper}
+//       sx={{ background: "linear-gradient(to bottom, #162c4f, #000000);" }}
+//     >
+//       <Table className="showListingTable">
 //         <TableHead>
-//           {headerGroups.map(headerGroup => (
-//             <TableRow {...headerGroup.getHeaderGroupProps()}>
-//               {headerGroup.headers.map(column => (
-//                 <TableCell
-//                   {...column.getHeaderProps(column.getSortByToggleProps())}
-//                 >
-//                   {column.render("Header")}
-//                   <TableSortLabel
-//                     active={column.isSorted}
-//                     direction={column.isSortedDesc ? "desc" : "asc"}
-//                   />
-//                 </TableCell>
-//               ))}
+//           <TableRow>
+//             <TableCell onClick={() => handleSort("title")}>Title</TableCell>
+//             <TableCell onClick={() => handleSort("recordedOn")}>Recorded On</TableCell>
+//             <TableCell>Description</TableCell>
+//           </TableRow>
+//         </TableHead>
+//         <TableBody>
+//           <TableRow>
+//             <TableCell>
+//               <input type="text" onChange={handleFilter} />
+//             </TableCell>
+//           </TableRow>
+//           {sortedShows.map((show) => (
+//             <TableRow key={show.recordingId}>
+//               <TableCell>{show.title}</TableCell>
+//               <TableCell>{show.recordedOn.toLocaleDateString()}</TableCell>
+//               <TableCell>{show.description}</TableCell>
 //             </TableRow>
 //           ))}
-//         </TableHead>
-//         <TableBody {...getTableBodyProps()}>
-//           {rows.map(row => {
-//             prepareRow(row);
-//             return <ShowRow key={row.original.recordingId} show={row.original} />;
-//           })}
 //         </TableBody>
 //       </Table>
 //     </TableContainer>
