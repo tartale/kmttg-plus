@@ -25,3 +25,9 @@
   padding: 20px;
   font-weight: bold;
 }
+
+.showListingTable thead th {
+  font-size: 1.25rem;
+  border-bottom-width: .5rem;
+  border-bottom-color: aqua;
+}
