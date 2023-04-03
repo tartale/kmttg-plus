@@ -2,11 +2,11 @@ import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableContainer from "@mui/material/TableContainer";
-import React, { useEffect, useState } from "react";
-import { getShows } from "./showListingHelpers";
+import { useEffect, useState } from "react";
 import "./ShowListing.css";
+import { getShows } from "./showListingHelpers";
+import { ShowHeader, ShowRow } from "./ShowRow";
 import "./TivoStyle.css";
-import { ShowRow } from "./ShowRow";
 
 export enum ShowKind {
   Movie,
@@ -51,6 +51,7 @@ export default function ShowListing() {
       sx={{ background: "linear-gradient(to bottom, #162c4f, #000000);" }}
     >
       <Table className="showListingTable">
+        <ShowHeader/>
         <TableBody>
           {shows.map((show) => (
             <ShowRow key={show.recordingId} show={show} />

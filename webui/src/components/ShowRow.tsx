@@ -1,8 +1,23 @@
 import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
+import TableHead from "@mui/material/TableHead";
 import React from "react";
 import { getImageFileForShow, getTitleExtension, recordedOn } from "./showListingHelpers";
 import { ShowKind, Series } from "./ShowListing";
+
+export function ShowHeader(props: any) {
+
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell width={"5%"} ></TableCell>
+        <TableCell width={"20%"} >Title</TableCell>
+        <TableCell>Description</TableCell>
+        <TableCell width={"10%"} >Recorded On</TableCell>
+      </TableRow>
+    </TableHead>
+  )
+}
 
 export function ShowRow(props: any) {
   const { show } = props;
@@ -15,7 +30,7 @@ export function ShowRow(props: any) {
         <IconCell width={"5%"} show={show} open={open} indent={indent} />
         <TitleCell width={"20%"} show={show} />
         <DescriptionCell show={show} />
-        <RecordedOnCell width={"10%"}show={show} />
+        <RecordedOnCell width={"10%"} show={show} />
       </TableRow>
       <EpisodeRows show={show} open={open} />
     </React.Fragment>
