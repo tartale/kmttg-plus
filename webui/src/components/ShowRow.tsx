@@ -7,31 +7,21 @@ import { ShowKind, Series } from "./ShowListing";
 export function ShowRow(props: any) {
   const { show } = props;
   const [open, setOpen] = React.useState(false);
+  const indent = (show.kind === ShowKind.Episode)
 
   return (
     <React.Fragment>
-      <TableRow onClick={() => setOpen(!open)}>
-        <IconCell show={show} open={open} indent={false} width={"5%"} />
-        <TitleCell show={show} />
+      <TableRow key={show.recordingId} onClick={() => setOpen(!open)}>
+        <IconCell width={"5%"} show={show} open={open} indent={indent} />
+        <TitleCell width={"20%"} show={show} />
         <DescriptionCell show={show} />
-        <RecordingDateCell show={show} />
+        <RecordedOnCell width={"10%"}show={show} />
       </TableRow>
       <EpisodeRows show={show} open={open} />
     </React.Fragment>
   );
 }
-function EpisodeRow(props: any) {
-  const { episodeID, show } = props;
 
-  return (
-    <TableRow key={episodeID} className="indented">
-      <IconCell show={show} open={false} indent={true} width={"5%"} />
-      <TableCell>{show.title} {getTitleExtension(show)}</TableCell>
-      <DescriptionCell show={show} />
-      <RecordingDateCell show={show} />
-    </TableRow>
-  );
-}
 function EpisodeRows(props: any) {
   const { show, open } = props;
 
@@ -43,7 +33,7 @@ function EpisodeRows(props: any) {
   return (
     <React.Fragment>
       {(show as Series).episodes?.map((episode) => (
-        <EpisodeRow
+        <ShowRow
           key={episode.recordingId}
           episodeID={episode.recordingId}
           show={{ ...show, ...episode }} />
@@ -51,6 +41,7 @@ function EpisodeRows(props: any) {
     </React.Fragment>
   );
 }
+
 function IconCell(props: any) {
   const { show, open, indent } = props;
   const imageFile: string = getImageFileForShow(show, open);
@@ -65,13 +56,31 @@ function IconCell(props: any) {
     </TableCell>
   );
 }
+
+function RecordedOnCell(props: any) {
+  const { show } = props;
+  const recordingDate = recordedOn(show)?.toLocaleDateString("en-US", {
+    dateStyle: "medium"
+  });
+  const recordingTime = recordedOn(show)?.toLocaleTimeString("en-US", {
+    timeStyle: "short"
+  });
+
+  return (
+    <React.Fragment>
+      <TableCell {...props}>{recordingDate} {recordingTime}</TableCell>
+    </React.Fragment>
+  );
+}
+
 function TitleCell(props: any) {
   const { show } = props;
 
   return (
-    <TableCell width={"20%"} style={{ whiteSpace: 'normal' }}>{show.title} {getTitleExtension(show)} </TableCell>
+    <TableCell {...props} style={{ whiteSpace: 'normal' }}>{show.title} {getTitleExtension(show)} </TableCell>
   );
 }
+
 function DescriptionCell(props: any) {
   const { show } = props;
 
@@ -84,19 +93,4 @@ function DescriptionCell(props: any) {
     default:
       return (<TableCell {...props} style={{ whiteSpace: 'normal' }} />);
   }
-}
-function RecordingDateCell(props: any) {
-  const { show } = props;
-  const recordingDate = recordedOn(show)?.toLocaleDateString("en-US", {
-    dateStyle: "medium"
-  });
-  const recordingTime = recordedOn(show)?.toLocaleTimeString("en-US", {
-    timeStyle: "short"
-  });
-
-  return (
-    <React.Fragment>
-      <TableCell width={"10%"}>{recordingDate} {recordingTime}</TableCell>
-    </React.Fragment>
-  );
 }
