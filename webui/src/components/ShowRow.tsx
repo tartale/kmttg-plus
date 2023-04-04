@@ -7,7 +7,7 @@ import { ShowKind, Series } from "./ShowListing";
 import IconButton from "@mui/material/IconButton";
 import UnfoldMoreSharpIcon from '@mui/icons-material/UnfoldMoreSharp';
 import DownloadSharpIcon from '@mui/icons-material/DownloadSharp';
-import { makeStyles } from '@mui/material/styles';
+import { makeStyles } from '@mui/styles';
 
 export function ShowHeader(props: any) {
 
@@ -115,17 +115,16 @@ function RecordedOnCell(props: any) {
   );
 }
 
-const actionCellStyle = makeStyles((theme: any) => ({
+const actionCellStyle = makeStyles(() => ({
   iconButton: {
-    backgroundColor: '#ffffff', // set the background color of the icon button
+    backgroundColor: 'rgb(3, 136, 180)', // set the background color of the icon button
     borderRadius: '50%', // make the icon button circular
-    padding: theme.spacing(2), // increase the padding of the icon button
   },
 }));
 
 function ActionCell(props: any) {
   const { show } = props;
-  const classes = useStyles();
+  const classes = actionCellStyle();
 
   var icon
   switch (show.kind) {
