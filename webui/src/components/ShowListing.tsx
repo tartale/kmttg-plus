@@ -15,6 +15,7 @@ export enum ShowKind {
 }
 
 export interface Show {
+  info: any;
   recordingId: string;
   kind: ShowKind;
   title: string;

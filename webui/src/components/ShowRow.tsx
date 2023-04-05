@@ -5,7 +5,8 @@ import React from "react";
 import { getImageFileForShow, getTitleExtension, recordedOn } from "./showListingHelpers";
 import { ShowKind, Series } from "./ShowListing";
 import IconButton from "@mui/material/IconButton";
-import UnfoldMoreSharpIcon from '@mui/icons-material/UnfoldMoreSharp';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import DownloadSharpIcon from '@mui/icons-material/DownloadSharp';
 import { makeStyles } from '@mui/styles';
 
@@ -117,8 +118,8 @@ function RecordedOnCell(props: any) {
 
 const actionCellStyle = makeStyles(() => ({
   iconButton: {
-    backgroundColor: 'rgb(3, 136, 180)', // set the background color of the icon button
-    borderRadius: '50%', // make the icon button circular
+    backgroundColor: 'rgb(3, 136, 180)',
+    margin: '0.25rem',
   },
 }));
 
@@ -126,23 +127,31 @@ function ActionCell(props: any) {
   const { show } = props;
   const classes = actionCellStyle();
 
-  var icon
   switch (show.kind) {
     case ShowKind.Movie:
     case ShowKind.Episode:
-      icon = (<DownloadSharpIcon/>)
-      break
+      return (
+        <React.Fragment>
+          <TableCell {...props}>
+          <IconButton size="medium" className={classes.iconButton}>
+              <DownloadSharpIcon/>
+            </IconButton>
+            <IconButton size="medium" className={classes.iconButton}>
+              <PlayCircleIcon/>
+            </IconButton>
+          </TableCell>
+        </React.Fragment>
+      )
     default:
-      icon = (<UnfoldMoreSharpIcon/>)
+      return (
+        <React.Fragment>
+          <TableCell {...props}>
+            <IconButton size="medium" className={classes.iconButton}>
+              <ExpandMoreIcon/>
+            </IconButton>
+          </TableCell>
+        </React.Fragment>
+      )
   }
 
-  return (
-    <React.Fragment>
-      <TableCell {...props}>
-        <IconButton size="large" className={classes.iconButton}>
-          {icon}
-        </IconButton>
-      </TableCell>
-    </React.Fragment>
-  );
 }
