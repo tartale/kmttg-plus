@@ -6,15 +6,15 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
+	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
 // Tivos is the resolver for the tivos field.
 func (r *queryResolver) Tivos(ctx context.Context) ([]*model.Tivo, error) {
-	panic(fmt.Errorf("not implemented: Tivos - tivos"))
+	return tivos.List(), nil
 }
 
 // Query returns server.QueryResolver implementation.

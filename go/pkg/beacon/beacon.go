@@ -1,41 +1,77 @@
-package main
+package beacon
 
 import (
-	"fmt"
-	"net"
-	"time"
+	"context"
+	"errors"
+	"strings"
+
+	"github.com/grandcat/zeroconf"
+	"github.com/tartale/kmttg-plus/go/pkg/model"
+	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
-const (
-	MulticastIp   = "239.255.255.250"
-	MulticastPort = 2190
-	TimeoutMs     = 20000
-)
-
-func main() {
-	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", MulticastIp, MulticastPort))
+func Listen(ctx context.Context) error {
+	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	conn, err := net.DialUDP("udp", nil, addr)
+	entries := make(chan *zeroconf.ServiceEntry)
+	err = resolver.Browse(ctx, "_http._tcp", "local.", entries)
 	if err != nil {
-		panic(err)
+		return err
 	}
-
-	defer conn.Close()
-
-	buf := make([]byte, 1024)
-	conn.SetReadDeadline(time.Now().Add(TimeoutMs * time.Millisecond))
 
 	for {
-		_, _, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-				break
+		select {
+		case entry := <-entries:
+			tivo, err := newTivoFromServiceEntry(entry)
+			if err != nil {
+				continue
 			}
-			panic(err)
+			tivos.Add(tivo)
+		case <-ctx.Done():
+			return nil
 		}
-		fmt.Printf("Received packet from %v: %s\n", addr, string(buf))
 	}
+}
+
+func newTivoFromServiceEntry(entry *zeroconf.ServiceEntry) (*model.Tivo, error) {
+
+	properties := make(map[string]string)
+	for _, property := range entry.Text {
+		kv := strings.SplitN(property, "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		properties[kv[0]] = kv[1]
+	}
+
+	var (
+		ok            bool
+		tsn, platform string
+	)
+
+	if tsn, ok = properties["TSN"]; !ok {
+		return nil, errors.New("device does not have a TSN")
+	}
+	if strings.HasPrefix(tsn, "A94") {
+		return nil, errors.New("device is not a Tivo DVR")
+	}
+	if platform, ok = properties["platform"]; !ok {
+		return nil, errors.New("device does not have a platform")
+	}
+	if strings.Contains(platform, "Silver") {
+		return nil, errors.New("device is not a Tivo DVR")
+	}
+	if len(entry.AddrIPv4) == 0 {
+		return nil, errors.New("device does not have an IP address")
+	}
+	name := strings.ReplaceAll(entry.Instance, "\\ ", " ")
+
+	return &model.Tivo{
+		Name:    name,
+		Address: entry.AddrIPv4[0].String(),
+		Tsn:     tsn,
+	}, nil
 }

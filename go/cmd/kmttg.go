@@ -1,16 +1,24 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"os"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
+
+	"github.com/tartale/kmttg-plus/go/pkg/beacon"
+	"github.com/tartale/kmttg-plus/go/pkg/logz"
+	"github.com/tartale/kmttg-plus/go/pkg/resolvers"
+	"github.com/tartale/kmttg-plus/go/pkg/server"
 )
 
-func main() {
-	Execute()
-}
+const port = "8080"
 
 var cfgFile string
 
@@ -19,7 +27,8 @@ var rootCmd = &cobra.Command{
 	Use:   "kmttg",
 	Short: "Port of KMTTG to golang",
 	Run: func(cmd *cobra.Command, args []string) {
-
+		startBeaconListener()
+		runGraphQLServer()
 	},
 }
 
@@ -68,4 +77,22 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
+}
+
+func main() {
+	Execute()
+}
+
+func startBeaconListener() {
+	go beacon.Listen(context.Background())
+}
+
+func runGraphQLServer() {
+	srv := handler.NewDefaultServer(server.NewExecutableSchema(server.Config{Resolvers: &resolvers.Resolver{}}))
+	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	http.Handle("/query", srv)
+	logz.Logger.Info("connect to http://localhost:" + port + "/ for GraphQL playground")
+	err := http.ListenAndServe(":"+port, nil)
+
+	logz.Logger.Fatal("error while running kmttg server", zap.Errors("error", []error{err}))
 }

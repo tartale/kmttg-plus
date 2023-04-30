@@ -5,6 +5,8 @@ directive @goTag(
 
 type Tivo {
   name: String!
+  address: String!
+  tsn: String!
 }
 
 type Query {
