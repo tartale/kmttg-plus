@@ -118,7 +118,7 @@ function RecordedOnCell(props: any) {
 
 const actionCellStyle = makeStyles(() => ({
   iconButton: {
-    backgroundColor: 'rgb(3, 136, 180)',
+    backgroundColor: 'white',
     margin: '0.25rem',
   },
 }));
@@ -133,10 +133,10 @@ function ActionCell(props: any) {
       return (
         <React.Fragment>
           <TableCell {...props}>
-          <IconButton size="medium" className={classes.iconButton}>
+          <IconButton size="small" className={classes.iconButton}>
               <DownloadSharpIcon/>
             </IconButton>
-            <IconButton size="medium" className={classes.iconButton}>
+            <IconButton size="small" className={classes.iconButton}>
               <PlayCircleIcon/>
             </IconButton>
           </TableCell>
