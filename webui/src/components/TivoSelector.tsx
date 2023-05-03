@@ -1,6 +1,6 @@
 import React, {useState} from "react";
 import IconButton from "@mui/material/IconButton";
-import { graphql } from 'relay-runtime';
+import graphql from "babel-plugin-relay/macro";
 import type { TivoSelectorQuery as TivoSelectorQueryType } from "./__generated__/TivoSelectorQuery.graphql";
 import { useLazyLoadQuery } from "react-relay";
 
@@ -26,7 +26,7 @@ function TivoSelector(props: any) {
   }
 
   return (
-    <select onChange={handleChange}>
+    <select onChange={handleChange} {...props}>
        {options.map((option, index) => (
          <option key={index} value={option}>
            {option}

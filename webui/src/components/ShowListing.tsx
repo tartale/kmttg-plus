@@ -41,7 +41,7 @@ export interface Episode extends Show {
   episodeDescription: string;
 }
 
-export default function ShowListing() {
+export default function ShowListing(props: any) {
   const [shows, setShows] = useState<Show[]>([]);
 
   useEffect(getShows(setShows), []);
@@ -50,6 +50,7 @@ export default function ShowListing() {
     <TableContainer
       component={Paper}
       sx={{ background: "linear-gradient(to bottom, #162c4f, #000000);" }}
+      {...props}
     >
       <Table className="showListingTable">
         <ShowHeader/>

@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/99designs/gqlgen/graphql/handler"
+	gqlhandler "github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/go-chi/chi"
+	"github.com/rs/cors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -34,7 +36,7 @@ var rootCmd = &cobra.Command{
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func main() {
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -79,20 +81,30 @@ func initConfig() {
 	}
 }
 
-func main() {
-	Execute()
-}
-
 func startBeaconListener() {
 	go beacon.Listen(context.Background())
 }
 
 func runGraphQLServer() {
-	srv := handler.NewDefaultServer(server.NewExecutableSchema(server.Config{Resolvers: &resolvers.Resolver{}}))
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	router := chi.NewRouter()
+
+	// Add CORS middleware around every request
+	// See https://github.com/rs/cors for full option listing
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:*"},
+		AllowCredentials: true,
+		Debug:            true,
+	}).Handler
+	router.Use(corsHandler)
+
+	gqlExecutableSchema := server.NewExecutableSchema(server.Config{Resolvers: &resolvers.Resolver{}})
+	gqlServer := gqlhandler.NewDefaultServer(gqlExecutableSchema)
+
+	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	router.Handle("/query", gqlServer)
+
 	logz.Logger.Info("connect to http://localhost:" + port + "/ for GraphQL playground")
-	err := http.ListenAndServe(":"+port, nil)
+	err := http.ListenAndServe(":"+port, router)
 
 	logz.Logger.Fatal("error while running kmttg server", zap.Errors("error", []error{err}))
 }

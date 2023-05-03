@@ -16,7 +16,7 @@ func Listen(ctx context.Context) error {
 		return err
 	}
 
-	entries := make(chan *zeroconf.ServiceEntry)
+	entries := make(chan *zeroconf.ServiceEntry, 10)
 	err = resolver.Browse(ctx, "_http._tcp", "local.", entries)
 	if err != nil {
 		return err
