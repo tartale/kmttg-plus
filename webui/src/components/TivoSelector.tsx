@@ -1,8 +1,9 @@
-import React, {useState} from "react";
-import IconButton from "@mui/material/IconButton";
+import React, {useEffect, useState} from "react";
 import graphql from "babel-plugin-relay/macro";
 import type { TivoSelectorQuery as TivoSelectorQueryType } from "./__generated__/TivoSelectorQuery.graphql";
 import { useLazyLoadQuery } from "react-relay";
+import StereoButton from "./StereoButton";
+import { Box } from "@mui/system";
 
 const TivoSelectorQuery = graphql`
   query TivoSelectorQuery {
@@ -19,20 +20,17 @@ function TivoSelector(props: any) {
     <TivoSelectorQueryType>
     (TivoSelectorQuery, {});
   const names: string[] = data.tivos.map((tivo) => tivo.name);
-  setOptions(names);
-  
-  function handleChange(event: any) {
-    props.onChange(event.target.value);
-  }
 
+  useEffect(() => {
+    setOptions(names);
+  }, []);
+  
   return (
-    <select onChange={handleChange} {...props}>
-       {options.map((option, index) => (
-         <option key={index} value={option}>
-           {option}
-         </option>
-       ))}
-     </select>
+    <React.Fragment>
+      {options.map((option: string, index: number) => (
+        <StereoButton label={option} key={index} {...props}/>
+      ))}
+    </React.Fragment>
   );
 }
 
