@@ -1,0 +1,420 @@
+package mindrpc
+
+import (
+	"bytes"
+	"crypto/tls"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net"
+	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type MRPCError struct{}
+
+func (e *MRPCError) Error() string {
+	return "MRPCError"
+}
+
+type MRPCCredential struct {
+	credType string
+	mak      string
+	username string
+	password string
+	unitName string
+}
+
+var credentialTypes = map[string][]string{
+	"MAK_CREDENTIAL": {"mak"},
+	"WEB_CREDENTIAL": {"username", "password", "unit_name"},
+}
+
+func NewMRPCCredential(credType string, args map[string]string) (*MRPCCredential, error) {
+	if _, ok := credentialTypes[credType]; !ok {
+		return nil, errors.New("cred_type must be one of the keys in MRPCCredential.TYPES.")
+	}
+
+	requiredArgs, ok := credentialTypes[credType]
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("%s is required for %s types.", requiredArgs[0], credType))
+	}
+
+	cred := &MRPCCredential{
+		credType: credType,
+	}
+
+	for _, arg := range requiredArgs {
+		val, ok := args[arg]
+		if !ok {
+			return nil, errors.New(fmt.Sprintf("%s is required for %s types.", arg, credType))
+		}
+
+		switch arg {
+		case "mak":
+			cred.mak = val
+		case "username":
+			cred.username = val
+		case "password":
+			cred.password = val
+		case "unit_name":
+			cred.unitName = val
+		}
+	}
+
+	return cred, nil
+}
+
+func (cred *MRPCCredential) Payload() map[string]interface{} {
+	if cred.credType == "MAK_CREDENTIAL" {
+		return map[string]interface{}{
+			"credential": map[string]interface{}{
+				"type": "makCredential",
+				"key":  cred.mak,
+			},
+		}
+	}
+
+	return map[string]interface{}{
+		"credential": map[string]interface{}{
+			"type":     "mmaCredential",
+			"username": cred.username,
+			"password": cred.password,
+		},
+	}
+}
+
+func NewMakCredential(mak string) (*MRPCCredential, error) {
+	return NewMRPCCredential("MAK_CREDENTIAL", map[string]string{"mak": mak})
+}
+
+func NewWebCredential(username string, password string, unitName string) (*MRPCCredential, error) {
+	return NewMRPCCredential("WEB_CREDENTIAL", map[string]string{"username": username, "password": password, "unit_name": unitName})
+}
+
+type SocketMaker struct {
+	ctx *tls.Config
+}
+
+func NewSocketMaker(cert_path string, cert_password string) (*SocketMaker, error) {
+	cert, err := tls.LoadX509KeyPair(cert_path, cert_path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SocketMaker{
+		ctx: &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			InsecureSkipVerify: true,
+		},
+	}, nil
+}
+
+func (sm *SocketMaker) get_socket() (net.Conn, error) {
+	conn, err := net.Dial("tcp", "localhost:1413")
+	if err != nil {
+		return nil, err
+	}
+
+	return tls.Client(conn, sm.ctx), nil
+}
+
+type Credential struct {
+	Cred_type string
+}
+
+func (cred *Credential) payload() map[string]string {
+	return map[string]string{}
+}
+
+type SocketMaker struct {
+	certPath     string
+	certPassword string
+}
+
+func NewSocketMaker(certPath string, certPassword string) *SocketMaker {
+	return &SocketMaker{
+		certPath:     certPath,
+		certPassword: certPassword,
+	}
+}
+
+func (sm *SocketMaker) GetSocket() (net.Conn, error) {
+	conf := &tls.Config{InsecureSkipVerify: true}
+	cert, err := tls.LoadX509KeyPair(sm.certPath, sm.certPath)
+	if err != nil {
+		return nil, err
+	}
+	conf.Certificates = []tls.Certificate{cert}
+	conf.BuildNameToCertificate()
+
+	conn, err := net.Dial("tcp", "localhost:1413")
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConn := tls.Client
+}
+
+var eol = "\r\n"
+var responseCount = map[bool]string{true: "multiple", false: "single"}
+var schemaVersion = "17"
+var protoPat = regexp.MustCompile("^.*MRPC/2 (?P<h_size>\\d+) (?P<b_size>\\d+)\r\n")
+
+type MRPCSession struct {
+	sm         socketMaker
+	credential *credential
+	address    string
+	port       int
+	socket     net.Conn
+	sessionID  int
+	rpcID      int
+	bodyID     string
+	debug      bool
+	queue      []queuedResponse
+}
+
+type socketMaker interface {
+	getSocket() net.Conn
+}
+
+type queuedResponse struct {
+	id       int
+	response response
+}
+
+type response struct {
+	headers map[string]string
+	body    map[string]interface{}
+}
+
+func (session *MRPCSession) connect() error {
+	session.socket = session.sm.getSocket()
+	err := session.socket.Connect(session.address, strconv.Itoa(session.port))
+	if err != nil {
+		return err
+	}
+
+	h, b, err := session.doAuth()
+	if err != nil {
+		session.close()
+		return fmt.Errorf("Auth Failure: %w", err)
+	}
+	if _, ok := b["status"]; !ok || b["status"] != "success" {
+		session.close()
+		return fmt.Errorf("Auth Failure: %v, %v", b, session.credential.payload())
+	}
+	if session.credential.credType == "WEB_CREDENTIAL" {
+		devices, ok := b["deviceId"].([]interface{})
+		if !ok {
+			session.bodyID = "-"
+			return nil
+		}
+		for _, d := range devices {
+			device, ok := d.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if name, ok := device["friendlyName"].(string); ok && name == session.credential.unitName {
+				session.bodyID, _ = device["id"].(string)
+				return nil
+			}
+		}
+		return fmt.Errorf("No device entry matching unit_name")
+	}
+
+	_, r, err := session.getResponse()
+	if err != nil {
+		session.close()
+		return fmt.Errorf("Error getting response: %w", err)
+	}
+	if bodyConfig, ok := r["bodyConfig"].([]interface{}); ok && len(bodyConfig) > 0 {
+		if body, ok := bodyConfig[0].(map[string]interface{}); ok {
+			session.bodyID, _ = body["bodyId"].(string)
+		}
+	}
+	return nil
+}
+
+func (session *MRPCSession) close() error {
+	if session.socket != nil {
+		session.socket.Close()
+		session.socket = nil
+	}
+	return nil
+}
+
+func (s *MRPCSession) send_request(req_type string, payload_json map[string]interface{}, multiple_responses bool) int {
+	body_id := ""
+	if _, ok := payload_json["bodyId"]; ok {
+		body_id = payload_json["bodyId"].(string)
+	}
+
+	header_tuples := []struct {
+		k string
+		v string
+	}{
+		{"Type", "request"},
+		{"RpcId", fmt.Sprintf("%d", s.rpc_id)},
+		{"SchemaVersion", fmt.Sprintf("%d", s.schema_version)},
+		{"Content-Type", "application/json"},
+		{"RequestType", req_type},
+		{"ResponseCount", fmt.Sprintf("%d", s.response_count[multiple_responses])},
+		{"BodyId", body_id},
+		{"X-ApplicationName", "Quicksilver"},
+		{"X-ApplicationVersion", "1.2"},
+		{"X-ApplicationSessionId", fmt.Sprintf("0x%x", s.session_id)},
+	}
+
+	var headers []string
+	for _, header_tuple := range header_tuples {
+		headers = append(headers, fmt.Sprintf("%s: %s", header_tuple.k, header_tuple.v))
+	}
+	headers_str := strings.Join(headers, s.eol) + s.eol
+
+	payload_json["type"] = req_type
+	payload, _ := json.Marshal(payload_json)
+	preamble := fmt.Sprintf("MRPC/2 %d %d", len(headers_str)+2, len(payload))
+	request := fmt.Sprintf("%s%s%s\n", preamble, s.eol, headers_str, payload)
+	s.rpc_id++
+
+	_, err := s.socket.Write([]byte(request))
+	if err != nil {
+		panic(err)
+	}
+	return s.rpc_id - 1
+}
+
+func (s *MRPCSession) parse_headers(buffer string) map[string]string {
+	headers := make(map[string]string)
+	header_lines := strings.Split(buffer, "\r\n")
+	for _, header_line := range header_lines {
+		if len(header_line) == 0 {
+			continue
+		}
+		header_parts := strings.SplitN(header_line, ": ", 2)
+		headers[header_parts[0]] = header_parts[1]
+	}
+	return headers
+}
+
+type Tuple struct {
+	id  int
+	rsp interface{}
+}
+
+func (m *MRPCSession) __get_response() (map[string]string, interface{}) {
+	buffer := bytes.NewBuffer([]byte{})
+	data := make([]byte, 4096)
+
+	_, err := m.socket.Read(data)
+	if err != nil {
+		fmt.Println("Error reading data: ", err)
+		return nil, nil
+	}
+
+	for bytes.IndexByte(buffer.Bytes(), '\n') < 0 {
+		_, err = m.socket.Read(data)
+		if err != nil {
+			fmt.Println("Error reading data: ", err)
+			return nil, nil
+		}
+		buffer.Write(data)
+	}
+
+	buf_val := buffer.String()
+	matches := m.proto_pat.FindStringSubmatch(buf_val)
+	h_size, _ := strconv.Atoi(matches[1])
+	b_size, _ := strconv.Atoi(matches[2])
+	h_start := matches[0][0] + len(matches[0])
+	if m.debug {
+		fmt.Printf("RPC Response (Offset: %d, H Size: %d, B Size: %d)\n", h_start, h_size, b_size)
+		fmt.Printf("RPC Response (Bytes Loaded: %d)\n", buffer.Len()-h_start)
+	}
+	for buffer.Len()-h_start < h_size+b_size {
+		_, err = m.socket.Read(data)
+		if err != nil {
+			fmt.Println("Error reading data: ", err)
+			return nil, nil
+		}
+		buffer.Write(data)
+		if m.debug {
+			fmt.Printf("RPC Response (Bytes Loaded: %d)\n", buffer.Len()-h_start)
+		}
+	}
+	buf_val = buffer.String()
+	headers := m.parse_headers(buf_val[h_start : h_start+h_size])
+	if m.debug {
+		fmt.Printf("RPC Response ID: %s\n", headers["RpcId"])
+	}
+	response_json := make(map[string]interface{})
+	err = json.Unmarshal([]byte(buf_val[h_start+h_size:]), &response_json)
+	if err != nil {
+		fmt.Println("Error parsing response JSON: ", err)
+		return nil, nil
+	}
+	return headers, response_json
+}
+
+func (m *MRPCSession) get_response(rpcid interface{}) (map[string]string, interface{}) {
+	var response Tuple
+	for i := 0; i < len(m.queue); i++ {
+		if m.queue[i].id == rpcid || rpcid == nil {
+			response = m.queue[i]
+			m.queue = append(m.queue[:i], m.queue[i+1:]...)
+			break
+		}
+	}
+	if response.rsp != nil {
+		return response.rsp.(map[string]string), response.rsp.(interface{})
+	}
+	headers, body := m.__get_response()
+	for headers["RpcId"] != rpcid && rpcid != nil {
+		m.queue = append(m.queue, Tuple{rpcid.(int), Tuple{headers, body}})
+		headers, body = m.__get_response()
+	}
+	return headers, body
+}
+
+func (session *MRPCSession) doAuth() (http.Header, []byte, error) {
+	err := session.sendRequest("bodyAuthenticate", session.credential.payload())
+	if err != nil {
+		return nil, nil, err
+	}
+	header, body, err := session.getResponse()
+	if err != nil {
+		return nil, nil, err
+	}
+	if _, ok := header["Auth-Status"]; !ok {
+		return nil, nil, errors.New("Auth Error, No Auth Status Response.")
+	}
+	return header, body, nil
+}
+
+func (session *MRPCSession) getDateString(dateTime time.Time) string {
+	return dateTime.Format("2006-01-02 15:04:05")
+}
+
+func newSession(certPath string, certPassword string, address string, credential MRPCCredential, port int, debug bool) *MRPCSession {
+	sm := newSocketMaker(certPath, certPassword)
+	return &MRPCSession{
+		socketMaker: sm,
+		address:     address,
+		credential:  credential,
+		port:        port,
+		debug:       debug,
+	}
+}
+
+func newLocalSession(certPath string, certPassword string, address string, mak string, port int, debug bool) *MRPCSession {
+	cred := newMRPCCredentialWithMAK(mak)
+	return newSession(certPath, certPassword, address, cred, port, debug)
+}
+
+func newWebSession(certPath string, certPassword string, username string, password string, unitName string, debug bool) *MRPCSession {
+	cred := newMRPCCredentialWithWeb(username, password, unitName)
+	return newSession(certPath, certPassword, "middlemind.tivo.com", cred, 443, debug)
+}

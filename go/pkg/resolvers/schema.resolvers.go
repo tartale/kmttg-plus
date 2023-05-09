@@ -6,6 +6,7 @@ package resolvers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
@@ -17,7 +18,16 @@ func (r *queryResolver) Tivos(ctx context.Context) ([]*model.Tivo, error) {
 	return tivos.List(), nil
 }
 
+// Recordings is the resolver for the recordings field.
+func (r *tivoResolver) Recordings(ctx context.Context, obj *model.Tivo) ([]model.Show, error) {
+	panic(fmt.Errorf("not implemented: Recordings - recordings"))
+}
+
 // Query returns server.QueryResolver implementation.
 func (r *Resolver) Query() server.QueryResolver { return &queryResolver{r} }
 
+// Tivo returns server.TivoResolver implementation.
+func (r *Resolver) Tivo() server.TivoResolver { return &tivoResolver{r} }
+
 type queryResolver struct{ *Resolver }
+type tivoResolver struct{ *Resolver }

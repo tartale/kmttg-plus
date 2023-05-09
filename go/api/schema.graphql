@@ -3,10 +3,16 @@ directive @goTag(
   value: String
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
+directive @goField(
+    forceResolver: Boolean
+    name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
 type Tivo {
   name: String!
   address: String!
   tsn: String!
+  recordings: [Show!]! @goField(forceResolver: true)
 }
 
 type Query {

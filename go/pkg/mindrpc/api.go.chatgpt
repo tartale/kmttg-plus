@@ -1,0 +1,64 @@
+package mindrpc
+
+import (
+	"bytes"
+	"encoding/binary"
+	"errors"
+	"net"
+)
+
+const (
+	RequestHeaderSize  = 8
+	ResponseHeaderSize = 12
+)
+
+type API struct {
+	rpc *RPC
+}
+
+func NewAPI(conn net.Conn) *API {
+	rpc := NewRPC(conn)
+	return &API{rpc: rpc}
+}
+
+type RequestHeader struct {
+	Type       uint16
+	Length     uint16
+	Attributes uint32
+}
+
+type ResponseHeader struct {
+	Type   uint16
+	Length uint16
+	Status uint32
+	Flags  uint16
+}
+
+func (a *API) sendRequest(reqType uint16, reqData []byte) ([]byte, error) {
+	header := RequestHeader{
+		Type:   reqType,
+		Length: uint16(len(reqData)),
+	}
+	headerBytes := new(bytes.Buffer)
+	if err := binary.Write(headerBytes, binary.BigEndian, header); err != nil {
+		return nil, err
+	}
+	if err := a.rpc.sendMessage(append(headerBytes.Bytes(), reqData...)); err != nil {
+		return nil, err
+	}
+	respData, err := a.rpc.readMessage()
+	if err != nil {
+		return nil, err
+	}
+	respHeader := ResponseHeader{}
+	if err := binary.Read(bytes.NewReader(respData[:ResponseHeaderSize]), binary.BigEndian, &respHeader); err != nil {
+		return nil, err
+	}
+	if respHeader.Type != reqType {
+		return nil, errors.New("Invalid response type")
+	}
+	if respHeader.Status != 0 {
+		return nil, errors.New("API call failed")
+	}
+	return respData[ResponseHeaderSize:], nil
+}
