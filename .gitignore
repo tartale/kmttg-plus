@@ -11,3 +11,4 @@ input/auto.ini.overrides
 .envrc
 .vscode
 .idea/
+vscode.env
