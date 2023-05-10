@@ -33,5 +33,6 @@ func CertificatePath() (string, error) {
 }
 
 type values struct {
+	LogLevel       string `mapstructure:"KMTTG_LOG_LEVEL"`
 	MediaAccessKey string `mapstructure:"KMTTG_MEDIA_ACCESS_KEY"`
 }

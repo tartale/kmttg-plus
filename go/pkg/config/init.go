@@ -7,8 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/tartale/kmttg-plus/go/pkg/logz"
-	"go.uber.org/zap"
 )
 
 // This sync primitive allows configuration to be initialized exactly once
@@ -38,20 +36,25 @@ func InitConfig(cfgFile string) {
 
 		err := viper.BindEnv("KMTTG_MEDIA_ACCESS_KEY")
 		if err != nil {
-			logz.Logger.Error("failed to bind environment variable", zap.Error(err))
+			panic(fmt.Errorf("failed to bind environment variable: %w", err))
 		}
+		err = viper.BindEnv("KMTTG_LOG_LEVEL")
+		if err != nil {
+			panic(fmt.Errorf("failed to bind environment variable: %w", err))
+		}
+		viper.SetDefault("KMTTG_LOG_LEVEL", "INFO")
 
 		viper.AutomaticEnv() // read in environment variables that match
 
 		// If a config file is found, read it in.
 		if err := viper.ReadInConfig(); err == nil {
-			fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+			fmt.Fprintln(os.Stdout, "using config file:", viper.ConfigFileUsed())
 		}
 
 		err = viper.Unmarshal(&Values)
 		if err != nil {
-			logz.Logger.Panic("failed to read in config", zap.Error(err))
+			panic(fmt.Errorf("failed to read in config: %w", err))
 		}
-		logz.Logger.Info("config loaded", zap.Any("config", Values))
+		fmt.Fprintln(os.Stdout, "config loaded", Values)
 	})
 }

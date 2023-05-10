@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/tartale/kmttg-plus/go/pkg/config"
+	"github.com/tartale/kmttg-plus/go/pkg/logz"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/pkcs12"
 )
 
@@ -67,6 +69,10 @@ func (t *TivoClient) SendRequest(tivoMessage TivoMessage) error {
 		return err
 	}
 
+	if logz.Logger.Level() == zap.DebugLevel {
+		logz.Logger.Info("sending mRpc message:")
+		fmt.Println(mindRpcMessage)
+	}
 	_, err = t.connection.Write([]byte(mindRpcMessage))
 	if err != nil {
 		return err
