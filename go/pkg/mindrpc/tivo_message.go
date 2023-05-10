@@ -27,7 +27,6 @@ func (t TivoMessageHeaders) String() string {
 	for _, key := range keys {
 		sb.WriteString(fmt.Sprintf("%s: %s%s", key, t[key], crlf))
 	}
-	sb.WriteString(crlf)
 
 	return sb.String()
 }
@@ -51,9 +50,8 @@ func NewTivoMessage() *TivoMessage {
 }
 
 func (t *TivoMessage) WithAuthPayload(mediaAccessKey string) *TivoMessage {
-	bodyID := ""
-	t.Headers.Set("BodyId", bodyID)
 
+	t.Headers.Set("BodyId", "")
 	requestType := bodyAuthenticate
 	t.Headers.Set("RequestType", string(requestType))
 	t.Payload.Type = requestType
@@ -90,7 +88,7 @@ func (t *TivoMessage) PayloadJSON() (string, error) {
 		return "", err
 	}
 
-	return string(payloadJSON) + "\n", nil
+	return string(payloadJSON), nil
 }
 
 func (t *TivoMessage) ToMindRpcMessage() (string, error) {

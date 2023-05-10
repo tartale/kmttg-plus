@@ -8,8 +8,10 @@ import (
 	"runtime"
 )
 
-const (
-	certificateFilename = "cdata.p12"
+const certificateFilename = "cdata.p12"
+
+var (
+	Values values
 )
 
 func CertificatePath() (string, error) {
@@ -28,4 +30,8 @@ func CertificatePath() (string, error) {
 	}
 
 	return certificatePath, nil
+}
+
+type values struct {
+	MediaAccessKey string `mapstructure:"KMTTG_MEDIA_ACCESS_KEY"`
 }
