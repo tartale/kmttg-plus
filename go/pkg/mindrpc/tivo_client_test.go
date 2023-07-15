@@ -1,6 +1,8 @@
 package mindrpc
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
@@ -47,6 +49,9 @@ var _ = Describe("Tivo Client", func() {
 		err = client.SendRequest(*authRequest)
 		Expect(err).ToNot(HaveOccurred())
 
-		// client.ReceiveResponse(context.Background())
+		authResponse, err := client.ReceiveResponse(context.Background())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(authResponse).NotTo(BeNil())
+		Expect(authResponse.Body.Status).To(Equal(success))
 	})
 })

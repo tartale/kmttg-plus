@@ -9,6 +9,10 @@ import (
 	"golang.org/x/crypto/pkcs12"
 )
 
+const (
+	certificatePassword = "vlZaKoduom"
+)
+
 func GetCertificates(certificatePath string) (*tls.Certificate, *x509.CertPool, error) {
 
 	certificateBytes, err := os.ReadFile(certificatePath)

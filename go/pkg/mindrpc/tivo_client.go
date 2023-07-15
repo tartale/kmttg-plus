@@ -1,12 +1,11 @@
 package mindrpc
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"math/rand"
-	"os"
 	"strings"
 	"time"
 
@@ -19,11 +18,10 @@ import (
 // https://github.com/lart2150/tivo-scripts/blob/master/lib/tivo.js
 
 const (
-	tivoRPCPort         = "1413"
-	certificatePassword = "vlZaKoduom"
-	schemaVersion       = "21"
-	applicationName     = "Quicksilver"
-	applicationVersion  = "1.2"
+	tivoRPCPort        = "1413"
+	schemaVersion      = "21"
+	applicationName    = "Quicksilver"
+	applicationVersion = "1.2"
 )
 
 type TivoClient struct {
@@ -83,9 +81,16 @@ func (t *TivoClient) SendRequest(tivoMessage TivoMessage) error {
 	return nil
 }
 
-func (t *TivoClient) ReceiveResponse(ctx context.Context) {
+func (t *TivoClient) ReceiveResponse(ctx context.Context) (*TivoMessage, error) {
 
-	io.Copy(os.Stdout, t.connection)
+	responseReader := bufio.NewReader(t.connection)
+	tivoMessage := NewTivoMessage()
+	_, err := tivoMessage.ReadFrom(responseReader)
+	if err != nil {
+		return nil, err
+	}
+
+	return tivoMessage, nil
 
 	// buffer := bytes.NewBuffer([]byte{})
 	// data := make([]byte, 4096)

@@ -1,39 +1,19 @@
 package mindrpc
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"io"
 )
 
 const (
 	crlf = "\r\n"
 )
 
-var headerOrder = []string{"Type", "RpcId", "SchemaVersion", "Content-Type", "RequestType", "ResponseCount"}
-
-type TivoMessageHeaders map[string]string
-
-func (t TivoMessageHeaders) Set(key, val string) {
-	t[key] = val
-}
-
-func (t TivoMessageHeaders) String() string {
-	sb := strings.Builder{}
-
-	for _, key := range headerOrder {
-		if val, ok := t[key]; ok {
-			sb.WriteString(fmt.Sprintf("%s: %s%s", key, val, crlf))
-		}
-	}
-	sb.WriteString(crlf)
-
-	return sb.String()
-}
-
 type TivoMessage struct {
 	Headers TivoMessageHeaders
-	Payload Payload
+	Body    TivoMessageBody
 }
 
 func NewTivoMessage() *TivoMessage {
@@ -41,22 +21,27 @@ func NewTivoMessage() *TivoMessage {
 		Headers: make(map[string]string),
 	}
 
-	tivoMessage.Headers.Set("SchemaVersion", schemaVersion)
-	tivoMessage.Headers.Set("Content-Type", "application/json")
-	tivoMessage.Headers.Set("X-ApplicationName", applicationName)
-	tivoMessage.Headers.Set("X-ApplicationVersion", applicationVersion)
-
 	return &tivoMessage
+}
+
+func (t *TivoMessage) WithStandardHeaders() *TivoMessage {
+	t.Headers.Set("SchemaVersion", schemaVersion)
+	t.Headers.Set("Content-Type", "application/json")
+	t.Headers.Set("X-ApplicationName", applicationName)
+	t.Headers.Set("X-ApplicationVersion", applicationVersion)
+
+	return t
 }
 
 func (t *TivoMessage) WithAuthRequest(mediaAccessKey string) *TivoMessage {
 
+	t = t.WithStandardHeaders()
 	t.Headers.Set("Type", "request")
 	t.Headers.Set("RequestType", string(bodyAuthenticate))
 	t.Headers.Set("ResponseCount", string(single))
 
-	t.Payload.Type = bodyAuthenticate
-	t.Payload.Credential = &Credential{
+	t.Body.Type = bodyAuthenticate
+	t.Body.Credential = &Credential{
 		Type: string(makCredential),
 		Key:  mediaAccessKey,
 	}
@@ -66,12 +51,13 @@ func (t *TivoMessage) WithAuthRequest(mediaAccessKey string) *TivoMessage {
 
 func (t *TivoMessage) WithBodyConfigSearch() *TivoMessage {
 
+	t = t.WithStandardHeaders()
 	t.Headers.Set("Type", "request")
 	t.Headers.Set("RequestType", string(bodyConfigSearch))
 	t.Headers.Set("ResponseCount", string(single))
 
-	t.Payload.Type = bodyConfigSearch
-	t.Payload.BodyID = "-"
+	t.Body.Type = bodyConfigSearch
+	t.Body.BodyID = "-"
 
 	return t
 }
@@ -90,7 +76,7 @@ func (t *TivoMessage) WithRpcID(rpcID int) *TivoMessage {
 
 func (t *TivoMessage) PayloadJSON() (string, error) {
 
-	payloadJSON, err := json.Marshal(t.Payload)
+	payloadJSON, err := json.Marshal(t.Body)
 	if err != nil {
 		return "", err
 	}
@@ -111,6 +97,40 @@ func (t *TivoMessage) ToMindRpcMessage() (string, error) {
 	return message, nil
 }
 
+func (t *TivoMessage) ReadFrom(r io.Reader) (n int64, err error) {
+	responseReader := bufio.NewReader(r)
+
+	preamble, err := responseReader.ReadString('\n')
+	if err != nil {
+		return -1, err
+	}
+
+	var headerLength, bodyLength int
+	_, err = fmt.Sscanf(preamble, "MRPC/2 %d %d \n", &headerLength, &bodyLength)
+	if err != nil {
+		return -1, err
+	}
+
+	headers, err := NewTivoMessageHeaders(responseReader, headerLength)
+	if err != nil {
+		return -1, err
+	}
+	_ = headers
+
+	bodyBytes := make([]byte, bodyLength)
+	_, err = io.ReadFull(responseReader, bodyBytes)
+	if err != nil {
+		return -1, err
+	}
+
+	err = json.Unmarshal(bodyBytes, &t.Body)
+	if err != nil {
+		return -1, err
+	}
+
+	return 0, nil
+}
+
 type RequestType string
 
 const (
@@ -125,6 +145,13 @@ const (
 	categorySearch            RequestType = "categorySearch"
 	whatsOnSearch             RequestType = "whatsOnSearch"
 	tunerStateEventRegister   RequestType = "tunerStateEventRegister"
+)
+
+type StatusType string
+
+const (
+	success StatusType = "success"
+	failure StatusType = "failure"
 )
 
 // type ResponseType string
@@ -159,10 +186,12 @@ type Credential struct {
 	Key  string `json:"key"`
 }
 
-type Payload struct {
+type TivoMessageBody struct {
 	Type       RequestType `json:"type"`
 	BodyID     string      `json:"bodyId,omitempty"`
 	Credential *Credential `json:"credential,omitempty"`
 	Offset     int         `json:"offset,omitempty"`
 	Count      int         `json:"count,omitempty"`
+	Message    string      `json:"message,omitempty"`
+	Status     StatusType  `json:"status,omitempty"`
 }
