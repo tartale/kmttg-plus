@@ -3,6 +3,9 @@ all: tools build run
 tools:
 	go generate -tags=tools ./...
 
+tidy:
+	go mod tidy
+
 build:
 	go generate ./...
 	go build ./...
@@ -10,4 +13,4 @@ build:
 run:
 	go run cmd/kmttg.go
 
-.PHONY: all tools build run
+.PHONY: all tools tidy build run

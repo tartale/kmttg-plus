@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/grandcat/zeroconf"
+	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/tivos"
+	"go.uber.org/zap"
 )
 
 func Listen(ctx context.Context) error {
@@ -38,6 +40,7 @@ func Listen(ctx context.Context) error {
 
 func newTivoFromServiceEntry(entry *zeroconf.ServiceEntry) (*model.Tivo, error) {
 
+	logz.Logger.Info("detected device", zap.Strings("entryText", entry.Text))
 	properties := make(map[string]string)
 	for _, property := range entry.Text {
 		kv := strings.SplitN(property, "=", 2)

@@ -1,27 +1,31 @@
 package mindrpc
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
+	"github.com/tartale/kmttg-plus/go/test"
 )
 
 var _ = Describe("Tivo Client", func() {
 
 	It("can create a TLS config from the certificates", func() {
-		tlsConfig, err := tlsConfigFromCertificates()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(tlsConfig).NotTo(BeNil())
-	})
-
-	It("can create a new tivo RPC client", func() {
-		if testTivo == nil {
+		if test.Tivo == nil {
 			Skip("skipping test; to enable, populate the KMTTG_TEST_TIVO env variable with information for an existing Tivo")
 		}
 
-		client, err := NewTivoClient(testTivo.Address)
+		tlsConfig, err := newTLSConfig(test.Tivo)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(tlsConfig).NotTo(BeNil())
+		Expect(tlsConfig.ServerName).To(Equal(test.Tivo.ServerName()))
+	})
+
+	It("can create a new tivo RPC client", func() {
+		if test.Tivo == nil {
+			Skip("skipping test; to enable, populate the KMTTG_TEST_TIVO env variable with information for an existing Tivo")
+		}
+
+		client, err := NewTivoClient(test.Tivo)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(client).NotTo(BeNil())
 
@@ -29,20 +33,20 @@ var _ = Describe("Tivo Client", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	PIt("can authenticate a client session", func() {
-		if testTivo == nil {
+	It("can authenticate a client session", func() {
+		if test.Tivo == nil {
 			Skip("skipping test; to enable, populate the KMTTG_TEST_TIVO env variable with information for an existing Tivo")
 		}
 
-		client, err := NewTivoClient(testTivo.Address)
+		client, err := NewTivoClient(test.Tivo)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(client).NotTo(BeNil())
 		defer client.Close()
 
-		authMessage := NewTivoMessage().WithAuthPayload(config.Values.MediaAccessKey)
-		err = client.SendRequest(*authMessage)
+		authRequest := NewTivoMessage().WithAuthRequest(config.Values.MediaAccessKey)
+		err = client.SendRequest(*authRequest)
 		Expect(err).ToNot(HaveOccurred())
 
-		client.ReceiveResponse(context.Background())
+		// client.ReceiveResponse(context.Background())
 	})
 })

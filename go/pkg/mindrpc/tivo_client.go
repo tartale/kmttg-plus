@@ -1,26 +1,27 @@
 package mindrpc
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
+	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/pkcs12"
 )
+
+// https://github.com/lart2150/tivo-scripts/blob/master/lib/tivo.js
 
 const (
 	tivoRPCPort         = "1413"
 	certificatePassword = "vlZaKoduom"
-	schemaVersion       = "17"
+	schemaVersion       = "21"
 	applicationName     = "Quicksilver"
 	applicationVersion  = "1.2"
 )
@@ -31,14 +32,14 @@ type TivoClient struct {
 	rpcID      int
 }
 
-func NewTivoClient(address string) (*TivoClient, error) {
+func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 
-	tlsConfig, err := tlsConfigFromCertificates()
+	tlsConfig, err := newTLSConfig(tivo)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := tls.Dial("tcp", address+":"+tivoRPCPort, tlsConfig)
+	conn, err := tls.Dial("tcp", tivo.Address+":"+tivoRPCPort, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +50,7 @@ func NewTivoClient(address string) (*TivoClient, error) {
 	return &TivoClient{
 		connection: conn,
 		sessionID:  sessionID,
-		rpcID:      1,
+		rpcID:      0,
 	}, nil
 }
 
@@ -60,7 +61,6 @@ func (t *TivoClient) Close() error {
 func (t *TivoClient) SendRequest(tivoMessage TivoMessage) error {
 
 	tivoRequestMessage := tivoMessage.
-		AsRequest().
 		WithSessionID(t.sessionID).
 		WithRpcID(t.rpcID)
 
@@ -69,11 +69,11 @@ func (t *TivoClient) SendRequest(tivoMessage TivoMessage) error {
 		return err
 	}
 
-	if logz.Logger.Level() == zap.DebugLevel {
-		logz.Logger.Info("sending mRpc message:")
-		fmt.Println(mindRpcMessage)
+	if ce := logz.Logger.Check(zap.DebugLevel, "debugging"); ce != nil {
+		logz.Logger.Info("sending mRPC message:")
+		fmt.Print(mindRpcMessage)
 	}
-	_, err = t.connection.Write([]byte(mindRpcMessage))
+	_, err = t.connection.Write([]byte(strings.ToValidUTF8(mindRpcMessage, "")))
 	if err != nil {
 		return err
 	}
@@ -85,8 +85,7 @@ func (t *TivoClient) SendRequest(tivoMessage TivoMessage) error {
 
 func (t *TivoClient) ReceiveResponse(ctx context.Context) {
 
-	var buf bytes.Buffer
-	io.Copy(&buf, t.connection)
+	io.Copy(os.Stdout, t.connection)
 
 	// buffer := bytes.NewBuffer([]byte{})
 	// data := make([]byte, 4096)
@@ -145,36 +144,30 @@ func (t *TivoClient) WaitForResponse(rpcID string) {
 
 }
 
-func tlsConfigFromCertificates() (*tls.Config, error) {
+func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 
-	certificatePath, err := config.CertificatePath()
+	certPath, err := config.CertificatePath()
 	if err != nil {
 		return nil, err
 	}
-	certificateBytes, err := os.ReadFile(certificatePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// the following is copied from this example:
-	// https://pkg.go.dev/golang.org/x/crypto/pkcs12#example-ToPEM
-	pemBlocks, err := pkcs12.ToPEM(certificateBytes, certificatePassword)
-	if err != nil {
-		return nil, err
-	}
-
-	var pemData []byte
-	for _, b := range pemBlocks {
-		pemData = append(pemData, pem.EncodeToMemory(b)...)
-	}
-
-	cert, err := tls.X509KeyPair(pemData, pemData)
+	cert, certPool, err := GetCertificates(certPath)
 	if err != nil {
 		return nil, err
 	}
 
 	return &tls.Config{
-		Certificates:       []tls.Certificate{cert},
+		GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			logz.Logger.Debug("received client certificate request", zap.Any("cri", cri))
+			return cert, nil
+		},
+		RootCAs:            certPool,
+		ServerName:         tivo.ServerName(),
+		ClientAuth:         tls.RequireAndVerifyClientCert,
+		ClientCAs:          certPool,
 		InsecureSkipVerify: true,
+		Renegotiation:      tls.RenegotiateFreelyAsClient,
 	}, nil
 }
+
+// openssl s_client -crlf  -connect 10.0.1.18:1413 -cert ./cdata.pem -key ./cdata.pem \
+//   -CAfile ./cdata.pem -cipher 'DEFAULT:@SECLEVEL=0' -purpose sslclient -servername 846-0001-909E-14AD

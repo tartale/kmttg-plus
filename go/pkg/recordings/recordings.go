@@ -9,7 +9,7 @@ import (
 
 func Get(ctx context.Context, tivo *model.Tivo) ([]*model.Show, error) {
 
-	client, err := mindrpc.NewTivoClient(tivo.Address)
+	client, err := mindrpc.NewTivoClient(tivo)
 	if err != nil {
 		return nil, err
 	}

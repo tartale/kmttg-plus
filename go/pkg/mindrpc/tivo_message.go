@@ -3,15 +3,14 @@ package mindrpc
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
-
-	"golang.org/x/exp/maps"
 )
 
 const (
 	crlf = "\r\n"
 )
+
+var headerOrder = []string{"Type", "RpcId", "SchemaVersion", "Content-Type", "RequestType", "ResponseCount"}
 
 type TivoMessageHeaders map[string]string
 
@@ -20,13 +19,14 @@ func (t TivoMessageHeaders) Set(key, val string) {
 }
 
 func (t TivoMessageHeaders) String() string {
-	keys := maps.Keys(t)
-	sort.Strings(keys)
 	sb := strings.Builder{}
 
-	for _, key := range keys {
-		sb.WriteString(fmt.Sprintf("%s: %s%s", key, t[key], crlf))
+	for _, key := range headerOrder {
+		if val, ok := t[key]; ok {
+			sb.WriteString(fmt.Sprintf("%s: %s%s", key, val, crlf))
+		}
 	}
+	sb.WriteString(crlf)
 
 	return sb.String()
 }
@@ -49,23 +49,30 @@ func NewTivoMessage() *TivoMessage {
 	return &tivoMessage
 }
 
-func (t *TivoMessage) WithAuthPayload(mediaAccessKey string) *TivoMessage {
+func (t *TivoMessage) WithAuthRequest(mediaAccessKey string) *TivoMessage {
 
-	t.Headers.Set("BodyId", "")
-	requestType := bodyAuthenticate
-	t.Headers.Set("RequestType", string(requestType))
-	t.Payload.Type = requestType
-
-	t.Payload.Credential.Type = string(makCredential)
-	t.Payload.Credential.Key = mediaAccessKey
-
+	t.Headers.Set("Type", "request")
+	t.Headers.Set("RequestType", string(bodyAuthenticate))
 	t.Headers.Set("ResponseCount", string(single))
+
+	t.Payload.Type = bodyAuthenticate
+	t.Payload.Credential = &Credential{
+		Type: string(makCredential),
+		Key:  mediaAccessKey,
+	}
 
 	return t
 }
 
-func (t *TivoMessage) AsRequest() *TivoMessage {
+func (t *TivoMessage) WithBodyConfigSearch() *TivoMessage {
+
 	t.Headers.Set("Type", "request")
+	t.Headers.Set("RequestType", string(bodyConfigSearch))
+	t.Headers.Set("ResponseCount", string(single))
+
+	t.Payload.Type = bodyConfigSearch
+	t.Payload.BodyID = "-"
+
 	return t
 }
 
@@ -88,7 +95,7 @@ func (t *TivoMessage) PayloadJSON() (string, error) {
 		return "", err
 	}
 
-	return string(payloadJSON), nil
+	return string(payloadJSON) + "\n", nil
 }
 
 func (t *TivoMessage) ToMindRpcMessage() (string, error) {
@@ -98,16 +105,17 @@ func (t *TivoMessage) ToMindRpcMessage() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	preamble := fmt.Sprintf("MRPC/2 %d %d", len(headers), len(payloadJSON))
+	message := preamble + crlf + headers + payloadJSON
 
-	return strings.Join([]string{preamble, headers, payloadJSON}, crlf), nil
+	return message, nil
 }
 
 type RequestType string
 
 const (
 	bodyAuthenticate          RequestType = "bodyAuthenticate"
+	bodyConfigSearch          RequestType = "bodyConfigSearch"
 	channelSearch             RequestType = "channelSearch"
 	recordingFolderItemSearch RequestType = "recordingFolderItemSearch"
 	recordingSearch           RequestType = "recordingSearch"
@@ -119,19 +127,19 @@ const (
 	tunerStateEventRegister   RequestType = "tunerStateEventRegister"
 )
 
-type ResultType string
+// type ResponseType string
 
-const (
-	channel             ResultType = "channel"
-	recordingFolderItem ResultType = "recordingFolderItem"
-	recording           ResultType = "recording"
-	offer               ResultType = "offer"
-	content             ResultType = "content"
-	collection          ResultType = "collection"
-	category            ResultType = "category"
-	whatsOn             ResultType = "whatsOn"
-	state               ResultType = "state"
-)
+// const (
+// 	channel             ResponseType = "channel"
+// 	recordingFolderItem ResponseType = "recordingFolderItem"
+// 	recording           ResponseType = "recording"
+// 	offer               ResponseType = "offer"
+// 	content             ResponseType = "content"
+// 	collection          ResponseType = "collection"
+// 	category            ResponseType = "category"
+// 	whatsOn             ResponseType = "whatsOn"
+// 	state               ResponseType = "state"
+// )
 
 type ResponseCount string
 
@@ -146,13 +154,15 @@ const (
 	makCredential CredentialType = "makCredential"
 )
 
+type Credential struct {
+	Type string `json:"type"`
+	Key  string `json:"key"`
+}
+
 type Payload struct {
 	Type       RequestType `json:"type"`
 	BodyID     string      `json:"bodyId,omitempty"`
-	Credential struct {
-		Type string `json:"type"`
-		Key  string `json:"key"`
-	} `json:"credential,omitempty"`
-	Offset int `json:"offset,omitempty"`
-	Count  int `json:"count,omitempty"`
+	Credential *Credential `json:"credential,omitempty"`
+	Offset     int         `json:"offset,omitempty"`
+	Count      int         `json:"count,omitempty"`
 }
