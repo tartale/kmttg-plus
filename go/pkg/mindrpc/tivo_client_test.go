@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/test"
 )
 
@@ -45,13 +44,7 @@ var _ = Describe("Tivo Client", func() {
 		Expect(client).NotTo(BeNil())
 		defer client.Close()
 
-		authRequest := NewTivoMessage().WithAuthRequest(config.Values.MediaAccessKey)
-		err = client.SendRequest(*authRequest)
+		err = client.Authorize(context.Background())
 		Expect(err).ToNot(HaveOccurred())
-
-		authResponse, err := client.ReceiveResponse(context.Background())
-		Expect(err).ToNot(HaveOccurred())
-		Expect(authResponse).NotTo(BeNil())
-		Expect(authResponse.Body.Status).To(Equal(success))
 	})
 })

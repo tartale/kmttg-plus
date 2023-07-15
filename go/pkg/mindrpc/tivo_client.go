@@ -15,8 +15,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// https://github.com/lart2150/tivo-scripts/blob/master/lib/tivo.js
-
 const (
 	tivoRPCPort        = "1413"
 	schemaVersion      = "21"
@@ -56,7 +54,30 @@ func (t *TivoClient) Close() error {
 	return t.connection.Close()
 }
 
-func (t *TivoClient) SendRequest(tivoMessage TivoMessage) error {
+func (t *TivoClient) Authorize(ctx context.Context) error {
+	authRequest := NewTivoMessage().WithAuthRequest(config.Values.MediaAccessKey)
+	err := t.SendRequest(ctx, *authRequest)
+	if err != nil {
+		return err
+	}
+
+	authResponse, err := t.ReceiveResponse(context.Background())
+	if err != nil {
+		return err
+	}
+	if authResponse.Body.Status != success {
+		return ErrUnauthorized(authResponse.Body.Message)
+	}
+
+	return nil
+}
+
+func (t *TivoClient) GetRecordings(ctx context.Context) ([]*model.Show, error) {
+
+	return nil, nil
+}
+
+func (t *TivoClient) SendRequest(ctx context.Context, tivoMessage TivoMessage) error {
 
 	tivoRequestMessage := tivoMessage.
 		WithSessionID(t.sessionID).

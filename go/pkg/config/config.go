@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"time"
 )
 
 const certificateFilename = "cdata.p12"
@@ -33,6 +34,7 @@ func CertificatePath() (string, error) {
 }
 
 type values struct {
-	LogLevel       string `mapstructure:"KMTTG_LOG_LEVEL"`
-	MediaAccessKey string `mapstructure:"KMTTG_MEDIA_ACCESS_KEY"`
+	LogLevel       string        `mapstructure:"KMTTG_LOG_LEVEL"`
+	MediaAccessKey string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY"`
+	Timeout        time.Duration `mapstructure:"KMTTG_TIMEOUT"`
 }

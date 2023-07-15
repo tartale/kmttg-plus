@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,11 +39,18 @@ func InitConfig(cfgFile string) {
 		if err != nil {
 			panic(fmt.Errorf("failed to bind environment variable: %w", err))
 		}
+
 		err = viper.BindEnv("KMTTG_LOG_LEVEL")
 		if err != nil {
 			panic(fmt.Errorf("failed to bind environment variable: %w", err))
 		}
 		viper.SetDefault("KMTTG_LOG_LEVEL", "INFO")
+
+		err = viper.BindEnv("KMTTG_TIMEOUT")
+		if err != nil {
+			panic(fmt.Errorf("failed to bind environment variable: %w", err))
+		}
+		viper.SetDefault("KMTTG_TIMEOUT", 10*time.Second)
 
 		viper.AutomaticEnv() // read in environment variables that match
 
