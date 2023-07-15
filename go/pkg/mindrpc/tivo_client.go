@@ -91,62 +91,6 @@ func (t *TivoClient) ReceiveResponse(ctx context.Context) (*TivoMessage, error) 
 	}
 
 	return tivoMessage, nil
-
-	// buffer := bytes.NewBuffer([]byte{})
-	// data := make([]byte, 4096)
-
-	// _, err := m.socket.Read(data)
-	// if err != nil {
-	// 	fmt.Println("Error reading data: ", err)
-	// 	return nil, nil
-	// }
-
-	// for bytes.IndexByte(buffer.Bytes(), '\n') < 0 {
-	// 	_, err = m.socket.Read(data)
-	// 	if err != nil {
-	// 		fmt.Println("Error reading data: ", err)
-	// 		return nil, nil
-	// 	}
-	// 	buffer.Write(data)
-	// }
-
-	// buf_val := buffer.String()
-	// matches := m.proto_pat.FindStringSubmatch(buf_val)
-	// h_size, _ := strconv.Atoi(matches[1])
-	// b_size, _ := strconv.Atoi(matches[2])
-	// h_start := matches[0][0] + len(matches[0])
-	// if m.debug {
-	// 	fmt.Printf("RPC Response (Offset: %d, H Size: %d, B Size: %d)\n", h_start, h_size, b_size)
-	// 	fmt.Printf("RPC Response (Bytes Loaded: %d)\n", buffer.Len()-h_start)
-	// }
-	// for buffer.Len()-h_start < h_size+b_size {
-	// 	_, err = m.socket.Read(data)
-	// 	if err != nil {
-	// 		fmt.Println("Error reading data: ", err)
-	// 		return nil, nil
-	// 	}
-	// 	buffer.Write(data)
-	// 	if m.debug {
-	// 		fmt.Printf("RPC Response (Bytes Loaded: %d)\n", buffer.Len()-h_start)
-	// 	}
-	// }
-	// buf_val = buffer.String()
-	// headers := m.parse_headers(buf_val[h_start : h_start+h_size])
-	// if m.debug {
-	// 	fmt.Printf("RPC Response ID: %s\n", headers["RpcId"])
-	// }
-	// response_json := make(map[string]interface{})
-	// err = json.Unmarshal([]byte(buf_val[h_start+h_size:]), &response_json)
-	// if err != nil {
-	// 	fmt.Println("Error parsing response JSON: ", err)
-	// 	return nil, nil
-	// }
-	// return headers, response_json
-
-}
-
-func (t *TivoClient) WaitForResponse(rpcID string) {
-
 }
 
 func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
@@ -173,6 +117,3 @@ func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 		Renegotiation:      tls.RenegotiateFreelyAsClient,
 	}, nil
 }
-
-// openssl s_client -crlf  -connect 10.0.1.18:1413 -cert ./cdata.pem -key ./cdata.pem \
-//   -CAfile ./cdata.pem -cipher 'DEFAULT:@SECLEVEL=0' -purpose sslclient -servername 846-0001-909E-14AD
