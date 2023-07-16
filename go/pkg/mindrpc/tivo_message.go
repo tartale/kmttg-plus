@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 )
 
 const (
@@ -74,29 +75,6 @@ func (t *TivoMessage) WithRpcID(rpcID int) *TivoMessage {
 	return t
 }
 
-func (t *TivoMessage) PayloadJSON() (string, error) {
-
-	payloadJSON, err := json.Marshal(t.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return string(payloadJSON) + "\n", nil
-}
-
-func (t *TivoMessage) ToMindRpcMessage() (string, error) {
-
-	headers := t.Headers.String()
-	payloadJSON, err := t.PayloadJSON()
-	if err != nil {
-		return "", err
-	}
-	preamble := fmt.Sprintf("MRPC/2 %d %d", len(headers), len(payloadJSON))
-	message := preamble + crlf + headers + payloadJSON
-
-	return message, nil
-}
-
 func (t *TivoMessage) ReadFrom(r io.Reader) (n int64, err error) {
 	responseReader := bufio.NewReader(r)
 
@@ -124,6 +102,25 @@ func (t *TivoMessage) ReadFrom(r io.Reader) (n int64, err error) {
 	}
 
 	err = json.Unmarshal(bodyBytes, &t.Body)
+	if err != nil {
+		return -1, err
+	}
+
+	return 0, nil
+}
+
+func (t *TivoMessage) WriteTo(w io.Writer) (n int64, err error) {
+
+	headers := t.Headers.String()
+	bodyBytes, err := json.Marshal(t.Body)
+	if err != nil {
+		return -1, err
+	}
+	body := string(bodyBytes) + "\n"
+	preamble := fmt.Sprintf("MRPC/2 %d %d", len(headers), len(body))
+	message := preamble + crlf + headers + body
+
+	_, err = w.Write([]byte(strings.ToValidUTF8(message, "")))
 	if err != nil {
 		return -1, err
 	}

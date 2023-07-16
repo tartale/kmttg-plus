@@ -6,7 +6,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"math/rand"
-	"strings"
+	"net"
+	"os"
 	"time"
 
 	"github.com/tartale/kmttg-plus/go/pkg/config"
@@ -35,7 +36,14 @@ func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 		return nil, err
 	}
 
-	conn, err := tls.Dial("tcp", tivo.Address+":"+tivoRPCPort, tlsConfig)
+	ctx := context.Background()
+	ctx, _ = context.WithTimeout(ctx, config.Values.Timeout)
+	dialer := tls.Dialer{
+		NetDialer: new(net.Dialer),
+		Config:    tlsConfig,
+	}
+
+	conn, err := dialer.DialContext(ctx, "tcp", tivo.Address+":"+tivoRPCPort)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +52,7 @@ func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 	sessionID := fmt.Sprintf("0x%x", rand.Int())
 
 	return &TivoClient{
-		connection: conn,
+		connection: conn.(*tls.Conn),
 		sessionID:  sessionID,
 		rpcID:      0,
 	}, nil
@@ -56,12 +64,12 @@ func (t *TivoClient) Close() error {
 
 func (t *TivoClient) Authorize(ctx context.Context) error {
 	authRequest := NewTivoMessage().WithAuthRequest(config.Values.MediaAccessKey)
-	err := t.SendRequest(ctx, *authRequest)
+	err := t.Send(ctx, *authRequest)
 	if err != nil {
 		return err
 	}
 
-	authResponse, err := t.ReceiveResponse(context.Background())
+	authResponse, err := t.Receive(context.Background())
 	if err != nil {
 		return err
 	}
@@ -77,22 +85,20 @@ func (t *TivoClient) GetRecordings(ctx context.Context) ([]*model.Show, error) {
 	return nil, nil
 }
 
-func (t *TivoClient) SendRequest(ctx context.Context, tivoMessage TivoMessage) error {
+func (t *TivoClient) Send(ctx context.Context, tivoMessage TivoMessage) error {
 
 	tivoRequestMessage := tivoMessage.
 		WithSessionID(t.sessionID).
 		WithRpcID(t.rpcID)
 
-	mindRpcMessage, err := tivoRequestMessage.ToMindRpcMessage()
-	if err != nil {
-		return err
-	}
-
 	if ce := logz.Logger.Check(zap.DebugLevel, "debugging"); ce != nil {
 		logz.Logger.Info("sending mRPC message:")
-		fmt.Print(mindRpcMessage)
+		tivoRequestMessage.WriteTo(os.Stdout)
 	}
-	_, err = t.connection.Write([]byte(strings.ToValidUTF8(mindRpcMessage, "")))
+
+	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
+	defer t.connection.SetDeadline(time.Time{})
+	_, err := tivoRequestMessage.WriteTo(t.connection)
 	if err != nil {
 		return err
 	}
@@ -102,10 +108,13 @@ func (t *TivoClient) SendRequest(ctx context.Context, tivoMessage TivoMessage) e
 	return nil
 }
 
-func (t *TivoClient) ReceiveResponse(ctx context.Context) (*TivoMessage, error) {
+func (t *TivoClient) Receive(ctx context.Context) (*TivoMessage, error) {
 
 	responseReader := bufio.NewReader(t.connection)
 	tivoMessage := NewTivoMessage()
+
+	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
+	defer t.connection.SetDeadline(time.Time{})
 	_, err := tivoMessage.ReadFrom(responseReader)
 	if err != nil {
 		return nil, err
