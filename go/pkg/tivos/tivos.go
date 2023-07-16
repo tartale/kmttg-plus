@@ -36,7 +36,7 @@ func GetClient(tivo *model.Tivo) (*mindrpc.TivoClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = newTivoClient.Authorize(context.Background())
+	err = newTivoClient.Authenticate(context.Background())
 	if err != nil {
 		return nil, err
 	}

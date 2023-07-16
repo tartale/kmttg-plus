@@ -28,8 +28,8 @@ func NewTivoMessage() *TivoMessage {
 func (t *TivoMessage) WithStandardHeaders() *TivoMessage {
 	t.Headers.Set("SchemaVersion", schemaVersion)
 	t.Headers.Set("Content-Type", "application/json")
-	t.Headers.Set("X-ApplicationName", applicationName)
-	t.Headers.Set("X-ApplicationVersion", applicationVersion)
+	// t.Headers.Set("X-ApplicationName", applicationName)
+	// t.Headers.Set("X-ApplicationVersion", applicationVersion)
 
 	return t
 }
@@ -50,6 +50,18 @@ func (t *TivoMessage) WithAuthRequest(mediaAccessKey string) *TivoMessage {
 	return t
 }
 
+/*
+MRPC/2 132 41
+Type: request
+RpcId: 1
+SchemaVersion: 21
+Content-Type: application/json
+RequestType: bodyConfigSearch
+ResponseCount: single
+
+{"type":"bodyConfigSearch","bodyId":"-"}
+*/
+
 func (t *TivoMessage) WithBodyConfigSearch() *TivoMessage {
 
 	t = t.WithStandardHeaders()
@@ -63,14 +75,47 @@ func (t *TivoMessage) WithBodyConfigSearch() *TivoMessage {
 	return t
 }
 
+/*
+MRPC/2 170 68
+Type: request
+RpcId: 2
+SchemaVersion: 21
+Content-Type: application/json
+RequestType: recordingFolderItemSearch
+BodyId: tsn:8460001909E14AD
+ResponseCount: single
+
+{"type":"recordingFolderItemSearch","bodyId":"tsn:8460001909E14AD"}
+
+*/
+
+func (t *TivoMessage) WithGetRecordingsRequest() *TivoMessage {
+
+	t = t.WithStandardHeaders()
+	t.Headers.Set("Type", "request")
+	t.Headers.Set("RequestType", string(recordingFolderItemSearch))
+	t.Headers.Set("ResponseCount", string(single))
+
+	t.Body.Type = recordingFolderItemSearch
+
+	return t
+}
+
 func (t *TivoMessage) WithSessionID(sessionID string) *TivoMessage {
-	t.Headers.Set("X-ApplicationSessionId", sessionID)
+	// t.Headers.Set("X-ApplicationSessionId", sessionID)
 
 	return t
 }
 
 func (t *TivoMessage) WithRpcID(rpcID int) *TivoMessage {
 	t.Headers.Set("RpcId", fmt.Sprintf("%d", rpcID))
+
+	return t
+}
+
+func (t *TivoMessage) WithBodyId(bodyId string) *TivoMessage {
+	t.Headers.Set("BodyId", bodyId)
+	t.Body.BodyID = bodyId
 
 	return t
 }
@@ -93,7 +138,7 @@ func (t *TivoMessage) ReadFrom(r io.Reader) (n int64, err error) {
 	if err != nil {
 		return -1, err
 	}
-	_ = headers
+	t.Headers = headers
 
 	bodyBytes := make([]byte, bodyLength)
 	_, err = io.ReadFull(responseReader, bodyBytes)
@@ -128,20 +173,14 @@ func (t *TivoMessage) WriteTo(w io.Writer) (n int64, err error) {
 	return 0, nil
 }
 
-type RequestType string
+type MessageType string
 
 const (
-	bodyAuthenticate          RequestType = "bodyAuthenticate"
-	bodyConfigSearch          RequestType = "bodyConfigSearch"
-	channelSearch             RequestType = "channelSearch"
-	recordingFolderItemSearch RequestType = "recordingFolderItemSearch"
-	recordingSearch           RequestType = "recordingSearch"
-	offerSearch               RequestType = "offerSearch"
-	contentSearch             RequestType = "contentSearch"
-	collectionSearch          RequestType = "collectionSearch"
-	categorySearch            RequestType = "categorySearch"
-	whatsOnSearch             RequestType = "whatsOnSearch"
-	tunerStateEventRegister   RequestType = "tunerStateEventRegister"
+	bodyAuthenticate          MessageType = "bodyAuthenticate"
+	bodyConfigSearch          MessageType = "bodyConfigSearch"
+	recordingSearch           MessageType = "recordingSearch"
+	recordingFolderItemSearch MessageType = "recordingFolderItemSearch"
+	errorz                    MessageType = "error"
 )
 
 type StatusType string
@@ -150,20 +189,6 @@ const (
 	success StatusType = "success"
 	failure StatusType = "failure"
 )
-
-// type ResponseType string
-
-// const (
-// 	channel             ResponseType = "channel"
-// 	recordingFolderItem ResponseType = "recordingFolderItem"
-// 	recording           ResponseType = "recording"
-// 	offer               ResponseType = "offer"
-// 	content             ResponseType = "content"
-// 	collection          ResponseType = "collection"
-// 	category            ResponseType = "category"
-// 	whatsOn             ResponseType = "whatsOn"
-// 	state               ResponseType = "state"
-// )
 
 type ResponseCount string
 
@@ -184,7 +209,7 @@ type Credential struct {
 }
 
 type TivoMessageBody struct {
-	Type       RequestType `json:"type"`
+	Type       MessageType `json:"type,omitempty"`
 	BodyID     string      `json:"bodyId,omitempty"`
 	Credential *Credential `json:"credential,omitempty"`
 	Offset     int         `json:"offset,omitempty"`

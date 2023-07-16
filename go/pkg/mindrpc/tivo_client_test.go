@@ -44,7 +44,24 @@ var _ = Describe("Tivo Client", func() {
 		Expect(client).NotTo(BeNil())
 		defer client.Close()
 
-		err = client.Authorize(context.Background())
+		err = client.Authenticate(context.Background())
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("can get a list of recordings", func() {
+		if test.Tivo == nil {
+			Skip("skipping test; to enable, populate the KMTTG_TEST_TIVO env variable with information for an existing Tivo")
+		}
+
+		client, err := NewTivoClient(test.Tivo)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(client).NotTo(BeNil())
+		defer client.Close()
+
+		err = client.Authenticate(context.Background())
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = client.GetRecordings(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

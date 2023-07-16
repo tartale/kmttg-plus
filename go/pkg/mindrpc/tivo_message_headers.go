@@ -6,7 +6,11 @@ import (
 	"strings"
 )
 
-var headerOrder = []string{"Type", "RpcId", "SchemaVersion", "Content-Type", "RequestType", "ResponseCount"}
+var headerOrder = []string{
+	"Type", "RpcId", "SchemaVersion", "Content-Type", "RequestType",
+	"BodyId", "ResponseCount", "X-ApplicationSessionId",
+	"X-ApplicationName", "IsFinal",
+}
 
 type TivoMessageHeaders map[string]string
 

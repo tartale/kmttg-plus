@@ -8,11 +8,13 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"path"
 	"time"
 
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
+	"github.com/tartale/kmttg-plus/go/test"
 	"go.uber.org/zap"
 )
 
@@ -27,6 +29,7 @@ type TivoClient struct {
 	connection *tls.Conn
 	sessionID  string
 	rpcID      int
+	tsn        string
 }
 
 func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
@@ -55,6 +58,7 @@ func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 		connection: conn.(*tls.Conn),
 		sessionID:  sessionID,
 		rpcID:      0,
+		tsn:        tivo.Tsn,
 	}, nil
 }
 
@@ -62,7 +66,8 @@ func (t *TivoClient) Close() error {
 	return t.connection.Close()
 }
 
-func (t *TivoClient) Authorize(ctx context.Context) error {
+func (t *TivoClient) Authenticate(ctx context.Context) error {
+
 	authRequest := NewTivoMessage().WithAuthRequest(config.Values.MediaAccessKey)
 	err := t.Send(ctx, *authRequest)
 	if err != nil {
@@ -74,13 +79,47 @@ func (t *TivoClient) Authorize(ctx context.Context) error {
 		return err
 	}
 	if authResponse.Body.Status != success {
-		return ErrUnauthorized(authResponse.Body.Message)
+		return ErrNotAuthenticated(authResponse.Body.Message)
+	}
+
+	/*
+		MRPC/2 132 41
+		Type: request
+		RpcId: 1
+		SchemaVersion: 21
+		Content-Type: application/json
+		RequestType: bodyConfigSearch
+		ResponseCount: single
+
+		{"type":"bodyConfigSearch","bodyId":"-"}
+	*/
+
+	bodyConfigRequest := NewTivoMessage().WithBodyConfigSearch()
+	err = t.Send(ctx, *bodyConfigRequest)
+	if err != nil {
+		return err
+	}
+
+	_, err = t.Receive(context.Background())
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (t *TivoClient) GetRecordings(ctx context.Context) ([]*model.Show, error) {
+
+	getRecordingsRequest := NewTivoMessage().WithGetRecordingsRequest()
+	err := t.Send(ctx, *getRecordingsRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = t.Receive(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	return nil, nil
 }
@@ -91,9 +130,18 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage TivoMessage) error {
 		WithSessionID(t.sessionID).
 		WithRpcID(t.rpcID)
 
-	if ce := logz.Logger.Check(zap.DebugLevel, "debugging"); ce != nil {
-		logz.Logger.Info("sending mRPC message:")
-		tivoRequestMessage.WriteTo(os.Stdout)
+	if _, ok := tivoRequestMessage.Headers["BodyId"]; !ok && tivoRequestMessage.Body.BodyID == "" {
+		tivoRequestMessage = tivoRequestMessage.WithBodyId("tsn:" + t.tsn)
+	}
+
+	if logz.Logger.Level() == zap.DebugLevel {
+		debugDir, err := test.DebugDir()
+		if err == nil {
+			debugFile, err := os.Create(path.Join(debugDir, fmt.Sprintf("request-%d.txt", t.rpcID)))
+			if err == nil {
+				tivoRequestMessage.WriteTo(debugFile)
+			}
+		}
 	}
 
 	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
@@ -111,16 +159,27 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage TivoMessage) error {
 func (t *TivoClient) Receive(ctx context.Context) (*TivoMessage, error) {
 
 	responseReader := bufio.NewReader(t.connection)
-	tivoMessage := NewTivoMessage()
+	tivoResponseMessage := NewTivoMessage()
 
 	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
 	defer t.connection.SetDeadline(time.Time{})
-	_, err := tivoMessage.ReadFrom(responseReader)
+	_, err := tivoResponseMessage.ReadFrom(responseReader)
 	if err != nil {
 		return nil, err
 	}
 
-	return tivoMessage, nil
+	if logz.Logger.Level() == zap.DebugLevel {
+		debugDir, err := test.DebugDir()
+		if err == nil {
+			rpcId := tivoResponseMessage.Headers["RpcId"]
+			debugFile, err := os.Create(path.Join(debugDir, fmt.Sprintf("response-%s.txt", rpcId)))
+			if err == nil {
+				tivoResponseMessage.WriteTo(debugFile)
+			}
+		}
+	}
+
+	return tivoResponseMessage, nil
 }
 
 func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
@@ -136,7 +195,6 @@ func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 
 	return &tls.Config{
 		GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
-			logz.Logger.Debug("received client certificate request", zap.Any("cri", cri))
 			return cert, nil
 		},
 		RootCAs:            certPool,
