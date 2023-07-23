@@ -4,7 +4,7 @@ tools:
 	go generate -tags=tools ./...
 
 tidy:
-	go mod tidy
+	GONOPROXY=https://github.com/tartale/go go mod tidy
 
 build:
 	go generate ./...

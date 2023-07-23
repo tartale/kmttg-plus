@@ -61,7 +61,8 @@ var _ = Describe("Tivo Client", func() {
 		err = client.Authenticate(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = client.GetRecordings(context.Background())
+		recordings, err := client.GetRecordings(context.Background())
 		Expect(err).ToNot(HaveOccurred())
+		Expect(recordings).To(HaveLen(0))
 	})
 })

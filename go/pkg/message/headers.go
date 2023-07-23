@@ -1,4 +1,4 @@
-package mindrpc
+package message
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 
 var headerOrder = []string{
 	"Type", "RpcId", "SchemaVersion", "Content-Type", "RequestType",
-	"BodyId", "ResponseCount", "X-ApplicationSessionId",
-	"X-ApplicationName", "IsFinal",
+	"ResponseCount", "BodyId", "X-ApplicationName", "X-ApplicationVersion",
+	"X-ApplicationSessionId", "IsFinal",
 }
 
 type TivoMessageHeaders map[string]string

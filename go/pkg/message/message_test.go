@@ -1,4 +1,4 @@
-package mindrpc
+package message
 
 import (
 	. "github.com/onsi/ginkgo/v2"

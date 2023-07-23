@@ -1,6 +1,6 @@
 module github.com/tartale/kmttg-plus/go
 
-go 1.19
+go 1.20
 
 require (
 	github.com/99designs/gqlgen v0.17.34
@@ -11,6 +11,7 @@ require (
 	github.com/rs/cors v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
+	github.com/tartale/go v0.0.0-20230723132633-3ff9e47e877e
 	github.com/vektah/gqlparser/v2 v2.5.6
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.11.0
@@ -45,12 +46,12 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/mod v0.11.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sync v0.2.0 // indirect
+	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/net v0.12.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
-	golang.org/x/tools v0.9.3 // indirect
+	golang.org/x/tools v0.11.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

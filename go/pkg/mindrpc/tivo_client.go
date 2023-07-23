@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"os"
@@ -13,17 +14,17 @@ import (
 
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
+	"github.com/tartale/kmttg-plus/go/pkg/message"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/test"
-	"go.uber.org/zap"
 )
 
-const (
-	tivoRPCPort        = "1413"
-	schemaVersion      = "21"
-	applicationName    = "Quicksilver"
-	applicationVersion = "1.2"
-)
+const tivoRPCPort = "1413"
+
+type ReaderFromWriterTo interface {
+	io.ReaderFrom
+	io.WriterTo
+}
 
 type TivoClient struct {
 	connection *tls.Conn
@@ -40,7 +41,8 @@ func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 	}
 
 	ctx := context.Background()
-	ctx, _ = context.WithTimeout(ctx, config.Values.Timeout)
+	ctx, cancelFunc := context.WithTimeout(ctx, config.Values.Timeout)
+	defer cancelFunc()
 	dialer := tls.Dialer{
 		NetDialer: new(net.Dialer),
 		Config:    tlsConfig,
@@ -51,13 +53,13 @@ func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 		return nil, err
 	}
 
-	rand.Seed(time.Now().UnixNano())
-	sessionID := fmt.Sprintf("0x%x", rand.Int())
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	sessionID := fmt.Sprintf("0x%x", r.Int())[:9]
 
 	return &TivoClient{
 		connection: conn.(*tls.Conn),
 		sessionID:  sessionID,
-		rpcID:      0,
+		rpcID:      1,
 		tsn:        tivo.Tsn,
 	}, nil
 }
@@ -68,41 +70,20 @@ func (t *TivoClient) Close() error {
 
 func (t *TivoClient) Authenticate(ctx context.Context) error {
 
-	authRequest := NewTivoMessage().WithAuthRequest(config.Values.MediaAccessKey)
-	err := t.Send(ctx, *authRequest)
+	authRequest := message.NewTivoMessage().WithAuthRequest(config.Values.MediaAccessKey)
+	err := t.Send(ctx, authRequest)
 	if err != nil {
 		return err
 	}
 
-	authResponse, err := t.Receive(context.Background())
+	authResponseBody := &message.AuthResponseBody{}
+	authResponse := message.NewTivoMessage().WithBody(authResponseBody)
+	err = t.Receive(context.Background(), authResponse)
 	if err != nil {
 		return err
 	}
-	if authResponse.Body.Status != success {
-		return ErrNotAuthenticated(authResponse.Body.Message)
-	}
-
-	/*
-		MRPC/2 132 41
-		Type: request
-		RpcId: 1
-		SchemaVersion: 21
-		Content-Type: application/json
-		RequestType: bodyConfigSearch
-		ResponseCount: single
-
-		{"type":"bodyConfigSearch","bodyId":"-"}
-	*/
-
-	bodyConfigRequest := NewTivoMessage().WithBodyConfigSearch()
-	err = t.Send(ctx, *bodyConfigRequest)
-	if err != nil {
-		return err
-	}
-
-	_, err = t.Receive(context.Background())
-	if err != nil {
-		return err
+	if authResponseBody.Status != message.StatusTypeSuccess {
+		return ErrNotAuthenticated(authResponseBody.Message)
 	}
 
 	return nil
@@ -110,39 +91,30 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 
 func (t *TivoClient) GetRecordings(ctx context.Context) ([]*model.Show, error) {
 
-	getRecordingsRequest := NewTivoMessage().WithGetRecordingsRequest()
-	err := t.Send(ctx, *getRecordingsRequest)
+	getRecordingsRequest := message.NewTivoMessage().WithGetRecordingsRequest("tsn:" + t.tsn)
+	err := t.Send(ctx, getRecordingsRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = t.Receive(ctx)
+	getRecordingResponseBody := &message.RecordingFolderItemSearchResponseBody{}
+	getRecordingResponse := message.NewTivoMessage().WithBody(getRecordingResponseBody)
+	err = t.Receive(ctx, getRecordingResponse)
 	if err != nil {
 		return nil, err
 	}
+	_ = getRecordingResponse
 
 	return nil, nil
 }
 
-func (t *TivoClient) Send(ctx context.Context, tivoMessage TivoMessage) error {
+func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage) error {
 
 	tivoRequestMessage := tivoMessage.
 		WithSessionID(t.sessionID).
 		WithRpcID(t.rpcID)
 
-	if _, ok := tivoRequestMessage.Headers["BodyId"]; !ok && tivoRequestMessage.Body.BodyID == "" {
-		tivoRequestMessage = tivoRequestMessage.WithBodyId("tsn:" + t.tsn)
-	}
-
-	if logz.Logger.Level() == zap.DebugLevel {
-		debugDir, err := test.DebugDir()
-		if err == nil {
-			debugFile, err := os.Create(path.Join(debugDir, fmt.Sprintf("request-%d.txt", t.rpcID)))
-			if err == nil {
-				tivoRequestMessage.WriteTo(debugFile)
-			}
-		}
-	}
+	test.Debug(tivoRequestMessage, (fmt.Sprintf("%03d-request.txt", t.rpcID)))
 
 	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
 	defer t.connection.SetDeadline(time.Time{})
@@ -156,30 +128,36 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage TivoMessage) error {
 	return nil
 }
 
-func (t *TivoClient) Receive(ctx context.Context) (*TivoMessage, error) {
+func (t *TivoClient) SendFile(ctx context.Context, filename string) error {
 
-	responseReader := bufio.NewReader(t.connection)
-	tivoResponseMessage := NewTivoMessage()
+	message, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
 
 	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
 	defer t.connection.SetDeadline(time.Time{})
-	_, err := tivoResponseMessage.ReadFrom(responseReader)
+	_, err = t.connection.Write(message)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if logz.Logger.Level() == zap.DebugLevel {
-		debugDir, err := test.DebugDir()
-		if err == nil {
-			rpcId := tivoResponseMessage.Headers["RpcId"]
-			debugFile, err := os.Create(path.Join(debugDir, fmt.Sprintf("response-%s.txt", rpcId)))
-			if err == nil {
-				tivoResponseMessage.WriteTo(debugFile)
-			}
-		}
-	}
+	return nil
+}
 
-	return tivoResponseMessage, nil
+func (t *TivoClient) Receive(ctx context.Context, tivoMessage ReaderFromWriterTo) error {
+
+	responseReader := bufio.NewReader(t.connection)
+
+	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
+	defer t.connection.SetDeadline(time.Time{})
+	_, err := tivoMessage.ReadFrom(responseReader)
+	if err != nil {
+		return err
+	}
+	test.Debug(tivoMessage, (fmt.Sprintf("%03d-response.txt", t.rpcID)))
+
+	return nil
 }
 
 func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
@@ -192,9 +170,18 @@ func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	keyLog, err := os.Create(path.Join(test.MustGetDebugDir(), "keys.log"))
+	if err != nil {
+		return nil, err
+	}
 
 	return &tls.Config{
+		GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			logz.Logger.Info("certificate request")
+			return nil, nil
+		},
 		GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			logz.Logger.Info("client certificate request")
 			return cert, nil
 		},
 		RootCAs:            certPool,
@@ -203,5 +190,6 @@ func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 		ClientCAs:          certPool,
 		InsecureSkipVerify: true,
 		Renegotiation:      tls.RenegotiateFreelyAsClient,
+		KeyLogWriter:       keyLog,
 	}, nil
 }
