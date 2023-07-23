@@ -1,4 +1,4 @@
-package mindrpc
+package client
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package mindrpc
+package client
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestMindRPC(t *testing.T) {
+func TestClient(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Mind RPC Test Suite")
+	RunSpecs(t, "Tivo Client Test Suite")
 }

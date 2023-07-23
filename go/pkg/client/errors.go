@@ -1,4 +1,4 @@
-package mindrpc
+package client
 
 import (
 	"fmt"
@@ -6,5 +6,5 @@ import (
 
 func ErrNotAuthenticated(message string) error {
 
-	return fmt.Errorf("unauthorized: %s", message)
+	return fmt.Errorf("authentication failed: %s", message)
 }

@@ -1,4 +1,4 @@
-package mindrpc
+package client
 
 import (
 	. "github.com/onsi/ginkgo/v2"
