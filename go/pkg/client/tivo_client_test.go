@@ -1,10 +1,11 @@
-package client
+package client_test
 
 import (
 	"context"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/test"
 )
 
@@ -15,7 +16,7 @@ var _ = Describe("Tivo Client", func() {
 			Skip("skipping test; to enable, populate the KMTTG_TEST_TIVO env variable with information for an existing Tivo")
 		}
 
-		tlsConfig, err := newTLSConfig(test.Tivo)
+		tlsConfig, err := client.NewTLSConfig(test.Tivo)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(tlsConfig).NotTo(BeNil())
 		Expect(tlsConfig.ServerName).To(Equal(test.Tivo.ServerName()))
@@ -26,11 +27,11 @@ var _ = Describe("Tivo Client", func() {
 			Skip("skipping test; to enable, populate the KMTTG_TEST_TIVO env variable with information for an existing Tivo")
 		}
 
-		client, err := NewTivoClient(test.Tivo)
+		tivoClient, err := client.NewTivoClient(test.Tivo)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(client).NotTo(BeNil())
+		Expect(tivoClient).NotTo(BeNil())
 
-		err = client.Close()
+		err = tivoClient.Close()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -39,12 +40,12 @@ var _ = Describe("Tivo Client", func() {
 			Skip("skipping test; to enable, populate the KMTTG_TEST_TIVO env variable with information for an existing Tivo")
 		}
 
-		client, err := NewTivoClient(test.Tivo)
+		tivoClient, err := client.NewTivoClient(test.Tivo)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(client).NotTo(BeNil())
-		defer client.Close()
+		Expect(tivoClient).NotTo(BeNil())
+		defer tivoClient.Close()
 
-		err = client.Authenticate(context.Background())
+		err = tivoClient.Authenticate(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -53,15 +54,15 @@ var _ = Describe("Tivo Client", func() {
 			Skip("skipping test; to enable, populate the KMTTG_TEST_TIVO env variable with information for an existing Tivo")
 		}
 
-		client, err := NewTivoClient(test.Tivo)
+		tivoClient, err := client.NewTivoClient(test.Tivo)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(client).NotTo(BeNil())
-		defer client.Close()
+		Expect(tivoClient).NotTo(BeNil())
+		defer tivoClient.Close()
 
-		err = client.Authenticate(context.Background())
+		err = tivoClient.Authenticate(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 
-		recordings, err := client.GetAllRecordings(context.Background())
+		recordings, err := tivoClient.GetAllRecordings(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(recordings)).To(BeNumerically(">", 0))
 	})

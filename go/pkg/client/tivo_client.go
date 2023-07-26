@@ -30,7 +30,7 @@ type TivoClient struct {
 
 func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 
-	tlsConfig, err := newTLSConfig(tivo)
+	tlsConfig, err := NewTLSConfig(tivo)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +59,35 @@ func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 	}, nil
 }
 
+func NewTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
+
+	certPath, err := config.CertificatePath()
+	if err != nil {
+		return nil, err
+	}
+	cert, certPool, err := GetCertificates(certPath)
+	if err != nil {
+		return nil, err
+	}
+	keyLog, err := os.Create(path.Join(test.MustGetDebugDir(), "keys.log"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &tls.Config{
+		GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			return cert, nil
+		},
+		RootCAs:            certPool,
+		ServerName:         tivo.ServerName(),
+		ClientAuth:         tls.RequireAndVerifyClientCert,
+		ClientCAs:          certPool,
+		InsecureSkipVerify: true,
+		Renegotiation:      tls.RenegotiateFreelyAsClient,
+		KeyLogWriter:       keyLog,
+	}, nil
+}
+
 func (t *TivoClient) Close() error {
 	return t.connection.Close()
 }
@@ -84,9 +113,9 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 	return nil
 }
 
-func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]*model.Show, error) {
+func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]model.Show, error) {
 
-	request := message.NewTivoMessage().WithGetAllRecordingsRequest("tsn:" + t.tsn)
+	request := message.NewTivoMessage().WithGetAllRecordingsRequest(ctx, t.BodyID())
 	err := t.Send(ctx, request)
 	if err != nil {
 		return nil, err
@@ -101,7 +130,7 @@ func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]*model.Show, error
 	if responseBody.Type != message.TypeRecordingFolderItemList {
 		return nil, errorz.ErrResponse(responseBody.Message)
 	}
-	var result []*model.Show
+	var result []model.Show
 	var errs errorx.Errors
 	for _, recording := range responseBody.RecordingFolderItem {
 		show, err := t.GetRecording(ctx, recording.ChildRecordingID)
@@ -115,9 +144,9 @@ func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]*model.Show, error
 	return result, errs
 }
 
-func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (*model.Show, error) {
+func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (model.Show, error) {
 
-	request := message.NewTivoMessage().WithGetRecordingRequest("tsn:"+t.tsn, recordingID)
+	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), recordingID)
 	err := t.Send(ctx, request)
 	if err != nil {
 		return nil, err
@@ -141,7 +170,7 @@ func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (*mod
 		return nil, err
 	}
 
-	return &show, nil
+	return show, nil
 }
 
 func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage) error {
@@ -196,31 +225,6 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessa
 	return nil
 }
 
-func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
-
-	certPath, err := config.CertificatePath()
-	if err != nil {
-		return nil, err
-	}
-	cert, certPool, err := GetCertificates(certPath)
-	if err != nil {
-		return nil, err
-	}
-	keyLog, err := os.Create(path.Join(test.MustGetDebugDir(), "keys.log"))
-	if err != nil {
-		return nil, err
-	}
-
-	return &tls.Config{
-		GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
-			return cert, nil
-		},
-		RootCAs:            certPool,
-		ServerName:         tivo.ServerName(),
-		ClientAuth:         tls.RequireAndVerifyClientCert,
-		ClientCAs:          certPool,
-		InsecureSkipVerify: true,
-		Renegotiation:      tls.RenegotiateFreelyAsClient,
-		KeyLogWriter:       keyLog,
-	}, nil
+func (t *TivoClient) BodyID() string {
+	return "tsn:" + t.tsn
 }

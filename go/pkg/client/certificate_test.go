@@ -1,8 +1,9 @@
-package client
+package client_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/test"
 )
@@ -17,7 +18,7 @@ var _ = Describe("Tivo Certificates", func() {
 		certificatePath, err := config.CertificatePath()
 		Expect(err).ToNot(HaveOccurred())
 
-		certs, certPool, err := GetCertificates(certificatePath)
+		certs, certPool, err := client.GetCertificates(certificatePath)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(certs).ToNot(BeNil())
 		Expect(certs.Certificate).To(HaveLen(3))

@@ -2,11 +2,13 @@ package message
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 
 	"github.com/tartale/go/pkg/jsontime"
 	"github.com/tartale/go/pkg/primitive"
+	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 )
 
 const (
@@ -64,19 +66,19 @@ func (t *TivoMessage) WithAuthRequest(mediaAccessKey string) *TivoMessage {
 	return t
 }
 
-func (t *TivoMessage) WithGetAllRecordingsRequest(bodyId string) *TivoMessage {
+func (t *TivoMessage) WithGetAllRecordingsRequest(ctx context.Context, bodyID string) *TivoMessage {
 
 	t = t.WithStandardHeaders()
 	t.Headers.Set("Type", "request")
 	t.Headers.Set("RequestType", string(TypeRecordingFolderItemSearch))
 	t.Headers.Set("ResponseCount", string(ResponseCountSingle))
-	t.Headers.Set("BodyId", bodyId)
+	t.Headers.Set("BodyId", bodyID)
 
 	body := &RecordingFolderItemSearchRequestBody{
 		Type:    TypeRecordingFolderItemSearch,
-		BodyID:  bodyId,
-		Offset:  primitive.Ref(0),
-		Count:   primitive.Ref(25),
+		BodyID:  bodyID,
+		Offset:  primitive.Ref(apicontext.Offset(ctx)),
+		Count:   primitive.Ref(apicontext.Limit(ctx)),
 		Flatten: primitive.Ref(true),
 	}
 	t.Body = body
@@ -84,7 +86,7 @@ func (t *TivoMessage) WithGetAllRecordingsRequest(bodyId string) *TivoMessage {
 	return t
 }
 
-func (t *TivoMessage) WithGetRecordingRequest(bodyID, recordingID string) *TivoMessage {
+func (t *TivoMessage) WithGetRecordingRequest(ctx context.Context, bodyID, recordingID string) *TivoMessage {
 
 	t = t.WithStandardHeaders()
 	t.Headers.Set("Type", "request")

@@ -217,14 +217,6 @@ github.com/stretchr/testify v1.8.3/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXl
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/subosito/gotenv v1.4.2 h1:X1TuBLAMDFbaTAChgCBLu3DU3UPyELpnF2jjJ2cz/S8=
 github.com/subosito/gotenv v1.4.2/go.mod h1:ayKnFf/c6rvx/2iiLrJUk1e6plDbT3edrFNGqEflhK0=
-github.com/tartale/go v0.0.0-20230723205019-e707bbedb5bc h1:TfpJX80nHT1lGWx4h9BM5ZRQxP441DD2akx83M44B5U=
-github.com/tartale/go v0.0.0-20230723205019-e707bbedb5bc/go.mod h1:AUId8jF50BzjCxR/w/zO2lSvzjFMTrLT+tzzXBRnfsA=
-github.com/tartale/go v0.0.0-20230723213447-f267c143510a h1:YkDemuOhtUutDhCmGHFWZnpuqhoNhJZvGhe8zk4sVQg=
-github.com/tartale/go v0.0.0-20230723213447-f267c143510a/go.mod h1:AUId8jF50BzjCxR/w/zO2lSvzjFMTrLT+tzzXBRnfsA=
-github.com/tartale/go v0.0.0-20230724155422-d13f23760208 h1:Jhqo3G6ze8FYcZ6yUi4rFlVNC8Pf0G3GvbLT4C4cnw8=
-github.com/tartale/go v0.0.0-20230724155422-d13f23760208/go.mod h1:AUId8jF50BzjCxR/w/zO2lSvzjFMTrLT+tzzXBRnfsA=
-github.com/tartale/go v0.0.0-20230724162504-0a667dc9c131 h1:s9d5Erhz1Jz9f0iKPNmDlGEzXUR8HnFrECs484UngJM=
-github.com/tartale/go v0.0.0-20230724162504-0a667dc9c131/go.mod h1:AUId8jF50BzjCxR/w/zO2lSvzjFMTrLT+tzzXBRnfsA=
 github.com/tartale/go v0.0.0-20230726003200-02ac252000f4 h1:jQkdMqtPCC8gaFpwG2Pakd/L5UbDMLccJipdNh5xCq8=
 github.com/tartale/go v0.0.0-20230726003200-02ac252000f4/go.mod h1:AUId8jF50BzjCxR/w/zO2lSvzjFMTrLT+tzzXBRnfsA=
 github.com/urfave/cli/v2 v2.25.5 h1:d0NIAyhh5shGscroL7ek/Ya9QYQE0KNabJgiUinIQkc=
