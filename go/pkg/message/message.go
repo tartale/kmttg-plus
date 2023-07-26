@@ -2,16 +2,15 @@ package message
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
 
+	"github.com/tartale/go/pkg/jsontime"
 	"github.com/tartale/go/pkg/primitive"
 )
 
 const (
 	crlf               = "\r\n"
-	tivoRPCPort        = "1413"
 	schemaVersion      = "17"
 	applicationName    = "Quicksilver"
 	applicationVersion = "1.2"
@@ -65,7 +64,7 @@ func (t *TivoMessage) WithAuthRequest(mediaAccessKey string) *TivoMessage {
 	return t
 }
 
-func (t *TivoMessage) WithGetRecordingsRequest(bodyId string) *TivoMessage {
+func (t *TivoMessage) WithGetAllRecordingsRequest(bodyId string) *TivoMessage {
 
 	t = t.WithStandardHeaders()
 	t.Headers.Set("Type", "request")
@@ -79,6 +78,25 @@ func (t *TivoMessage) WithGetRecordingsRequest(bodyId string) *TivoMessage {
 		Offset:  primitive.Ref(0),
 		Count:   primitive.Ref(25),
 		Flatten: primitive.Ref(true),
+	}
+	t.Body = body
+
+	return t
+}
+
+func (t *TivoMessage) WithGetRecordingRequest(bodyID, recordingID string) *TivoMessage {
+
+	t = t.WithStandardHeaders()
+	t.Headers.Set("Type", "request")
+	t.Headers.Set("RequestType", string(TypeRecordingSearch))
+	t.Headers.Set("ResponseCount", string(ResponseCountSingle))
+	t.Headers.Set("BodyId", bodyID)
+
+	body := &RecordingSearchRequestBody{
+		Type:          TypeRecordingSearch,
+		BodyID:        bodyID,
+		LevelOfDetail: LevelOfDetailMedium,
+		RecordingID:   recordingID,
 	}
 	t.Body = body
 
@@ -123,7 +141,7 @@ func (t *TivoMessage) ReadFrom(r io.Reader) (n int64, err error) {
 		return -1, err
 	}
 
-	err = json.Unmarshal(bodyBytes, &t.Body)
+	err = jsontime.UnmarshalJSON(bodyBytes, &t.Body)
 	if err != nil {
 		return -1, err
 	}
@@ -134,7 +152,7 @@ func (t *TivoMessage) ReadFrom(r io.Reader) (n int64, err error) {
 func (t *TivoMessage) WriteTo(w io.Writer) (n int64, err error) {
 
 	headers := t.Headers.String()
-	bodyBytes, err := json.Marshal(t.Body)
+	bodyBytes, err := jsontime.MarshalJSON(&t.Body)
 	if err != nil {
 		return -1, err
 	}

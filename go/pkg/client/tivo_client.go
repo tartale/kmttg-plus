@@ -5,26 +5,21 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"math/rand"
 	"net"
 	"os"
 	"path"
 	"time"
 
+	"github.com/tartale/go/pkg/errorx"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
-	"github.com/tartale/kmttg-plus/go/pkg/logz"
+	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/test"
 )
 
 const tivoRPCPort = "1413"
-
-type ReaderFromWriterTo interface {
-	io.ReaderFrom
-	io.WriterTo
-}
 
 type TivoClient struct {
 	connection *tls.Conn
@@ -83,29 +78,70 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 		return err
 	}
 	if authResponseBody.Status != message.StatusTypeSuccess {
-		return ErrNotAuthenticated(authResponseBody.Message)
+		return errorz.ErrNotAuthenticated(authResponseBody.Message)
 	}
 
 	return nil
 }
 
-func (t *TivoClient) GetRecordings(ctx context.Context) ([]*model.Show, error) {
+func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]*model.Show, error) {
 
-	getRecordingsRequest := message.NewTivoMessage().WithGetRecordingsRequest("tsn:" + t.tsn)
-	err := t.Send(ctx, getRecordingsRequest)
+	request := message.NewTivoMessage().WithGetAllRecordingsRequest("tsn:" + t.tsn)
+	err := t.Send(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	getRecordingResponseBody := &message.RecordingFolderItemSearchResponseBody{}
-	getRecordingResponse := message.NewTivoMessage().WithBody(getRecordingResponseBody)
-	err = t.Receive(ctx, getRecordingResponse)
+	responseBody := &message.RecordingFolderItemSearchResponseBody{}
+	response := message.NewTivoMessage().WithBody(responseBody)
+	err = t.Receive(ctx, response)
 	if err != nil {
 		return nil, err
 	}
-	_ = getRecordingResponse
+	if responseBody.Type != message.TypeRecordingFolderItemList {
+		return nil, errorz.ErrResponse(responseBody.Message)
+	}
+	var result []*model.Show
+	var errs errorx.Errors
+	for _, recording := range responseBody.RecordingFolderItem {
+		show, err := t.GetRecording(ctx, recording.ChildRecordingID)
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			result = append(result, show)
+		}
+	}
 
-	return nil, nil
+	return result, errs
+}
+
+func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (*model.Show, error) {
+
+	request := message.NewTivoMessage().WithGetRecordingRequest("tsn:"+t.tsn, recordingID)
+	err := t.Send(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	responseBody := &message.RecordingSearchResponseBody{}
+	response := message.NewTivoMessage().WithBody(responseBody)
+	err = t.Receive(ctx, response)
+	if err != nil {
+		return nil, err
+	}
+	if responseBody.Type != message.TypeRecordingList {
+		return nil, errorz.ErrResponse(responseBody.Message)
+	}
+	recordingCount := len(responseBody.Recording)
+	if recordingCount != 1 {
+		return nil, fmt.Errorf("unexpected number of recordings in response: %d", recordingCount)
+	}
+	show, err := model.NewShow(responseBody.Recording[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return &show, nil
 }
 
 func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage) error {
@@ -145,7 +181,7 @@ func (t *TivoClient) SendFile(ctx context.Context, filename string) error {
 	return nil
 }
 
-func (t *TivoClient) Receive(ctx context.Context, tivoMessage ReaderFromWriterTo) error {
+func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessage) error {
 
 	responseReader := bufio.NewReader(t.connection)
 
@@ -155,7 +191,7 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage ReaderFromWriterTo
 	if err != nil {
 		return err
 	}
-	test.Debug(tivoMessage, (fmt.Sprintf("%03d-response.txt", t.rpcID)))
+	test.Debug(tivoMessage, fmt.Sprintf("%03d-response.txt", tivoMessage.Headers.RpcID()))
 
 	return nil
 }
@@ -176,12 +212,7 @@ func newTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			logz.Logger.Info("certificate request")
-			return nil, nil
-		},
 		GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
-			logz.Logger.Info("client certificate request")
 			return cert, nil
 		},
 		RootCAs:            certPool,

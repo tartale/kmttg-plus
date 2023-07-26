@@ -3,6 +3,7 @@ package message
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -41,6 +42,17 @@ func NewTivoMessageHeaders(r io.Reader, headerLength int) (TivoMessageHeaders, e
 
 func (t TivoMessageHeaders) Set(key, val string) {
 	t[key] = val
+}
+
+func (t TivoMessageHeaders) RpcID() int {
+	if rpcID, ok := t["RpcId"]; ok {
+		val, err := strconv.ParseInt(rpcID, 10, 32)
+		if err == nil {
+			return int(val)
+		}
+	}
+
+	return 0
 }
 
 func (t TivoMessageHeaders) String() string {

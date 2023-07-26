@@ -14,5 +14,5 @@ func Get(ctx context.Context, tivo *model.Tivo) ([]*model.Show, error) {
 		return nil, err
 	}
 
-	return tivoClient.GetRecordings(ctx)
+	return tivoClient.GetAllRecordings(ctx)
 }

@@ -8,7 +8,7 @@ type Credential struct {
 type AuthResponseBody struct {
 	Type       Type        `json:"type,omitempty"`
 	BodyID     string      `json:"bodyId,omitempty"`
-	Message    string      `json:"message,omitempty"`
 	Status     StatusType  `json:"status,omitempty"`
+	Message    string      `json:"message,omitempty"`
 	Credential *Credential `json:"credential,omitempty"`
 }

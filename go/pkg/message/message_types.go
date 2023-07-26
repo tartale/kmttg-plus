@@ -3,8 +3,13 @@ package message
 type Type string
 
 const (
+	TypeRequest                   Type = "request"
+	TypeResponse                  Type = "response"
 	TypeBodyAuthenticate          Type = "bodyAuthenticate"
 	TypeRecordingFolderItemSearch Type = "recordingFolderItemSearch"
+	TypeRecordingFolderItemList   Type = "recordingFolderItemList"
+	TypeRecordingSearch           Type = "recordingSearch"
+	TypeRecordingList             Type = "recordingList"
 	TypeError                     Type = "error"
 )
 
@@ -32,4 +37,10 @@ type CollectionType string
 
 const (
 	CollectionTypeSeries CollectionType = "series"
+)
+
+type LevelOfDetail string
+
+const (
+	LevelOfDetailMedium LevelOfDetail = "medium"
 )
