@@ -66,7 +66,7 @@ func runGraphQLServer() {
 	// Add CORS middleware around every request
 	// See https://github.com/rs/cors for full option listing
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:*"},
+		AllowedOrigins:   []string{"http://localhost:*", "electron://altair*"},
 		AllowCredentials: true,
 		Debug:            true,
 	}).Handler
