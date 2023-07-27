@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net"
 	"os"
 	"path"
+	"syscall"
 	"time"
 
 	"github.com/tartale/go/pkg/errorx"
@@ -22,6 +24,8 @@ import (
 const tivoRPCPort = "1413"
 
 type TivoClient struct {
+	address    string
+	tlsConfig  *tls.Config
 	connection *tls.Conn
 	sessionID  string
 	rpcID      int
@@ -35,28 +39,17 @@ func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 		return nil, err
 	}
 
-	ctx := context.Background()
-	ctx, cancelFunc := context.WithTimeout(ctx, config.Values.Timeout)
-	defer cancelFunc()
-	dialer := tls.Dialer{
-		NetDialer: new(net.Dialer),
-		Config:    tlsConfig,
+	tivoClient := &TivoClient{
+		address:   tivo.Address,
+		tlsConfig: tlsConfig,
+		tsn:       tivo.Tsn,
 	}
-
-	conn, err := dialer.DialContext(ctx, "tcp", tivo.Address+":"+tivoRPCPort)
+	err = tivoClient.Connect()
 	if err != nil {
 		return nil, err
 	}
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	sessionID := fmt.Sprintf("0x%x", r.Int())[:9]
-
-	return &TivoClient{
-		connection: conn.(*tls.Conn),
-		sessionID:  sessionID,
-		rpcID:      1,
-		tsn:        tivo.Tsn,
-	}, nil
+	return tivoClient, nil
 }
 
 func NewTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
@@ -89,7 +82,43 @@ func NewTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 }
 
 func (t *TivoClient) Close() error {
+
 	return t.connection.Close()
+}
+
+func (t *TivoClient) Connect() error {
+
+	ctx := context.Background()
+	ctx, cancelFunc := context.WithTimeout(ctx, config.Values.Timeout)
+	defer cancelFunc()
+	dialer := tls.Dialer{
+		NetDialer: new(net.Dialer),
+		Config:    t.tlsConfig,
+	}
+
+	conn, err := dialer.DialContext(ctx, "tcp", t.address+":"+tivoRPCPort)
+	if err != nil {
+		return err
+	}
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	sessionID := fmt.Sprintf("0x%x", r.Int())[:9]
+
+	t.connection = conn.(*tls.Conn)
+	t.sessionID = sessionID
+	t.rpcID = 1
+
+	return nil
+}
+
+func (t *TivoClient) Reconnect() error {
+
+	t.connection.Close()
+	return t.Connect()
+}
+
+func (t *TivoClient) BodyID() string {
+	return "tsn:" + t.tsn
 }
 
 func (t *TivoClient) Authenticate(ctx context.Context) error {
@@ -141,7 +170,7 @@ func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]model.Show, error)
 		}
 	}
 
-	return result, errs
+	return result, errs.Combine("", "; ")
 }
 
 func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (model.Show, error) {
@@ -181,9 +210,10 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage)
 
 	test.Debug(tivoRequestMessage, (fmt.Sprintf("%03d-request.txt", t.rpcID)))
 
-	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
-	defer t.connection.SetDeadline(time.Time{})
-	_, err := tivoRequestMessage.WriteTo(t.connection)
+	err := t.Retry(func() error {
+		_, err := tivoRequestMessage.WriteTo(t.connection)
+		return err
+	})
 	if err != nil {
 		return err
 	}
@@ -200,9 +230,10 @@ func (t *TivoClient) SendFile(ctx context.Context, filename string) error {
 		return err
 	}
 
-	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
-	defer t.connection.SetDeadline(time.Time{})
-	_, err = t.connection.Write(message)
+	err = t.Retry(func() error {
+		_, err := t.connection.Write(message)
+		return err
+	})
 	if err != nil {
 		return err
 	}
@@ -214,9 +245,10 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessa
 
 	responseReader := bufio.NewReader(t.connection)
 
-	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
-	defer t.connection.SetDeadline(time.Time{})
-	_, err := tivoMessage.ReadFrom(responseReader)
+	err := t.Retry(func() error {
+		_, err := tivoMessage.ReadFrom(responseReader)
+		return err
+	})
 	if err != nil {
 		return err
 	}
@@ -225,6 +257,17 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessa
 	return nil
 }
 
-func (t *TivoClient) BodyID() string {
-	return "tsn:" + t.tsn
+func (t *TivoClient) Retry(fn func() error) error {
+
+	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
+	defer t.connection.SetDeadline(time.Time{})
+	for err := fn(); err != nil; {
+		if errors.Is(err, syscall.EPIPE) {
+			t.Reconnect()
+			continue
+		}
+		return err
+	}
+
+	return nil
 }
