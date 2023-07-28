@@ -11,6 +11,10 @@ func NewShow(recordingItem *message.RecordingItem) (Show, error) {
 
 	switch recordingItem.CollectionType {
 	case message.CollectionTypeSeries:
+		var episodeNumber int
+		if len(recordingItem.EpisodeNum) > 0 {
+			episodeNumber = recordingItem.EpisodeNum[0]
+		}
 		return &Episode{
 			Kind:               ShowKindEpisode,
 			Title:              recordingItem.Title,
@@ -18,8 +22,8 @@ func NewShow(recordingItem *message.RecordingItem) (Show, error) {
 			Description:        recordingItem.Description,
 			OriginalAirDate:    recordingItem.OriginalAirDate.Time,
 			SeasonNumber:       recordingItem.SeasonNumber,
-			EpisodeNumber:      recordingItem.EpisodeNum[0],
-			EpisodeTitle:       recordingItem.Title,
+			EpisodeNumber:      episodeNumber,
+			EpisodeTitle:       recordingItem.Subtitle,
 			EpisodeDescription: recordingItem.Description,
 		}, nil
 	}

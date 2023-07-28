@@ -63,6 +63,7 @@ func MustCreateDebugFile(filename string) *os.File {
 func Debug(input io.WriterTo, filename string) {
 	if logz.Logger.Level() == zap.DebugLevel {
 		file := MustCreateDebugFile(filename)
+		defer file.Close()
 		input.WriteTo(file)
 	}
 

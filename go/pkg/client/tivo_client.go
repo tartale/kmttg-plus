@@ -14,11 +14,14 @@ import (
 	"time"
 
 	"github.com/tartale/go/pkg/errorx"
+	"github.com/tartale/go/pkg/retry"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
+	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/test"
+	"go.uber.org/zap"
 )
 
 const tivoRPCPort = "1413"
@@ -88,18 +91,21 @@ func (t *TivoClient) Close() error {
 
 func (t *TivoClient) Connect() error {
 
+	timeout := config.Values.Timeout
 	ctx := context.Background()
-	ctx, cancelFunc := context.WithTimeout(ctx, config.Values.Timeout)
+	ctx, cancelFunc := context.WithTimeout(ctx, timeout)
 	defer cancelFunc()
 	dialer := tls.Dialer{
 		NetDialer: new(net.Dialer),
 		Config:    t.tlsConfig,
 	}
 
-	conn, err := dialer.DialContext(ctx, "tcp", t.address+":"+tivoRPCPort)
-	if err != nil {
+	var conn net.Conn
+	retry.Eventually(func() error {
+		var err error
+		conn, err = dialer.DialContext(ctx, "tcp", t.address+":"+tivoRPCPort)
 		return err
-	}
+	}, timeout, 1*time.Second)
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	sessionID := fmt.Sprintf("0x%x", r.Int())[:9]
@@ -113,6 +119,7 @@ func (t *TivoClient) Connect() error {
 
 func (t *TivoClient) Reconnect() error {
 
+	logz.Logger.Warn("reconnecting client")
 	t.connection.Close()
 	return t.Connect()
 }
@@ -157,7 +164,8 @@ func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]model.Show, error)
 		return nil, err
 	}
 	if responseBody.Type != message.TypeRecordingFolderItemList {
-		return nil, errorz.ErrResponse(responseBody.Message)
+		logz.Logger.Warn("tivo error response", zap.Any("request", request), zap.Any("response", responseBody))
+		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected response type: %s", responseBody.Type))
 	}
 	var result []model.Show
 	var errs errorx.Errors
@@ -188,7 +196,8 @@ func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (mode
 		return nil, err
 	}
 	if responseBody.Type != message.TypeRecordingList {
-		return nil, errorz.ErrResponse(responseBody.Message)
+		logz.Logger.Error("tivo error response", zap.Any("responseBody", responseBody))
+		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected response type: %s", responseBody.Type))
 	}
 	recordingCount := len(responseBody.Recording)
 	if recordingCount != 1 {
@@ -262,12 +271,28 @@ func (t *TivoClient) Retry(fn func() error) error {
 	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
 	defer t.connection.SetDeadline(time.Time{})
 	for err := fn(); err != nil; {
-		if errors.Is(err, syscall.EPIPE) {
+		if shouldReconnect(err) {
 			t.Reconnect()
 			continue
 		}
-		return err
+		break
 	}
 
 	return nil
+}
+
+func shouldReconnect(err error) bool {
+	if errors.Is(err, syscall.EPIPE) {
+		return true
+	}
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		return true
+	}
+	if opError, ok := err.(*net.OpError); ok {
+		if !opError.Temporary() {
+			return true
+		}
+	}
+
+	return false
 }

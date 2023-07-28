@@ -219,6 +219,10 @@ github.com/subosito/gotenv v1.4.2 h1:X1TuBLAMDFbaTAChgCBLu3DU3UPyELpnF2jjJ2cz/S8
 github.com/subosito/gotenv v1.4.2/go.mod h1:ayKnFf/c6rvx/2iiLrJUk1e6plDbT3edrFNGqEflhK0=
 github.com/tartale/go v0.0.0-20230726003200-02ac252000f4 h1:jQkdMqtPCC8gaFpwG2Pakd/L5UbDMLccJipdNh5xCq8=
 github.com/tartale/go v0.0.0-20230726003200-02ac252000f4/go.mod h1:AUId8jF50BzjCxR/w/zO2lSvzjFMTrLT+tzzXBRnfsA=
+github.com/tartale/go v0.0.0-20230728022429-f2e05ce45555 h1:8CpptwJXY0OJGOZBHxgIWc2NH0Zlt5b/tI5ZbMah/p4=
+github.com/tartale/go v0.0.0-20230728022429-f2e05ce45555/go.mod h1:AUId8jF50BzjCxR/w/zO2lSvzjFMTrLT+tzzXBRnfsA=
+github.com/tartale/go v0.0.0-20230728041413-ec37aef2ebcf h1:b/IYT/Do07udYtoRSa0ZP8PX8vluVrav7r+hwMVMawA=
+github.com/tartale/go v0.0.0-20230728041413-ec37aef2ebcf/go.mod h1:AUId8jF50BzjCxR/w/zO2lSvzjFMTrLT+tzzXBRnfsA=
 github.com/urfave/cli/v2 v2.25.5 h1:d0NIAyhh5shGscroL7ek/Ya9QYQE0KNabJgiUinIQkc=
 github.com/urfave/cli/v2 v2.25.5/go.mod h1:GHupkWPMM0M/sj1a2b4wUrWBPzazNrIjouW6fmdJLxc=
 github.com/vektah/gqlparser/v2 v2.5.6 h1:Ou14T0N1s191eRMZ1gARVqohcbe1e8FrcONScsq8cRU=
