@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io/fs"
 	"net/http"
 	"os"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	"github.com/tartale/kmttg-plus/go/dist"
 	"github.com/tartale/kmttg-plus/go/pkg/beacon"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
@@ -29,7 +31,7 @@ var rootCmd = &cobra.Command{
 	Short: "Port of KMTTG to golang",
 	Run: func(cmd *cobra.Command, args []string) {
 		startBeaconListener()
-		runGraphQLServer()
+		runWebServer()
 	},
 }
 
@@ -60,26 +62,46 @@ func startBeaconListener() {
 	go beacon.Listen(context.Background())
 }
 
-func runGraphQLServer() {
+func runWebServer() {
 	router := chi.NewRouter()
 
+	addCORSMiddleware(router)
+	addGraphQLRoutes(router)
+	addWebUIRoutes(router)
+
+	err := http.ListenAndServe(":"+port, router)
+	logz.Logger.Fatal("error while running kmttg server", zap.Errors("error", []error{err}))
+}
+
+func addCORSMiddleware(mux *chi.Mux) {
 	// Add CORS middleware around every request
 	// See https://github.com/rs/cors for full option listing
-	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:*", "electron://altair*"},
+	corz := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*", "electron://altair*"},
 		AllowCredentials: true,
 		Debug:            true,
-	}).Handler
-	router.Use(corsHandler)
+	})
+	corz.Log = logz.LoggerX
+	mux.Use(corz.Handler)
+}
 
+func addGraphQLRoutes(mux *chi.Mux) {
 	gqlExecutableSchema := server.NewExecutableSchema(server.Config{Resolvers: &resolvers.Resolver{}})
 	gqlServer := gqlhandler.NewDefaultServer(gqlExecutableSchema)
 
-	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	router.Handle("/query", gqlServer)
+	mux.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
+	mux.Handle("/query", gqlServer)
 
-	logz.Logger.Info("connect to http://localhost:" + port + "/ for GraphQL playground")
-	err := http.ListenAndServe(":"+port, router)
+	logz.Logger.Info("connect to http://localhost:" + port + "/playground for GraphQL playground")
+}
 
-	logz.Logger.Fatal("error while running kmttg server", zap.Errors("error", []error{err}))
+func addWebUIRoutes(mux *chi.Mux) {
+	var webUIServer http.Handler
+	webUIFiles, err := fs.Sub(dist.Filesystem, "webui")
+	if err != nil {
+		panic(err)
+	}
+	webUIServer = http.FileServer(http.FS(webUIFiles))
+
+	mux.Handle("/", webUIServer)
 }

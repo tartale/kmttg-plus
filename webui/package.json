@@ -32,7 +32,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "relay-compiler --validate && react-scripts build",
+    "build": "relay-compiler --validate && react-scripts build && rm -rf ./go/dist/webui/* && cp -rf ./public/* ../go/dist/webui/",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "relay": "relay-compiler"

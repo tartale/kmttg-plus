@@ -2,6 +2,9 @@
   "src": "./src",
   "language": "typescript",
   "schema": "../go/api/schema.graphql",
+  "schemaExtensions": [
+    "../go/api"
+  ],
   "exclude": [
     "**/node_modules/**",
     "**/__mocks__/**",
