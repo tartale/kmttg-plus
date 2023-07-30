@@ -10,7 +10,7 @@ function App() {
   return (
     <Suspense fallback={<Loading/>}>
       <TiVoLogo style={{position: "absolute", top: 10, left: 10, width: "100px"}} />
-      <TivoSelector style={{position: "absolute", top: 75, left: 200}}/>
+      {/* <TivoSelector style={{position: "absolute", top: 75, left: 200}}/> */}
       <ShowListing style={{position: "absolute", top: 150, left: 10}}/>
     </Suspense>
   );

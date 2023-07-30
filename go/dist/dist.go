@@ -2,5 +2,5 @@ package dist
 
 import "embed"
 
-//go:embed webui
+//go:embed public
 var Filesystem embed.FS
