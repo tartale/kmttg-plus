@@ -5,6 +5,8 @@
   "dependencies": {
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
+    "@graphql-codegen/cli": "^5.0.0",
+    "@graphql-codegen/typescript": "^4.0.1",
     "@mui/icons-material": "^5.11.11",
     "@mui/material": "^5.11.15",
     "@mui/styles": "^5.11.16",
@@ -37,7 +39,9 @@
     "deploy": "rm -rf ../go/dist/webui && cp -Rf build/. ../go/dist/webui",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "relay": "relay-compiler"
+    "relay": "relay-compiler",
+    "graphql-codegen": "graphql-codegen --config codegen.ts",
+    "watch-codegen": "graphql-codegen --config codegen.ts --watch 'src/services/**/*.graphql'"
   },
   "eslintConfig": {
     "extends": [

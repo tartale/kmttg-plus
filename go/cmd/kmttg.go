@@ -65,7 +65,7 @@ func startBeaconListener() {
 func runWebServer() {
 	router := mux.NewRouter()
 
-	addCORSMiddleware(router)
+	// addCORSMiddleware(router)
 	addGraphQLRoutes(router)
 	addWebUIRoutes(router)
 
@@ -96,11 +96,17 @@ func addGraphQLRoutes(router *mux.Router) {
 }
 
 func addWebUIRoutes(router *mux.Router) {
-	webUIFiles, err := fs.Sub(dist.Filesystem, "webui")
-	if err != nil {
-		panic(err)
+
+	var webUIServer http.Handler
+	if config.Values.WebUIDir != "" {
+		webUIServer = http.FileServer(http.Dir(config.Values.WebUIDir))
+	} else {
+		webUIFiles, err := fs.Sub(dist.Filesystem, "webui")
+		if err != nil {
+			panic(err)
+		}
+		webUIServer = http.FileServer(http.FS(webUIFiles))
 	}
-	webUIServer := http.FileServer(http.FS(webUIFiles))
 
 	router.PathPrefix("/").Handler(http.StripPrefix("/", webUIServer))
 }

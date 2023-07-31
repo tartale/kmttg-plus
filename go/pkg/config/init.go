@@ -52,6 +52,12 @@ func InitConfig(cfgFile string) {
 		}
 		viper.SetDefault("KMTTG_TIMEOUT", 10*time.Second)
 
+		err = viper.BindEnv("KMTTG_WEBUI_DIR")
+		if err != nil {
+			panic(fmt.Errorf("failed to bind environment variable: %w", err))
+		}
+		viper.SetDefault("KMTTG_WEBUI_DIR", "")
+
 		viper.AutomaticEnv() // read in environment variables that match
 
 		// If a config file is found, read it in.

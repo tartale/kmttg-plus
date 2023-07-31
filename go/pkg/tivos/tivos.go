@@ -22,7 +22,7 @@ func Add(tivo *model.Tivo) {
 	defer tivoMutex.Unlock()
 	tivos[tivo.Name] = tivo
 
-	logz.Logger.Info("updated tivo list", zap.String("name", tivo.Name))
+	logz.Logger.Info("updated tivo list", zap.String("name", tivo.Name), zap.String("address", tivo.Address))
 }
 
 func GetClient(tivo *model.Tivo) (*client.TivoClient, error) {
