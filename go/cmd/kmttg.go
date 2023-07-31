@@ -8,7 +8,7 @@ import (
 
 	gqlhandler "github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/go-chi/chi"
+	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -63,7 +63,7 @@ func startBeaconListener() {
 }
 
 func runWebServer() {
-	router := chi.NewRouter()
+	router := mux.NewRouter()
 
 	addCORSMiddleware(router)
 	addGraphQLRoutes(router)
@@ -73,7 +73,7 @@ func runWebServer() {
 	logz.Logger.Fatal("error while running kmttg server", zap.Errors("error", []error{err}))
 }
 
-func addCORSMiddleware(mux *chi.Mux) {
+func addCORSMiddleware(router *mux.Router) {
 	// Add CORS middleware around every request
 	// See https://github.com/rs/cors for full option listing
 	corz := cors.New(cors.Options{
@@ -82,26 +82,25 @@ func addCORSMiddleware(mux *chi.Mux) {
 		Debug:            true,
 	})
 	corz.Log = logz.LoggerX
-	mux.Use(corz.Handler)
+	router.Use(corz.Handler)
 }
 
-func addGraphQLRoutes(mux *chi.Mux) {
+func addGraphQLRoutes(router *mux.Router) {
 	gqlExecutableSchema := server.NewExecutableSchema(server.Config{Resolvers: &resolvers.Resolver{}})
 	gqlServer := gqlhandler.NewDefaultServer(gqlExecutableSchema)
 
-	mux.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
-	mux.Handle("/query", gqlServer)
+	router.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
+	router.Handle("/query", gqlServer)
 
 	logz.Logger.Info("connect to http://localhost:" + port + "/playground for GraphQL playground")
 }
 
-func addWebUIRoutes(mux *chi.Mux) {
-	var webUIServer http.Handler
+func addWebUIRoutes(router *mux.Router) {
 	webUIFiles, err := fs.Sub(dist.Filesystem, "webui")
 	if err != nil {
 		panic(err)
 	}
-	webUIServer = http.FileServer(http.FS(webUIFiles))
+	webUIServer := http.FileServer(http.FS(webUIFiles))
 
-	mux.Handle("/", webUIServer)
+	router.PathPrefix("/").Handler(http.StripPrefix("/", webUIServer))
 }

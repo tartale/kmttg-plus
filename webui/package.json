@@ -25,6 +25,7 @@
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-relay": "^15.0.0",
+    "react-router-dom": "^6.14.2",
     "react-scripts": "5.0.1",
     "relay-runtime": "^15.0.0",
     "typescript": "^4.9.5",
@@ -32,7 +33,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "relay-compiler --validate && react-scripts build && rm -rf ./go/dist/webui/* && cp -rf ./public/* ../go/dist/webui/",
+    "build": "relay-compiler --validate && react-scripts build",
+    "deploy": "rm -rf ../go/dist/webui && cp -Rf build/. ../go/dist/webui",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "relay": "relay-compiler"
