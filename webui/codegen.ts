@@ -13,7 +13,14 @@ const config: CodegenConfig = {
       plugins: ['typescript'],
       config: {
         scalars: {
-          "Time": "string" // RFC3339 string
+          Date: {
+            input: "string",
+            output: "Date",       
+          },
+          Time: {
+            input: "string",
+            output: "Date"
+          }
         },
       }
     }

@@ -12,7 +12,8 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
-  Time: { input: string; output: string; }
+  Date: { input: string; output: Date; }
+  Time: { input: string; output: Date; }
 };
 
 export type Episode = Show & {
@@ -22,7 +23,7 @@ export type Episode = Show & {
   episodeNumber: Scalars['Int']['output'];
   episodeTitle: Scalars['String']['output'];
   kind: ShowKind;
-  originalAirDate: Scalars['Time']['output'];
+  originalAirDate: Scalars['Date']['output'];
   recordedOn: Scalars['Time']['output'];
   recordingID: Scalars['String']['output'];
   seasonNumber: Scalars['Int']['output'];
