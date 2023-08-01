@@ -6,13 +6,8 @@ import { useEffect, useState } from "react";
 import "./ShowListing.css";
 import { getShows } from "./showListingHelpers";
 import { ShowHeader, ShowRow } from "./ShowRow";
+import { ShowKind } from "../services/generated/graphql-types"
 import "./TivoStyle.css";
-
-export enum ShowKind {
-  Movie,
-  Series,
-  Episode
-}
 
 export interface Show {
   info: any;

@@ -1,4 +1,5 @@
-import { Episode, Movie, Series, Show, ShowKind } from "./ShowListing";
+import { Episode, Movie, Series, Show } from "./ShowListing";
+import { ShowKind } from "../services/generated/graphql-types"
 
 type ShowSetter = React.Dispatch<React.SetStateAction<Show[]>>
 
