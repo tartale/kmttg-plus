@@ -1,4 +1,4 @@
-import { Episode, Movie, Series, Show, ShowKind } from "./ShowListing";
+import { Show, ShowKind, Series, Episode, Movie } from "../services/generated/graphql-types"
 
 type ShowSetter = React.Dispatch<React.SetStateAction<Show[]>>
 
@@ -85,8 +85,7 @@ export const getTitleExtension = (show: Show): string => {
 const parseShow = (obj: any): Show => {
   const recording = obj.recording[0]
   const show: Series | Movie = {
-    info: recording,
-    recordingId: recording.recordingId,
+    recordingID: recording.recordingId,
     kind: recording.episodic ? ShowKind.Series : ShowKind.Movie,
     title: recording.title,
     recordedOn: new Date(recording.startTime),
@@ -94,8 +93,7 @@ const parseShow = (obj: any): Show => {
     movieYear: recording.movieYear,
     episodes: recording.episodic ? [
       {
-        info: recording,
-        recordingId: recording.recordingId,
+        recordingID: recording.recordingId,
         kind: ShowKind.Episode,
         title: recording.title,
         recordedOn: new Date(recording.startTime),
