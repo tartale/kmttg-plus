@@ -20,7 +20,7 @@ func NewShow(recordingItem *message.RecordingItem) (Show, error) {
 			Title:              recordingItem.Title,
 			RecordedOn:         recordingItem.StartTime.Time,
 			Description:        recordingItem.Description,
-			OriginalAirDate:    recordingItem.OriginalAirDate.Time,
+			OriginalAirDate:    recordingItem.OriginalAirDate,
 			SeasonNumber:       recordingItem.SeasonNumber,
 			EpisodeNumber:      episodeNumber,
 			EpisodeTitle:       recordingItem.Subtitle,

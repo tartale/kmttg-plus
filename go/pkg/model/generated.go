@@ -24,7 +24,7 @@ type Episode struct {
 	Title              string    `json:"title"`
 	RecordedOn         time.Time `json:"recordedOn"`
 	Description        string    `json:"description"`
-	OriginalAirDate    time.Time `json:"originalAirDate"`
+	OriginalAirDate    string    `json:"originalAirDate"`
 	SeasonNumber       int       `json:"seasonNumber"`
 	EpisodeNumber      int       `json:"episodeNumber"`
 	EpisodeTitle       string    `json:"episodeTitle"`

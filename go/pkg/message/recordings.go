@@ -51,7 +51,7 @@ type RecordingItem struct {
 	EpisodeNum      []int          `json:"episodeNum,omitempty"`
 	Episodic        bool           `json:"episodic,omitempty"`
 	IsEpisode       bool           `json:"isEpisode,omitempty"`
-	OriginalAirDate jsontime.Time  `json:"originalAirdate,omitempty" format:"2006-01-02"`
+	OriginalAirDate string         `json:"originalAirdate,omitempty"`
 	SeasonNumber    int            `json:"season_number,omitempty"`
 	ShortTitle      string         `json:"short_title,omitempty"`
 	StartTime       jsontime.Time  `json:"start_time,omitempty" format:"2006-01-02 15:04:05"`

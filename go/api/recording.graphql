@@ -1,3 +1,4 @@
+scalar Date
 scalar Time
 
 enum ShowKind {
@@ -41,7 +42,7 @@ type Episode implements Show {
   recordedOn: Time!
   description: String!
 
-  originalAirDate: Time!
+  originalAirDate: Date!
   seasonNumber: Int!
   episodeNumber: Int!
   episodeTitle: String!

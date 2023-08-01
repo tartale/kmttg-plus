@@ -33,7 +33,7 @@ export function ShowRow(props: any) {
 
   return (
     <React.Fragment>
-      <TableRow key={show.recordingId} onClick={() => setOpen(!open)}>
+      <TableRow key={show.recordingID} onClick={() => setOpen(!open)}>
         <IconCell width={"5%"} show={show} open={open} indent={indent} />
         <TitleCell width={"20%"} show={show} />
         <DescriptionCell show={show} />
@@ -57,7 +57,7 @@ function EpisodeRows(props: any) {
     <React.Fragment>
       {(show as Series).episodes?.map((episode) => (
         <ShowRow
-          key={episode.recordingId}
+          key={episode.recordingID}
           show={{ ...show, ...episode }} />
       ))}
     </React.Fragment>

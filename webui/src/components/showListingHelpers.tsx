@@ -85,7 +85,7 @@ export const getTitleExtension = (show: Show): string => {
 const parseShow = (obj: any): Show => {
   const recording = obj.recording[0]
   const show: Series | Movie = {
-    recordingID: recording.recordingId,
+    recordingID: recording.recordingID,
     kind: recording.episodic ? ShowKind.Series : ShowKind.Movie,
     title: recording.title,
     recordedOn: new Date(recording.startTime),
@@ -93,7 +93,7 @@ const parseShow = (obj: any): Show => {
     movieYear: recording.movieYear,
     episodes: recording.episodic ? [
       {
-        recordingID: recording.recordingId,
+        recordingID: recording.recordingID,
         kind: ShowKind.Episode,
         title: recording.title,
         recordedOn: new Date(recording.startTime),
