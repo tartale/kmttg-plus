@@ -9,6 +9,7 @@ import (
 	"github.com/tartale/go/pkg/jsontime"
 	"github.com/tartale/go/pkg/primitive"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
+	"github.com/tartale/kmttg-plus/go/pkg/logz"
 )
 
 const (
@@ -143,6 +144,7 @@ func (t *TivoMessage) ReadFrom(r io.Reader) (n int64, err error) {
 		return -1, err
 	}
 
+	logz.DebugRaw(bodyBytes, (fmt.Sprintf("%03d-response-raw.json", t.Headers.RpcID())))
 	err = jsontime.UnmarshalJSON(bodyBytes, &t.Body)
 	if err != nil {
 		return -1, err
@@ -158,6 +160,7 @@ func (t *TivoMessage) WriteTo(w io.Writer) (n int64, err error) {
 	if err != nil {
 		return -1, err
 	}
+	logz.DebugRaw(bodyBytes, (fmt.Sprintf("%03d-request-raw.json", t.Headers.RpcID())))
 	body := string(bodyBytes) + "\n"
 	preamble := fmt.Sprintf("MRPC/2 %d %d", len(headers), len(body))
 	message := preamble + crlf + headers + body + "\n"

@@ -3,7 +3,6 @@ import graphql from "babel-plugin-relay/macro";
 import type { TivoSelectorQuery as TivoSelectorQueryType } from "./__generated__/TivoSelectorQuery.graphql";
 import { useLazyLoadQuery } from "react-relay";
 import StereoButton from "./StereoButton";
-import { Box } from "@mui/system";
 
 const TivoSelectorQuery = graphql`
   query TivoSelectorQuery {

@@ -12,3 +12,4 @@ input/auto.ini.overrides
 .vscode
 .idea/
 vscode.env
+debug/

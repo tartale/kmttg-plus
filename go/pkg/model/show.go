@@ -7,7 +7,7 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 )
 
-func NewShow(recordingItem *message.RecordingItem) (Show, error) {
+func NewShow(recordingItem message.RecordingItem) (Show, error) {
 
 	switch recordingItem.CollectionType {
 	case message.CollectionTypeSeries:

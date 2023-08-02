@@ -65,7 +65,7 @@ func startBeaconListener() {
 func runWebServer() {
 	router := mux.NewRouter()
 
-	// addCORSMiddleware(router)
+	addCORSMiddleware(router)
 	addGraphQLRoutes(router)
 	addWebUIRoutes(router)
 
@@ -92,6 +92,7 @@ func addGraphQLRoutes(router *mux.Router) {
 	router.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/query", gqlServer)
 
+	logz.Logger.Info("POST to http://localhost:" + port + "/query for GraphQL queries")
 	logz.Logger.Info("connect to http://localhost:" + port + "/playground for GraphQL playground")
 }
 
@@ -109,4 +110,6 @@ func addWebUIRoutes(router *mux.Router) {
 	}
 
 	router.PathPrefix("/").Handler(http.StripPrefix("/", webUIServer))
+
+	logz.Logger.Info("connect to http://localhost:" + port + " for the KMTTG web UI")
 }

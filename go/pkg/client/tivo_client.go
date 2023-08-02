@@ -20,7 +20,6 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
-	"github.com/tartale/kmttg-plus/go/test"
 	"go.uber.org/zap"
 )
 
@@ -65,7 +64,7 @@ func NewTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	keyLog, err := os.Create(path.Join(test.MustGetDebugDir(), "keys.log"))
+	keyLog, err := os.Create(path.Join(logz.MustGetDebugDir(), "keys.log"))
 	if err != nil {
 		return nil, err
 	}
@@ -101,11 +100,15 @@ func (t *TivoClient) Connect() error {
 	}
 
 	var conn net.Conn
-	retry.Eventually(func() error {
+	err := retry.Eventually(func() error {
 		var err error
 		conn, err = dialer.DialContext(ctx, "tcp", t.address+":"+tivoRPCPort)
 		return err
 	}, timeout, 1*time.Second)
+	if err != nil {
+		logz.Logger.Warn("unable to connect to tivo", zap.Error(err))
+		return err
+	}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	sessionID := fmt.Sprintf("0x%x", r.Int())[:9]
@@ -117,9 +120,9 @@ func (t *TivoClient) Connect() error {
 	return nil
 }
 
-func (t *TivoClient) Reconnect() error {
+func (t *TivoClient) Reconnect(cause error) error {
 
-	logz.Logger.Warn("reconnecting client")
+	logz.Logger.Warn("reconnecting client due to error", zap.Error(cause))
 	t.connection.Close()
 	return t.Connect()
 }
@@ -183,6 +186,7 @@ func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]model.Show, error)
 
 func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (model.Show, error) {
 
+	logz.Logger.Debug("getting details for recording", zap.String("recordingID", recordingID))
 	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), recordingID)
 	err := t.Send(ctx, request)
 	if err != nil {
@@ -201,7 +205,7 @@ func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (mode
 	}
 	recordingCount := len(responseBody.Recording)
 	if recordingCount != 1 {
-		return nil, fmt.Errorf("unexpected number of recordings in response: %d", recordingCount)
+		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected number of recordings in response: %d", recordingCount))
 	}
 	show, err := model.NewShow(responseBody.Recording[0])
 	if err != nil {
@@ -217,12 +221,9 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage)
 		WithSessionID(t.sessionID).
 		WithRpcID(t.rpcID)
 
-	test.Debug(tivoRequestMessage, (fmt.Sprintf("%03d-request.txt", t.rpcID)))
+	logz.Debug(tivoRequestMessage, (fmt.Sprintf("%03d-request.txt", t.rpcID)))
 
-	err := t.Retry(func() error {
-		_, err := tivoRequestMessage.WriteTo(t.connection)
-		return err
-	})
+	_, err := tivoRequestMessage.WriteTo(t.connection)
 	if err != nil {
 		return err
 	}
@@ -239,10 +240,7 @@ func (t *TivoClient) SendFile(ctx context.Context, filename string) error {
 		return err
 	}
 
-	err = t.Retry(func() error {
-		_, err := t.connection.Write(message)
-		return err
-	})
+	_, err = t.connection.Write(message)
 	if err != nil {
 		return err
 	}
@@ -254,14 +252,11 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessa
 
 	responseReader := bufio.NewReader(t.connection)
 
-	err := t.Retry(func() error {
-		_, err := tivoMessage.ReadFrom(responseReader)
-		return err
-	})
+	_, err := tivoMessage.ReadFrom(responseReader)
 	if err != nil {
 		return err
 	}
-	test.Debug(tivoMessage, fmt.Sprintf("%03d-response.txt", tivoMessage.Headers.RpcID()))
+	logz.Debug(tivoMessage, fmt.Sprintf("%03d-response.txt", tivoMessage.Headers.RpcID()))
 
 	return nil
 }
@@ -270,15 +265,16 @@ func (t *TivoClient) Retry(fn func() error) error {
 
 	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
 	defer t.connection.SetDeadline(time.Time{})
-	for err := fn(); err != nil; {
+	var err error
+	for err = fn(); err != nil; {
 		if shouldReconnect(err) {
-			t.Reconnect()
+			t.Reconnect(err)
 			continue
 		}
 		break
 	}
 
-	return nil
+	return err
 }
 
 func shouldReconnect(err error) bool {

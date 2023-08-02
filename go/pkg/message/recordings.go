@@ -22,7 +22,7 @@ type RecordingFolderItemSearchResponseBody struct {
 type RecordingFolderItem struct {
 	ChildRecordingID      string         `json:"childRecordingId,omitempty"`
 	RecordingFolderItemID string         `json:"recordingFolderItemId,omitempty"`
-	StartTime             jsontime.Time  `json:"start_time,omitempty" format:"2006-01-02 15:04:05"`
+	StartTime             jsontime.Time  `json:"startTime,omitempty" format:"2006-01-02 15:04:05"`
 	Title                 string         `json:"title,omitempty"`
 	CollectionType        CollectionType `json:"collectionType,omitempty"`
 	PercentWatched        int            `json:"percentWatched,omitempty"`
@@ -36,12 +36,12 @@ type RecordingSearchRequestBody struct {
 }
 
 type RecordingSearchResponseBody struct {
-	Type      Type             `json:"type,omitempty"`
-	Status    StatusType       `json:"status,omitempty"`
-	Message   string           `json:"message,omitempty"`
-	IsBottom  bool             `json:"isBottom,omitempty"`
-	IsTop     string           `json:"isTop,omitempty"`
-	Recording []*RecordingItem `json:"recording,omitempty"`
+	Type      Type            `json:"type,omitempty"`
+	Status    StatusType      `json:"status,omitempty"`
+	Message   string          `json:"message,omitempty"`
+	IsBottom  bool            `json:"isBottom,omitempty"`
+	IsTop     bool            `json:"isTop,omitempty"`
+	Recording []RecordingItem `json:"recording,omitempty"`
 }
 
 type RecordingItem struct {
@@ -54,7 +54,7 @@ type RecordingItem struct {
 	OriginalAirDate string         `json:"originalAirdate,omitempty"`
 	SeasonNumber    int            `json:"season_number,omitempty"`
 	ShortTitle      string         `json:"short_title,omitempty"`
-	StartTime       jsontime.Time  `json:"start_time,omitempty" format:"2006-01-02 15:04:05"`
+	StartTime       jsontime.Time  `json:"startTime,omitempty" format:"2006-01-02 15:04:05"`
 	Subtitle        string         `json:"subtitle,omitempty"`
 	Title           string         `json:"title,omitempty"`
 }

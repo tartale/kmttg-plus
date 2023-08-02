@@ -1,15 +1,29 @@
-package test
+package logz
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path"
 	"runtime"
 
-	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"go.uber.org/zap"
 )
+
+func InitDebugDir() error {
+
+	if Logger.Level() == zap.DebugLevel {
+		debugDir := MustGetDebugDir()
+		os.RemoveAll(debugDir)
+		err := os.MkdirAll(debugDir, os.FileMode(0755))
+		if err != nil {
+			return fmt.Errorf("error while trying to create debug directory: %w", err)
+		}
+	}
+
+	return nil
+}
 
 func GetDebugDir() (string, error) {
 	var (
@@ -19,12 +33,16 @@ func GetDebugDir() (string, error) {
 	if _, file, _, ok = runtime.Caller(0); !ok {
 		return "", fmt.Errorf("error while trying to locate debug directory")
 	}
-	dir := path.Dir(path.Dir(file))
-	debugDir := path.Join(dir, "debug")
-	err := os.MkdirAll(debugDir, os.FileMode(0755))
-	if err != nil {
-		return "", fmt.Errorf("error while trying to create debug directory: %w", err)
+	rootDir := path.Dir(file)
+	for rootDir != "/" {
+		gitFolder := path.Join(rootDir, ".git")
+		if _, err := os.Stat(gitFolder); errors.Is(err, os.ErrNotExist) {
+			rootDir = path.Dir(rootDir)
+			continue
+		}
+		break
 	}
+	debugDir := path.Join(rootDir, "debug")
 
 	return debugDir, nil
 }
@@ -61,10 +79,19 @@ func MustCreateDebugFile(filename string) *os.File {
 }
 
 func Debug(input io.WriterTo, filename string) {
-	if logz.Logger.Level() == zap.DebugLevel {
+	if Logger.Level() == zap.DebugLevel {
 		file := MustCreateDebugFile(filename)
 		defer file.Close()
 		input.WriteTo(file)
 	}
 
+}
+
+func DebugRaw(rawBytes []byte, filename string) {
+
+	if Logger.Level() == zap.DebugLevel {
+		file := MustCreateDebugFile(filename)
+		defer file.Close()
+		file.Write(rawBytes)
+	}
 }
