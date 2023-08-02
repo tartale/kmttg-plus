@@ -89,11 +89,11 @@ func addGraphQLRoutes(router *mux.Router) {
 	gqlExecutableSchema := server.NewExecutableSchema(server.Config{Resolvers: &resolvers.Resolver{}})
 	gqlServer := gqlhandler.NewDefaultServer(gqlExecutableSchema)
 
-	router.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
-	router.Handle("/query", gqlServer)
+	router.Handle("/api/playground", playground.Handler("GraphQL playground", "/api/query"))
+	router.Handle("/api/query", gqlServer)
 
-	logz.Logger.Info("POST to http://localhost:" + port + "/query for GraphQL queries")
-	logz.Logger.Info("connect to http://localhost:" + port + "/playground for GraphQL playground")
+	logz.Logger.Info("POST to http://localhost:" + port + "/api/query for GraphQL queries")
+	logz.Logger.Info("connect to http://localhost:" + port + "/api/playground for GraphQL playground")
 }
 
 func addWebUIRoutes(router *mux.Router) {

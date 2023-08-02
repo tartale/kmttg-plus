@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import "./ShowListing.css";
 import { getShows } from "./showListingHelpers";
 import { ShowHeader, ShowRow } from "./ShowRow";
-import { Show, ShowKind } from "../services/generated/graphql-types"
+import { Show } from "../services/generated/graphql-types"
 import "./TivoStyle.css";
 
 export type ShowSortField = 'kind' | 'title' | 'recordedOn';
