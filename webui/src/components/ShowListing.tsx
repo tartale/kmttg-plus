@@ -4,33 +4,43 @@ import TableBody from "@mui/material/TableBody";
 import TableContainer from "@mui/material/TableContainer";
 import { useEffect, useState } from "react";
 import "./ShowListing.css";
-import { getShows } from "./showListingHelpers";
 import { ShowHeader, ShowRow } from "./ShowRow";
 import { Show } from "../services/generated/graphql-types"
 import "./TivoStyle.css";
+import {
+  useQuery,
+  gql
+ } from "@apollo/client";
 
 export type ShowSortField = 'kind' | 'title' | 'recordedOn';
 
-export interface Movie extends Show {
-  movieYear: number;
-}
+const GET_RECORDINGS = gql`
+ query getRecordings {
+  tivos {
+    recordings(limit:50) {
+      kind
+      recordingID
+      title
+      recordedOn
+      ... on Series {
+        episodes {
+          kind
+          recordingID
+          episodeTitle
+          seasonNumber
+          episodeNumber
+          episodeDescription
+        }
+      }
+    }
+  }
+}`;
 
-export interface Series extends Show {
-  episodes: Episode[];
-}
-
-export interface Episode extends Show {
-  originalAirDate: Date;
-  seasonNumber: number;
-  episodeNumber: number;
-  episodeTitle: string;
-  episodeDescription: string;
-}
-
-export default function ShowListing(props: any) {
+function ShowListingComponent(props: any) {
+  const { showlisting } = props
   const [shows, setShows] = useState<Show[]>([]);
 
-  useEffect(getShows(setShows), []);
+  useEffect(() => setShows(showlisting), [showlisting]);
 
   return (
     <TableContainer
@@ -49,3 +59,18 @@ export default function ShowListing(props: any) {
     </TableContainer>
   );
 }
+
+export default function ShowListing(props: any) {
+  const { loading, error, data } = useQuery(GET_RECORDINGS);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  if (error) {
+    console.error(error);
+    return <div>Error!</div>;
+  }
+
+  const showListing: Show[] = data.tivos[0].recordings
+  return <ShowListingComponent showlisting={showListing} {...props}/>;
+};

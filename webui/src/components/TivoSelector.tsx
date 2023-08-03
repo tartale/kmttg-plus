@@ -1,31 +1,9 @@
-import React, {useEffect, useState, Fragment} from "react";
+import React, {useEffect, useState} from "react";
 import StereoButton from "./StereoButton";
 import {
-  ApolloClient,
-  InMemoryCache,
   useQuery,
   gql
  } from "@apollo/client";
- import { Tivo } from "../services/generated/graphql-types"
-
-// const client = new ApolloClient({
-//   uri: 'http://localhost:8080/api/query',
-//   cache: new InMemoryCache()
-//  });
-
-//  async function getNames(): Promise<string[]> {
-//   const result = await client.query({
-//     query: gql`
-//       {
-//         tivos {
-//           name
-//         }
-//       }
-//     `,
-//   });
-//   const data: Tivo[] = result.data.tivos;
-//   return data.map((tivo) => tivo.name);
-// }
 
 const GET_TIVO_NAMES = gql`
  query getTivoNames {
@@ -63,7 +41,7 @@ const TivoSelector = (props: any) => {
   }
 
   const names = data.tivos.map((tivo: { name: string }) => tivo.name);
-  return <TivoSelectorComponent {...props} names={names} />;
+  return <TivoSelectorComponent names={names} {...props} />;
 };
 
 export default TivoSelector;

@@ -173,21 +173,21 @@ func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]model.Show, error)
 	var result []model.Show
 	var errs errorx.Errors
 	for _, recording := range responseBody.RecordingFolderItem {
-		show, err := t.GetRecording(ctx, recording.ChildRecordingID)
+		show, err := t.GetRecording(ctx, recording)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
 			result = append(result, show)
 		}
 	}
+	result = model.MergeEpisodes(result)
 
 	return result, errs.Combine("", "; ")
 }
 
-func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (model.Show, error) {
+func (t *TivoClient) GetRecording(ctx context.Context, parent message.RecordingFolderItem) (model.Show, error) {
 
-	logz.Logger.Debug("getting details for recording", zap.String("recordingID", recordingID))
-	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), recordingID)
+	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), parent.ChildRecordingID)
 	err := t.Send(ctx, request)
 	if err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func (t *TivoClient) GetRecording(ctx context.Context, recordingID string) (mode
 	if recordingCount != 1 {
 		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected number of recordings in response: %d", recordingCount))
 	}
-	show, err := model.NewShow(responseBody.Recording[0])
+	show, err := model.NewShow(responseBody.Recording[0], parent)
 	if err != nil {
 		return nil, err
 	}

@@ -36,7 +36,9 @@ const (
 type CollectionType string
 
 const (
-	CollectionTypeSeries CollectionType = "series"
+	CollectionTypeSeries  CollectionType = "series"
+	CollectionTypeMovie   CollectionType = "movie"
+	CollectionTypeSpecial CollectionType = "special"
 )
 
 type LevelOfDetail string

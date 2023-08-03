@@ -3,34 +3,45 @@ package logz
 import (
 	"fmt"
 
-	"github.com/tartale/go/pkg/jsontime"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-type LoggerExtension struct {
+type loggerx struct {
 	*zap.Logger
 }
 
-func (l LoggerExtension) Printf(msg string, args ...interface{}) {
+func (l loggerx) Printf(msg string, args ...interface{}) {
 	if l.Logger.Level() >= zap.InfoLevel {
 		l.Logger.Info(fmt.Sprintf(msg, args...))
 	}
 }
 
-func (l LoggerExtension) Debugf(msg string, args ...interface{}) {
+func (l loggerx) Debugf(msg string, args ...interface{}) {
 	if l.IsDebug() {
 		l.Logger.Debug(fmt.Sprintf(msg, args...))
 	}
 }
 
-func (l LoggerExtension) IsDebug() bool {
+func (l loggerx) IsDebug() bool {
 	return l.Logger.Level() >= zap.DebugLevel
 }
 
+type nopLogger struct {
+	*zap.Logger
+}
+
+func (l nopLogger) Debugf(msg string, args ...interface{}) {
+}
+
+func (l nopLogger) IsDebug() bool {
+	return false
+}
+
 var Logger *zap.Logger
-var LoggerX LoggerExtension
+var LoggerX loggerx
+var NopLogger nopLogger
 
 func InitLoggers() error {
 
@@ -52,7 +63,7 @@ func InitLoggers() error {
 
 	Logger = sLogger
 	LoggerX.Logger = Logger
-	jsontime.Logger = LoggerX
+	NopLogger.Logger = zap.NewNop()
 
 	return nil
 }

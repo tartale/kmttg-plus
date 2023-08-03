@@ -52,9 +52,10 @@ type RecordingItem struct {
 	Episodic        bool           `json:"episodic,omitempty"`
 	IsEpisode       bool           `json:"isEpisode,omitempty"`
 	OriginalAirDate string         `json:"originalAirdate,omitempty"`
-	SeasonNumber    int            `json:"season_number,omitempty"`
-	ShortTitle      string         `json:"short_title,omitempty"`
+	SeasonNumber    int            `json:"seasonNumber,omitempty"`
+	ShortTitle      string         `json:"shortTitle,omitempty"`
 	StartTime       jsontime.Time  `json:"startTime,omitempty" format:"2006-01-02 15:04:05"`
 	Subtitle        string         `json:"subtitle,omitempty"`
 	Title           string         `json:"title,omitempty"`
+	MovieYear       string         `json:"movieYear,omitempty"`
 }

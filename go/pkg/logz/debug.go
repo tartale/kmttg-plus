@@ -79,7 +79,7 @@ func MustCreateDebugFile(filename string) *os.File {
 }
 
 func Debug(input io.WriterTo, filename string) {
-	if Logger.Level() == zap.DebugLevel {
+	if Logger.Level() >= zap.DebugLevel {
 		file := MustCreateDebugFile(filename)
 		defer file.Close()
 		input.WriteTo(file)
@@ -89,7 +89,7 @@ func Debug(input io.WriterTo, filename string) {
 
 func DebugRaw(rawBytes []byte, filename string) {
 
-	if Logger.Level() == zap.DebugLevel {
+	if Logger.Level() >= zap.DebugLevel {
 		file := MustCreateDebugFile(filename)
 		defer file.Close()
 		file.Write(rawBytes)
