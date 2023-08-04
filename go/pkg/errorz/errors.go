@@ -1,6 +1,7 @@
 package errorz
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -13,3 +14,5 @@ func ErrResponse(message string) error {
 
 	return fmt.Errorf("error in tivo response: %s", message)
 }
+
+var ErrReconnected error = errors.New("connection was restarted")

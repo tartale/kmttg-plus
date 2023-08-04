@@ -6,17 +6,23 @@ package resolvers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
-	"github.com/tartale/kmttg-plus/go/pkg/recordings"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
+	"github.com/tartale/kmttg-plus/go/pkg/shows"
 	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
 // Tivos is the resolver for the tivos field.
 func (r *queryResolver) Tivos(ctx context.Context) ([]*model.Tivo, error) {
 	return tivos.List(), nil
+}
+
+// Shows is the resolver for the shows field.
+func (r *tivoResolver) Shows(ctx context.Context, obj *model.Tivo, limit *int, offset *int) ([]model.Show, error) {
+	panic(fmt.Errorf("not implemented: Shows - shows"))
 }
 
 // Recordings is the resolver for the recordings field.
@@ -26,7 +32,7 @@ func (r *tivoResolver) Recordings(ctx context.Context, obj *model.Tivo, limit *i
 		WithLimit(*limit).
 		Context
 
-	return recordings.Get(ctx, obj)
+	return shows.GetRecordingList(ctx, obj)
 }
 
 // Query returns server.QueryResolver implementation.

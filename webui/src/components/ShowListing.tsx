@@ -2,22 +2,21 @@ import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableContainer from "@mui/material/TableContainer";
-import { useEffect, useState } from "react";
+import TableRow from "@mui/material/TableRow";
+import TableCell from "@mui/material/TableCell";
+import { useEffect, useState, useRef } from "react";
 import "./ShowListing.css";
 import { ShowHeader, ShowRow } from "./ShowRow";
 import { Show } from "../services/generated/graphql-types"
 import "./TivoStyle.css";
-import {
-  useQuery,
-  gql
- } from "@apollo/client";
+import { useQuery, gql } from "@apollo/client";
 
 export type ShowSortField = 'kind' | 'title' | 'recordedOn';
 
 const GET_RECORDINGS = gql`
- query getRecordings {
+ query getRecordings($offset: Int, $limit: Int) {
   tivos {
-    recordings(limit:50) {
+    recordings(offset: $offset, limit: $limit) {
       kind
       recordingID
       title
@@ -37,23 +36,54 @@ const GET_RECORDINGS = gql`
 }`;
 
 function ShowListingComponent(props: any) {
-  const { showlisting } = props
+  const { showListing, loadMoreData, isLoadingMore, ...remainingProps } = props;
   const [shows, setShows] = useState<Show[]>([]);
+  const lastRowRef = useRef<HTMLTableRowElement>(null);
 
-  useEffect(() => setShows(showlisting), [showlisting]);
+  useEffect(() => setShows(showListing), [showListing]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoadingMore) {
+          loadMoreData();
+        }
+      },
+      {
+        threshold: 0.1,
+      }
+    );
+
+    if (lastRowRef.current) {
+      observer.observe(lastRowRef.current);
+    }
+
+    return () => {
+      if (lastRowRef.current) {
+        observer.unobserve(lastRowRef.current);
+      }
+    };
+  }, [isLoadingMore]);
 
   return (
     <TableContainer
       component={Paper}
-      sx={{ background: "linear-gradient(to bottom, #162c4f, #000000);" }}
-      {...props}
+      sx={{ background: 'linear-gradient(to bottom, #162c4f, #000000);' }}
+      {...remainingProps}
     >
       <Table className="showListingTable">
-        <ShowHeader/>
+        <ShowHeader />
         <TableBody>
-          {shows.map((show) => (
+          {shows.map((show, index) => (
             <ShowRow key={show.recordingID} show={show} />
           ))}
+          {isLoadingMore && (
+            <TableRow ref={lastRowRef} key="lastRowRef">
+              <TableCell colSpan={6}>
+                {'Loading...'}
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </TableContainer>
@@ -61,7 +91,13 @@ function ShowListingComponent(props: any) {
 }
 
 export default function ShowListing(props: any) {
-  const { loading, error, data } = useQuery(GET_RECORDINGS);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const { loading, error, data, fetchMore } = useQuery(GET_RECORDINGS, {
+    variables: {
+      offset: 0,
+      limit: 50,
+    },
+  });
 
   if (loading) {
     return <div>Loading...</div>;
@@ -71,6 +107,28 @@ export default function ShowListing(props: any) {
     return <div>Error!</div>;
   }
 
-  const showListing: Show[] = data.tivos[0].recordings
-  return <ShowListingComponent showlisting={showListing} {...props}/>;
-};
+  const showListing: Show[] = data.tivos[0].recordings;
+
+  const loadMoreData = () => {
+    setIsLoadingMore(true);
+
+    fetchMore({
+      variables: {
+        offset: showListing.length,
+      },
+      updateQuery: (prev, { fetchMoreResult }) => {
+        setIsLoadingMore(false);
+        if (!fetchMoreResult) return prev;
+        return {
+          tivos: [...prev.tivos, ...fetchMoreResult.tivos],
+        };
+      },
+    });
+  };
+
+  return (
+    <div>
+      <ShowListingComponent showListing={showListing} {...props} loadMoreData={loadMoreData} isLoadingMore={isLoadingMore} />
+    </div>
+  );
+}

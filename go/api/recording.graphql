@@ -32,7 +32,7 @@ type Series implements Show {
   recordedOn: Time!
   description: String!
 
-  episodes: [Episode!]!
+  episodes: [Episode!]! @goField(forceResolver: true)
 }
 
 type Episode implements Show {

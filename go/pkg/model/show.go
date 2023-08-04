@@ -8,7 +8,7 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 )
 
-func NewShow(recordingItem message.RecordingItem, parent message.RecordingFolderItem) (Show, error) {
+func NewShow(recordingItem message.RecordingItem, recordingID string) (Show, error) {
 
 	switch recordingItem.CollectionType {
 	case message.CollectionTypeSeries:
@@ -18,7 +18,7 @@ func NewShow(recordingItem message.RecordingItem, parent message.RecordingFolder
 		}
 		return &Episode{
 			Kind:               ShowKindEpisode,
-			RecordingID:        parent.ChildRecordingID,
+			RecordingID:        recordingID,
 			Title:              recordingItem.Title,
 			RecordedOn:         recordingItem.StartTime.Time,
 			Description:        "",
@@ -31,7 +31,7 @@ func NewShow(recordingItem message.RecordingItem, parent message.RecordingFolder
 	case message.CollectionTypeMovie, message.CollectionTypeSpecial:
 		return &Movie{
 			Kind:        ShowKindMovie,
-			RecordingID: parent.ChildRecordingID,
+			RecordingID: recordingID,
 			Title:       recordingItem.Title,
 			RecordedOn:  recordingItem.StartTime.Time,
 			Description: recordingItem.Description,

@@ -77,7 +77,6 @@ func addCORSMiddleware(router *mux.Router) {
 	// Add CORS middleware around every request
 	// See https://github.com/rs/cors for full option listing
 	corz := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*", "electron://altair*"},
 		AllowCredentials: true,
 		Debug:            true,
 	})

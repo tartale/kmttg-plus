@@ -12,6 +12,7 @@ type Tivo {
   name: String!
   address: String!
   tsn: String!
+  shows(limit: Int = 25, offset: Int = 0): [Show] @goField(forceResolver: true)
   recordings(limit: Int = 25, offset: Int = 0): [Show] @goField(forceResolver: true)
 }
 

@@ -24,14 +24,16 @@ import (
 )
 
 const tivoRPCPort = "1413"
+const heartbeatInterval = 5 * time.Second
 
 type TivoClient struct {
-	address    string
-	tlsConfig  *tls.Config
-	connection *tls.Conn
-	sessionID  string
-	rpcID      int
-	tsn        string
+	address       string
+	tlsConfig     *tls.Config
+	connection    *tls.Conn
+	sessionID     string
+	rpcID         int
+	tsn           string
+	lastHeartbeat time.Time
 }
 
 func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
@@ -120,11 +122,20 @@ func (t *TivoClient) Connect() error {
 	return nil
 }
 
-func (t *TivoClient) Reconnect(cause error) error {
+func (t *TivoClient) Reconnect(ctx context.Context, cause error) error {
 
 	logz.Logger.Warn("reconnecting client due to error", zap.Error(cause))
 	t.connection.Close()
-	return t.Connect()
+	err := t.Connect()
+	if err != nil {
+		return err
+	}
+	err = t.Authenticate(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (t *TivoClient) BodyID() string {
@@ -152,9 +163,9 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 	return nil
 }
 
-func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]model.Show, error) {
+func (t *TivoClient) GetRecordingList(ctx context.Context) ([]model.Show, error) {
 
-	request := message.NewTivoMessage().WithGetAllRecordingsRequest(ctx, t.BodyID())
+	request := message.NewTivoMessage().WithGetRecordingListRequest(ctx, t.BodyID())
 	err := t.Send(ctx, request)
 	if err != nil {
 		return nil, err
@@ -173,7 +184,7 @@ func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]model.Show, error)
 	var result []model.Show
 	var errs errorx.Errors
 	for _, recording := range responseBody.RecordingFolderItem {
-		show, err := t.GetRecording(ctx, recording)
+		show, err := t.GetRecordingDetails(ctx, recording.ChildRecordingID)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
@@ -185,9 +196,9 @@ func (t *TivoClient) GetAllRecordings(ctx context.Context) ([]model.Show, error)
 	return result, errs.Combine("", "; ")
 }
 
-func (t *TivoClient) GetRecording(ctx context.Context, parent message.RecordingFolderItem) (model.Show, error) {
+func (t *TivoClient) GetRecordingDetails(ctx context.Context, recordingID string) (model.Show, error) {
 
-	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), parent.ChildRecordingID)
+	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), recordingID)
 	err := t.Send(ctx, request)
 	if err != nil {
 		return nil, err
@@ -207,12 +218,17 @@ func (t *TivoClient) GetRecording(ctx context.Context, parent message.RecordingF
 	if recordingCount != 1 {
 		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected number of recordings in response: %d", recordingCount))
 	}
-	show, err := model.NewShow(responseBody.Recording[0], parent)
+	show, err := model.NewShow(responseBody.Recording[0], recordingID)
 	if err != nil {
 		return nil, err
 	}
 
 	return show, nil
+}
+
+func (t *TivoClient) GetEpisodes(ctx context.Context, parentSeries *model.Series) ([]*model.Episode, error) {
+
+	return nil, nil
 }
 
 func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage) error {
@@ -223,6 +239,9 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage)
 
 	logz.Debug(tivoRequestMessage, (fmt.Sprintf("%03d-request.txt", t.rpcID)))
 
+	if err := t.ensureConnection(ctx); err != nil {
+		return err
+	}
 	_, err := tivoRequestMessage.WriteTo(t.connection)
 	if err != nil {
 		return err
@@ -239,7 +258,9 @@ func (t *TivoClient) SendFile(ctx context.Context, filename string) error {
 	if err != nil {
 		return err
 	}
-
+	if err := t.ensureConnection(ctx); err != nil {
+		return err
+	}
 	_, err = t.connection.Write(message)
 	if err != nil {
 		return err
@@ -252,7 +273,11 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessa
 
 	responseReader := bufio.NewReader(t.connection)
 
-	_, err := tivoMessage.ReadFrom(responseReader)
+	err := t.ensureConnection(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = tivoMessage.ReadFrom(responseReader)
 	if err != nil {
 		return err
 	}
@@ -261,23 +286,36 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessa
 	return nil
 }
 
-func (t *TivoClient) Retry(fn func() error) error {
+func (t *TivoClient) ensureConnection(ctx context.Context) error {
 
-	t.connection.SetDeadline(time.Now().Add(config.Values.Timeout))
-	defer t.connection.SetDeadline(time.Time{})
 	var err error
-	for err = fn(); err != nil; {
+	if t.lastHeartbeat.After(time.Now().Add(heartbeatInterval)) {
+		err = t.testConnection()
 		if shouldReconnect(err) {
-			t.Reconnect(err)
-			continue
+			err = t.Reconnect(ctx, err)
+			if err != nil {
+				return err
+			}
+			err = errorz.ErrReconnected
 		}
-		break
 	}
 
 	return err
 }
 
+func (t *TivoClient) testConnection() error {
+	_, err := t.connection.Write([]byte{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func shouldReconnect(err error) bool {
+	if _, ok := err.(net.Error); ok {
+		return true
+	}
 	if errors.Is(err, syscall.EPIPE) {
 		return true
 	}

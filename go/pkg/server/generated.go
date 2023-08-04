@@ -38,6 +38,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Query() QueryResolver
+	Series() SeriesResolver
 	Tivo() TivoResolver
 }
 
@@ -84,6 +85,7 @@ type ComplexityRoot struct {
 		Address    func(childComplexity int) int
 		Name       func(childComplexity int) int
 		Recordings func(childComplexity int, limit *int, offset *int) int
+		Shows      func(childComplexity int, limit *int, offset *int) int
 		Tsn        func(childComplexity int) int
 	}
 }
@@ -91,7 +93,11 @@ type ComplexityRoot struct {
 type QueryResolver interface {
 	Tivos(ctx context.Context) ([]*model.Tivo, error)
 }
+type SeriesResolver interface {
+	Episodes(ctx context.Context, obj *model.Series) ([]*model.Episode, error)
+}
 type TivoResolver interface {
+	Shows(ctx context.Context, obj *model.Tivo, limit *int, offset *int) ([]model.Show, error)
 	Recordings(ctx context.Context, obj *model.Tivo, limit *int, offset *int) ([]model.Show, error)
 }
 
@@ -297,6 +303,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tivo.Recordings(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
 
+	case "Tivo.shows":
+		if e.complexity.Tivo.Shows == nil {
+			break
+		}
+
+		args, err := ec.field_Tivo_shows_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Tivo.Shows(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
+
 	case "Tivo.tsn":
 		if e.complexity.Tivo.Tsn == nil {
 			break
@@ -427,7 +445,7 @@ type Series implements Show {
   recordedOn: Time!
   description: String!
 
-  episodes: [Episode!]!
+  episodes: [Episode!]! @goField(forceResolver: true)
 }
 
 type Episode implements Show {
@@ -458,6 +476,7 @@ type Tivo {
   name: String!
   address: String!
   tsn: String!
+  shows(limit: Int = 25, offset: Int = 0): [Show] @goField(forceResolver: true)
   recordings(limit: Int = 25, offset: Int = 0): [Show] @goField(forceResolver: true)
 }
 
@@ -492,6 +511,30 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 }
 
 func (ec *executionContext) field_Tivo_recordings_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["offset"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Tivo_shows_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *int
@@ -1299,6 +1342,8 @@ func (ec *executionContext) fieldContext_Query_tivos(ctx context.Context, field 
 				return ec.fieldContext_Tivo_address(ctx, field)
 			case "tsn":
 				return ec.fieldContext_Tivo_tsn(ctx, field)
+			case "shows":
+				return ec.fieldContext_Tivo_shows(ctx, field)
 			case "recordings":
 				return ec.fieldContext_Tivo_recordings(ctx, field)
 			}
@@ -1671,7 +1716,7 @@ func (ec *executionContext) _Series_episodes(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Episodes, nil
+		return ec.resolvers.Series().Episodes(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1692,8 +1737,8 @@ func (ec *executionContext) fieldContext_Series_episodes(ctx context.Context, fi
 	fc = &graphql.FieldContext{
 		Object:     "Series",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "kind":
@@ -1851,6 +1896,58 @@ func (ec *executionContext) fieldContext_Tivo_tsn(ctx context.Context, field gra
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Tivo_shows(ctx context.Context, field graphql.CollectedField, obj *model.Tivo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Tivo_shows(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Tivo().Shows(rctx, obj, fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]model.Show)
+	fc.Result = res
+	return ec.marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Tivo_shows(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tivo",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("FieldContext.Child cannot be called on type INTERFACE")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Tivo_shows_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3949,33 +4046,64 @@ func (ec *executionContext) _Series(ctx context.Context, sel ast.SelectionSet, o
 		case "kind":
 			out.Values[i] = ec._Series_kind(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "recordingID":
 			out.Values[i] = ec._Series_recordingID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "title":
 			out.Values[i] = ec._Series_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "recordedOn":
 			out.Values[i] = ec._Series_recordedOn(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._Series_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "episodes":
-			out.Values[i] = ec._Series_episodes(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Series_episodes(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4025,6 +4153,39 @@ func (ec *executionContext) _Tivo(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "shows":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tivo_shows(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "recordings":
 			field := field
 

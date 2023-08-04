@@ -74,6 +74,7 @@ type Tivo struct {
 	Name       string `json:"name"`
 	Address    string `json:"address"`
 	Tsn        string `json:"tsn"`
+	Shows      []Show `json:"shows,omitempty"`
 	Recordings []Show `json:"recordings,omitempty"`
 }
 

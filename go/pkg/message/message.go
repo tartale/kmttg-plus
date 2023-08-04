@@ -67,7 +67,27 @@ func (t *TivoMessage) WithAuthRequest(mediaAccessKey string) *TivoMessage {
 	return t
 }
 
-func (t *TivoMessage) WithGetAllRecordingsRequest(ctx context.Context, bodyID string) *TivoMessage {
+func (t *TivoMessage) WithGetShowsRequest(ctx context.Context, bodyID string) *TivoMessage {
+
+	t = t.WithStandardHeaders()
+	t.Headers.Set("Type", "request")
+	t.Headers.Set("RequestType", string(TypeRecordingFolderItemSearch))
+	t.Headers.Set("ResponseCount", string(ResponseCountSingle))
+	t.Headers.Set("BodyId", bodyID)
+
+	body := &RecordingFolderItemSearchRequestBody{
+		Type:    TypeRecordingFolderItemSearch,
+		BodyID:  bodyID,
+		Offset:  primitive.Ref(apicontext.Offset(ctx)),
+		Count:   primitive.Ref(apicontext.Limit(ctx)),
+		Flatten: primitive.Ref(true),
+	}
+	t.Body = body
+
+	return t
+}
+
+func (t *TivoMessage) WithGetRecordingListRequest(ctx context.Context, bodyID string) *TivoMessage {
 
 	t = t.WithStandardHeaders()
 	t.Headers.Set("Type", "request")
