@@ -1,0 +1,28 @@
+[x] mRPC API
+[x] graphQL API
+[x] beacon
+[x] get tivos
+[x] get recordings
+[] show metadata
+[] multiple tivos
+[] cache recording data
+[] sorting
+  [] by name
+  [] by recording date
+[] paging 
+  [] by show
+  [] by series
+[] filtering
+  [] title/description
+  [] watched
+[] configuration via UI
+[] jobs
+  [] download
+  [] decrypt
+  [] encode
+[] remove ads
+  [] auto
+  [] manual
+[] playback
+[] file management
+[] cypress tests
