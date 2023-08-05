@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	gqlhandler "github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -12,6 +16,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"golang.org/x/term"
 
 	"github.com/tartale/kmttg-plus/go/dist"
 	"github.com/tartale/kmttg-plus/go/pkg/beacon"
@@ -19,9 +24,11 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/resolvers"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
+	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
 const port = "8080"
+const crlf = "\r\n"
 
 var cfgFile string
 
@@ -56,6 +63,15 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "terminal",
+		Short: "Starts a terminal for sending RPC commands to a Tivo",
+		Run: func(*cobra.Command, []string) {
+			startBeaconListener()
+			runTerminal()
+		},
+	})
 }
 
 func startBeaconListener() {
@@ -111,4 +127,46 @@ func addWebUIRoutes(router *mux.Router) {
 	router.PathPrefix("/").Handler(http.StripPrefix("/", webUIServer))
 
 	logz.Logger.Info("connect to http://localhost:" + port + " for the KMTTG web UI")
+}
+
+func runTerminal() {
+
+	logz.Logger = logz.NopLogger.Logger
+
+	fmt.Println("detecting Tivos on the network")
+	for {
+		if len(tivos.List()) > 0 {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	// TODO: allow selection of a Tivo
+	tivo := tivos.List()[0]
+	tivoClient, err := tivos.GetClient(tivo)
+	if err != nil {
+		fmt.Printf("error: %v", err)
+	}
+	defer tivoClient.Close()
+
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Printf("error: %v", err)
+	}
+	defer term.Restore(int(os.Stdin.Fd()), oldState)
+	terminal := term.NewTerminal(os.Stdin, tivo.Name+")> ")
+
+	go io.Copy(os.Stdout, tivoClient)
+
+	for {
+		line, err := terminal.ReadLine()
+		if err != nil {
+			fmt.Printf("error: %v", err)
+			break
+		}
+		if strings.ToLower(line) == "exit" {
+			break
+		}
+		tivoClient.Write([]byte(line + crlf))
+	}
 }

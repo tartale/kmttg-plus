@@ -118,6 +118,7 @@ func (t *TivoClient) Connect() error {
 	t.connection = conn.(*tls.Conn)
 	t.sessionID = sessionID
 	t.rpcID = 1
+	t.lastHeartbeat = time.Now()
 
 	return nil
 }
@@ -239,10 +240,11 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage)
 
 	logz.Debug(tivoRequestMessage, (fmt.Sprintf("%03d-request.txt", t.rpcID)))
 
-	if err := t.ensureConnection(ctx); err != nil {
+	err := t.ensureConnection(ctx)
+	if err != nil {
 		return err
 	}
-	_, err := tivoRequestMessage.WriteTo(t.connection)
+	_, err = tivoRequestMessage.WriteTo(t.connection)
 	if err != nil {
 		return err
 	}
@@ -286,10 +288,30 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessa
 	return nil
 }
 
+func (t *TivoClient) Write(b []byte) (int, error) {
+
+	err := t.ensureConnection(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	return t.connection.Write(b)
+}
+
+func (t *TivoClient) Read(b []byte) (int, error) {
+
+	err := t.ensureConnection(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	return t.connection.Read(b)
+}
+
 func (t *TivoClient) ensureConnection(ctx context.Context) error {
 
 	var err error
-	if t.lastHeartbeat.After(time.Now().Add(heartbeatInterval)) {
+	if time.Now().After(t.lastHeartbeat.Add(heartbeatInterval)) {
 		err = t.testConnection()
 		if shouldReconnect(err) {
 			err = t.Reconnect(ctx, err)
@@ -299,6 +321,7 @@ func (t *TivoClient) ensureConnection(ctx context.Context) error {
 			err = errorz.ErrReconnected
 		}
 	}
+	t.lastHeartbeat = time.Now()
 
 	return err
 }

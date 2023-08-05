@@ -11,6 +11,7 @@ import (
 
 type Show interface {
 	IsShow()
+	GetTivo() *Tivo
 	GetKind() ShowKind
 	GetRecordingID() string
 	GetTitle() string
@@ -19,6 +20,7 @@ type Show interface {
 }
 
 type Episode struct {
+	Tivo               *Tivo     `json:"tivo"`
 	Kind               ShowKind  `json:"kind"`
 	RecordingID        string    `json:"recordingID"`
 	Title              string    `json:"title"`
@@ -32,6 +34,7 @@ type Episode struct {
 }
 
 func (Episode) IsShow()                       {}
+func (this Episode) GetTivo() *Tivo           { return this.Tivo }
 func (this Episode) GetKind() ShowKind        { return this.Kind }
 func (this Episode) GetRecordingID() string   { return this.RecordingID }
 func (this Episode) GetTitle() string         { return this.Title }
@@ -39,6 +42,7 @@ func (this Episode) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Episode) GetDescription() string   { return this.Description }
 
 type Movie struct {
+	Tivo        *Tivo     `json:"tivo"`
 	Kind        ShowKind  `json:"kind"`
 	RecordingID string    `json:"recordingID"`
 	Title       string    `json:"title"`
@@ -48,6 +52,7 @@ type Movie struct {
 }
 
 func (Movie) IsShow()                       {}
+func (this Movie) GetTivo() *Tivo           { return this.Tivo }
 func (this Movie) GetKind() ShowKind        { return this.Kind }
 func (this Movie) GetRecordingID() string   { return this.RecordingID }
 func (this Movie) GetTitle() string         { return this.Title }
@@ -55,6 +60,7 @@ func (this Movie) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Movie) GetDescription() string   { return this.Description }
 
 type Series struct {
+	Tivo        *Tivo      `json:"tivo"`
 	Kind        ShowKind   `json:"kind"`
 	RecordingID string     `json:"recordingID"`
 	Title       string     `json:"title"`
@@ -64,6 +70,7 @@ type Series struct {
 }
 
 func (Series) IsShow()                       {}
+func (this Series) GetTivo() *Tivo           { return this.Tivo }
 func (this Series) GetKind() ShowKind        { return this.Kind }
 func (this Series) GetRecordingID() string   { return this.RecordingID }
 func (this Series) GetTitle() string         { return this.Title }

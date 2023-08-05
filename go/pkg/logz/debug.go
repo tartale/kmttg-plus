@@ -1,6 +1,8 @@
 package logz
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -92,6 +94,15 @@ func DebugRaw(rawBytes []byte, filename string) {
 	if Logger.Level() >= zap.DebugLevel {
 		file := MustCreateDebugFile(filename)
 		defer file.Close()
-		file.Write(rawBytes)
+		file.Write(formatJSON(rawBytes))
 	}
+}
+
+func formatJSON(rawBytes []byte) []byte {
+	var formattedBytes bytes.Buffer
+	if err := json.Indent(&formattedBytes, rawBytes, "", "  "); err != nil {
+		return rawBytes
+	}
+
+	return formattedBytes.Bytes()
 }

@@ -57,6 +57,7 @@ type ComplexityRoot struct {
 		RecordingID        func(childComplexity int) int
 		SeasonNumber       func(childComplexity int) int
 		Title              func(childComplexity int) int
+		Tivo               func(childComplexity int) int
 	}
 
 	Movie struct {
@@ -66,6 +67,7 @@ type ComplexityRoot struct {
 		RecordedOn  func(childComplexity int) int
 		RecordingID func(childComplexity int) int
 		Title       func(childComplexity int) int
+		Tivo        func(childComplexity int) int
 	}
 
 	Query struct {
@@ -79,6 +81,7 @@ type ComplexityRoot struct {
 		RecordedOn  func(childComplexity int) int
 		RecordingID func(childComplexity int) int
 		Title       func(childComplexity int) int
+		Tivo        func(childComplexity int) int
 	}
 
 	Tivo struct {
@@ -186,6 +189,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Episode.Title(childComplexity), true
 
+	case "Episode.tivo":
+		if e.complexity.Episode.Tivo == nil {
+			break
+		}
+
+		return e.complexity.Episode.Tivo(childComplexity), true
+
 	case "Movie.description":
 		if e.complexity.Movie.Description == nil {
 			break
@@ -227,6 +237,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Movie.Title(childComplexity), true
+
+	case "Movie.tivo":
+		if e.complexity.Movie.Tivo == nil {
+			break
+		}
+
+		return e.complexity.Movie.Tivo(childComplexity), true
 
 	case "Query.tivos":
 		if e.complexity.Query.Tivos == nil {
@@ -276,6 +293,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Series.Title(childComplexity), true
+
+	case "Series.tivo":
+		if e.complexity.Series.Tivo == nil {
+			break
+		}
+
+		return e.complexity.Series.Tivo(childComplexity), true
 
 	case "Tivo.address":
 		if e.complexity.Tivo.Address == nil {
@@ -421,6 +445,7 @@ enum ShowKind {
 }
 
 interface Show {
+  tivo: Tivo!
   kind: ShowKind!
   recordingID: String!
   title: String!
@@ -429,6 +454,7 @@ interface Show {
 }
 
 type Movie implements Show {
+  tivo: Tivo!
   kind: ShowKind!
   recordingID: String!
   title: String!
@@ -439,6 +465,7 @@ type Movie implements Show {
 }
 
 type Series implements Show {
+  tivo: Tivo!
   kind: ShowKind!
   recordingID: String!
   title: String!
@@ -449,6 +476,7 @@ type Series implements Show {
 }
 
 type Episode implements Show {
+  tivo: Tivo!
   kind: ShowKind!
   recordingID: String!
   title: String!
@@ -476,8 +504,8 @@ type Tivo {
   name: String!
   address: String!
   tsn: String!
-  shows(limit: Int = 25, offset: Int = 0): [Show] @goField(forceResolver: true)
-  recordings(limit: Int = 25, offset: Int = 0): [Show] @goField(forceResolver: true)
+  shows(limit: Int = 25, offset: Int = 0): [Show!] @goField(forceResolver: true)
+  recordings(limit: Int = 25, offset: Int = 0): [Show!] @goField(forceResolver: true)
 }
 
 type Query {
@@ -595,6 +623,62 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Episode_tivo(ctx context.Context, field graphql.CollectedField, obj *model.Episode) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Episode_tivo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tivo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tivo)
+	fc.Result = res
+	return ec.marshalNTivo2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Episode_tivo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Episode",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_Tivo_name(ctx, field)
+			case "address":
+				return ec.fieldContext_Tivo_address(ctx, field)
+			case "tsn":
+				return ec.fieldContext_Tivo_tsn(ctx, field)
+			case "shows":
+				return ec.fieldContext_Tivo_shows(ctx, field)
+			case "recordings":
+				return ec.fieldContext_Tivo_recordings(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tivo", field.Name)
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _Episode_kind(ctx context.Context, field graphql.CollectedField, obj *model.Episode) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Episode_kind(ctx, field)
@@ -1031,6 +1115,62 @@ func (ec *executionContext) fieldContext_Episode_episodeDescription(ctx context.
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Movie_tivo(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Movie_tivo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tivo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tivo)
+	fc.Result = res
+	return ec.marshalNTivo2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Movie_tivo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Movie",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_Tivo_name(ctx, field)
+			case "address":
+				return ec.fieldContext_Tivo_address(ctx, field)
+			case "tsn":
+				return ec.fieldContext_Tivo_tsn(ctx, field)
+			case "shows":
+				return ec.fieldContext_Tivo_shows(ctx, field)
+			case "recordings":
+				return ec.fieldContext_Tivo_recordings(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tivo", field.Name)
 		},
 	}
 	return fc, nil
@@ -1482,6 +1622,62 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Series_tivo(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Series_tivo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tivo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Tivo)
+	fc.Result = res
+	return ec.marshalNTivo2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Series_tivo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Series",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_Tivo_name(ctx, field)
+			case "address":
+				return ec.fieldContext_Tivo_address(ctx, field)
+			case "tsn":
+				return ec.fieldContext_Tivo_tsn(ctx, field)
+			case "shows":
+				return ec.fieldContext_Tivo_shows(ctx, field)
+			case "recordings":
+				return ec.fieldContext_Tivo_recordings(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tivo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Series_kind(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Series_kind(ctx, field)
 	if err != nil {
@@ -1741,6 +1937,8 @@ func (ec *executionContext) fieldContext_Series_episodes(ctx context.Context, fi
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "tivo":
+				return ec.fieldContext_Episode_tivo(ctx, field)
 			case "kind":
 				return ec.fieldContext_Episode_kind(ctx, field)
 			case "recordingID":
@@ -1925,7 +2123,7 @@ func (ec *executionContext) _Tivo_shows(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.([]model.Show)
 	fc.Result = res
-	return ec.marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx, field.Selections, res)
+	return ec.marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Tivo_shows(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1977,7 +2175,7 @@ func (ec *executionContext) _Tivo_recordings(ctx context.Context, field graphql.
 	}
 	res := resTmp.([]model.Show)
 	fc.Result = res
-	return ec.marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx, field.Selections, res)
+	return ec.marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Tivo_recordings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3826,6 +4024,11 @@ func (ec *executionContext) _Episode(ctx context.Context, sel ast.SelectionSet, 
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Episode")
+		case "tivo":
+			out.Values[i] = ec._Episode_tivo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "kind":
 			out.Values[i] = ec._Episode_kind(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3910,6 +4113,11 @@ func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Movie")
+		case "tivo":
+			out.Values[i] = ec._Movie_tivo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "kind":
 			out.Values[i] = ec._Movie_kind(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4043,6 +4251,11 @@ func (ec *executionContext) _Series(ctx context.Context, sel ast.SelectionSet, o
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Series")
+		case "tivo":
+			out.Values[i] = ec._Series_tivo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "kind":
 			out.Values[i] = ec._Series_kind(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4667,6 +4880,16 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) marshalNShow2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx context.Context, sel ast.SelectionSet, v model.Show) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Show(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNShowKind2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx context.Context, v interface{}) (model.ShowKind, error) {
 	var res model.ShowKind
 	err := res.UnmarshalGQL(v)
@@ -5056,14 +5279,7 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) marshalOShow2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx context.Context, sel ast.SelectionSet, v model.Show) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Show(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx context.Context, sel ast.SelectionSet, v []model.Show) graphql.Marshaler {
+func (ec *executionContext) marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Show) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -5090,7 +5306,7 @@ func (ec *executionContext) marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplu
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOShow2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx, sel, v[i])
+			ret[i] = ec.marshalNShow2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -5100,6 +5316,12 @@ func (ec *executionContext) marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplu
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
 
 	return ret
 }

@@ -36,3 +36,14 @@ func GetRecordingList(ctx context.Context, tivo *model.Tivo) ([]model.Show, erro
 
 	return nil, fmt.Errorf("failed to get recordings; number of retries exceeded: %w", err)
 }
+
+func GetEpisodes(ctx context.Context, series *model.Series) ([]*model.Episode, error) {
+
+	tivoClient, err := tivos.GetClient(series.Tivo)
+	_ = tivoClient
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}

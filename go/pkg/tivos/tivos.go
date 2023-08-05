@@ -27,11 +27,11 @@ func Add(tivo *model.Tivo) {
 
 func GetClient(tivo *model.Tivo) (*client.TivoClient, error) {
 
+	tivoMutex.Lock()
+	defer tivoMutex.Unlock()
 	if tivoClient, ok := tivoClients[tivo.Name]; ok {
 		return tivoClient, nil
 	}
-	tivoMutex.Lock()
-	defer tivoMutex.Unlock()
 	newTivoClient, err := client.NewTivoClient(tivo)
 	if err != nil {
 		return nil, err

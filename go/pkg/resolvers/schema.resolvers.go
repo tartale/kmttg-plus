@@ -21,18 +21,18 @@ func (r *queryResolver) Tivos(ctx context.Context) ([]*model.Tivo, error) {
 }
 
 // Shows is the resolver for the shows field.
-func (r *tivoResolver) Shows(ctx context.Context, obj *model.Tivo, limit *int, offset *int) ([]model.Show, error) {
+func (r *tivoResolver) Shows(ctx context.Context, parentTivo *model.Tivo, limit *int, offset *int) ([]model.Show, error) {
 	panic(fmt.Errorf("not implemented: Shows - shows"))
 }
 
 // Recordings is the resolver for the recordings field.
-func (r *tivoResolver) Recordings(ctx context.Context, obj *model.Tivo, limit *int, offset *int) ([]model.Show, error) {
+func (r *tivoResolver) Recordings(ctx context.Context, tivo *model.Tivo, limit *int, offset *int) ([]model.Show, error) {
 	ctx = apicontext.New(ctx).
 		WithOffset(*offset).
 		WithLimit(*limit).
 		Context
 
-	return shows.GetRecordingList(ctx, obj)
+	return shows.GetRecordingList(ctx, tivo)
 }
 
 // Query returns server.QueryResolver implementation.

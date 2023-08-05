@@ -8,6 +8,7 @@ enum ShowKind {
 }
 
 interface Show {
+  tivo: Tivo!
   kind: ShowKind!
   recordingID: String!
   title: String!
@@ -16,6 +17,7 @@ interface Show {
 }
 
 type Movie implements Show {
+  tivo: Tivo!
   kind: ShowKind!
   recordingID: String!
   title: String!
@@ -26,6 +28,7 @@ type Movie implements Show {
 }
 
 type Series implements Show {
+  tivo: Tivo!
   kind: ShowKind!
   recordingID: String!
   title: String!
@@ -36,6 +39,7 @@ type Series implements Show {
 }
 
 type Episode implements Show {
+  tivo: Tivo!
   kind: ShowKind!
   recordingID: String!
   title: String!
