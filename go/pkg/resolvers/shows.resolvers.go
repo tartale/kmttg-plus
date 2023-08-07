@@ -9,13 +9,12 @@ import (
 
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
-	"github.com/tartale/kmttg-plus/go/pkg/shows"
+	"github.com/tartale/kmttg-plus/go/pkg/tivo"
 )
 
 // Episodes is the resolver for the episodes field.
-func (r *seriesResolver) Episodes(ctx context.Context, series *model.Series) ([]*model.Episode, error) {
-
-	return shows.GetEpisodes(ctx, series)
+func (r *seriesResolver) Episodes(ctx context.Context, obj *model.Series) ([]*model.Episode, error) {
+	return tivo.GetEpisodes(ctx, obj)
 }
 
 // Series returns server.SeriesResolver implementation.

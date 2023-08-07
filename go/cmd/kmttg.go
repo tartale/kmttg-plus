@@ -24,7 +24,7 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/resolvers"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
-	"github.com/tartale/kmttg-plus/go/pkg/tivos"
+	"github.com/tartale/kmttg-plus/go/pkg/tivo"
 )
 
 const port = "8080"
@@ -135,15 +135,15 @@ func runTerminal() {
 
 	fmt.Println("detecting Tivos on the network")
 	for {
-		if len(tivos.List()) > 0 {
+		if len(tivo.List()) > 0 {
 			break
 		}
 		time.Sleep(1 * time.Second)
 	}
 
 	// TODO: allow selection of a Tivo
-	tivo := tivos.List()[0]
-	tivoClient, err := tivos.GetClient(tivo)
+	tvo := tivo.List()[0]
+	tivoClient, err := tivo.GetClient(tvo)
 	if err != nil {
 		fmt.Printf("error: %v", err)
 	}
@@ -154,7 +154,7 @@ func runTerminal() {
 		fmt.Printf("error: %v", err)
 	}
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
-	terminal := term.NewTerminal(os.Stdin, tivo.Name+")> ")
+	terminal := term.NewTerminal(os.Stdin, tvo.Name+")> ")
 
 	go io.Copy(os.Stdout, tivoClient)
 

@@ -10,12 +10,12 @@ enum ShowKind {
 interface Show {
   tivo: Tivo!
   kind: ShowKind!
-  recordingID: String!
   title: String!
   recordedOn: Time!
   description: String!
 }
 
+# Movies are any show that is a single program, which includes both cinema and one-off specials.
 type Movie implements Show {
   tivo: Tivo!
   kind: ShowKind!
@@ -24,13 +24,14 @@ type Movie implements Show {
   recordedOn: Time!
   description: String!
 
-  movieYear: String
+  movieYear: Int!
 }
 
+# A series is any show with multiple seasons/episodes.
 type Series implements Show {
   tivo: Tivo!
   kind: ShowKind!
-  recordingID: String!
+  collectionID: String!
   title: String!
   recordedOn: Time!
   description: String!
@@ -51,4 +52,10 @@ type Episode implements Show {
   episodeNumber: Int!
   episodeTitle: String!
   episodeDescription: String!
+}
+
+input ShowFilter {
+  kind: ShowKind
+  title: String
+  exactMatch: Boolean
 }

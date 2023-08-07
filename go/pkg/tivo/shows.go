@@ -1,4 +1,4 @@
-package shows
+package tivo
 
 import (
 	"context"
@@ -7,39 +7,38 @@ import (
 
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
-	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
 const retryCount = 3
 
-func GetRecordingList(ctx context.Context, tivo *model.Tivo) ([]model.Show, error) {
+func GetShows(ctx context.Context, tivo *model.Tivo) ([]model.Show, error) {
 
 	var result []model.Show
 	var err error
 
-	tivoClient, err := tivos.GetClient(tivo)
+	tivoClient, err := GetClient(tivo)
 	if err != nil {
 		return nil, err
 	}
 
 	for retries := 0; retries < retryCount; retries++ {
-		result, err = tivoClient.GetRecordingList(ctx)
+		result, err = tivoClient.GetShows(ctx)
 		if errors.Is(err, errorz.ErrReconnected) {
 			continue
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to get recordings: %w", err)
+			return nil, fmt.Errorf("failed to get shows: %w", err)
 		}
 
 		return result, nil
 	}
 
-	return nil, fmt.Errorf("failed to get recordings; number of retries exceeded: %w", err)
+	return nil, fmt.Errorf("failed to get shows; number of retries exceeded: %w", err)
 }
 
 func GetEpisodes(ctx context.Context, series *model.Series) ([]*model.Episode, error) {
 
-	tivoClient, err := tivos.GetClient(series.Tivo)
+	tivoClient, err := GetClient(series.Tivo)
 	_ = tivoClient
 	if err != nil {
 		return nil, err

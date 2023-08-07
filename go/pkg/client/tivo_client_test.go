@@ -62,7 +62,7 @@ var _ = Describe("Tivo Client", func() {
 		err = tivoClient.Authenticate(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 
-		recordings, err := tivoClient.GetRecordingList(context.Background())
+		recordings, err := tivoClient.GetShows(context.Background())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(recordings)).To(BeNumerically(">", 0))
 	})

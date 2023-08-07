@@ -8,7 +8,7 @@ import (
 	"github.com/grandcat/zeroconf"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
-	"github.com/tartale/kmttg-plus/go/pkg/tivos"
+	"github.com/tartale/kmttg-plus/go/pkg/tivo"
 	"go.uber.org/zap"
 )
 
@@ -27,11 +27,11 @@ func Listen(ctx context.Context) error {
 	for {
 		select {
 		case entry := <-entries:
-			tivo, err := newTivoFromServiceEntry(entry)
+			tvo, err := newTivoFromServiceEntry(entry)
 			if err != nil {
 				continue
 			}
-			tivos.Add(tivo)
+			tivo.Add(tvo)
 		case <-ctx.Done():
 			return nil
 		}

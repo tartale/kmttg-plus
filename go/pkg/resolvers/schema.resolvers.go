@@ -6,40 +6,18 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
-	"github.com/tartale/kmttg-plus/go/pkg/shows"
-	"github.com/tartale/kmttg-plus/go/pkg/tivos"
+	"github.com/tartale/kmttg-plus/go/pkg/tivo"
 )
 
 // Tivos is the resolver for the tivos field.
-func (r *queryResolver) Tivos(ctx context.Context) ([]*model.Tivo, error) {
-	return tivos.List(), nil
-}
-
-// Shows is the resolver for the shows field.
-func (r *tivoResolver) Shows(ctx context.Context, parentTivo *model.Tivo, limit *int, offset *int) ([]model.Show, error) {
-	panic(fmt.Errorf("not implemented: Shows - shows"))
-}
-
-// Recordings is the resolver for the recordings field.
-func (r *tivoResolver) Recordings(ctx context.Context, tivo *model.Tivo, limit *int, offset *int) ([]model.Show, error) {
-	ctx = apicontext.New(ctx).
-		WithOffset(*offset).
-		WithLimit(*limit).
-		Context
-
-	return shows.GetRecordingList(ctx, tivo)
+func (r *queryResolver) Tivos(ctx context.Context, filter *model.TivoFilter) ([]*model.Tivo, error) {
+	return tivo.List(filter), nil
 }
 
 // Query returns server.QueryResolver implementation.
 func (r *Resolver) Query() server.QueryResolver { return &queryResolver{r} }
 
-// Tivo returns server.TivoResolver implementation.
-func (r *Resolver) Tivo() server.TivoResolver { return &tivoResolver{r} }
-
 type queryResolver struct{ *Resolver }
-type tivoResolver struct{ *Resolver }

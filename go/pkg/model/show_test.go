@@ -3,7 +3,6 @@ package model
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/tartale/go/pkg/primitive"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"go.uber.org/zap"
 )
@@ -26,7 +25,7 @@ var _ = Describe("Show Helpers", func() {
 				Kind:        ShowKindMovie,
 				Title:       "Back to the Future",
 				Description: "",
-				MovieYear:   primitive.Ref("1985"),
+				MovieYear:   1985,
 			},
 			&Episode{
 				Kind:         ShowKindEpisode,

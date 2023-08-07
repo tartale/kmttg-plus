@@ -71,37 +71,35 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Tivos func(childComplexity int) int
+		Tivos func(childComplexity int, filter *model.TivoFilter) int
 	}
 
 	Series struct {
-		Description func(childComplexity int) int
-		Episodes    func(childComplexity int) int
-		Kind        func(childComplexity int) int
-		RecordedOn  func(childComplexity int) int
-		RecordingID func(childComplexity int) int
-		Title       func(childComplexity int) int
-		Tivo        func(childComplexity int) int
+		CollectionID func(childComplexity int) int
+		Description  func(childComplexity int) int
+		Episodes     func(childComplexity int) int
+		Kind         func(childComplexity int) int
+		RecordedOn   func(childComplexity int) int
+		Title        func(childComplexity int) int
+		Tivo         func(childComplexity int) int
 	}
 
 	Tivo struct {
-		Address    func(childComplexity int) int
-		Name       func(childComplexity int) int
-		Recordings func(childComplexity int, limit *int, offset *int) int
-		Shows      func(childComplexity int, limit *int, offset *int) int
-		Tsn        func(childComplexity int) int
+		Address func(childComplexity int) int
+		Name    func(childComplexity int) int
+		Shows   func(childComplexity int, filter *model.ShowFilter, limit *int, offset *int) int
+		Tsn     func(childComplexity int) int
 	}
 }
 
 type QueryResolver interface {
-	Tivos(ctx context.Context) ([]*model.Tivo, error)
+	Tivos(ctx context.Context, filter *model.TivoFilter) ([]*model.Tivo, error)
 }
 type SeriesResolver interface {
 	Episodes(ctx context.Context, obj *model.Series) ([]*model.Episode, error)
 }
 type TivoResolver interface {
-	Shows(ctx context.Context, obj *model.Tivo, limit *int, offset *int) ([]model.Show, error)
-	Recordings(ctx context.Context, obj *model.Tivo, limit *int, offset *int) ([]model.Show, error)
+	Shows(ctx context.Context, obj *model.Tivo, filter *model.ShowFilter, limit *int, offset *int) ([]model.Show, error)
 }
 
 type executableSchema struct {
@@ -250,7 +248,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.Tivos(childComplexity), true
+		args, err := ec.field_Query_tivos_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Tivos(childComplexity, args["filter"].(*model.TivoFilter)), true
+
+	case "Series.collectionID":
+		if e.complexity.Series.CollectionID == nil {
+			break
+		}
+
+		return e.complexity.Series.CollectionID(childComplexity), true
 
 	case "Series.description":
 		if e.complexity.Series.Description == nil {
@@ -280,13 +290,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Series.RecordedOn(childComplexity), true
 
-	case "Series.recordingID":
-		if e.complexity.Series.RecordingID == nil {
-			break
-		}
-
-		return e.complexity.Series.RecordingID(childComplexity), true
-
 	case "Series.title":
 		if e.complexity.Series.Title == nil {
 			break
@@ -315,18 +318,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tivo.Name(childComplexity), true
 
-	case "Tivo.recordings":
-		if e.complexity.Tivo.Recordings == nil {
-			break
-		}
-
-		args, err := ec.field_Tivo_recordings_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Tivo.Recordings(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
-
 	case "Tivo.shows":
 		if e.complexity.Tivo.Shows == nil {
 			break
@@ -337,7 +328,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Tivo.Shows(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
+		return e.complexity.Tivo.Shows(childComplexity, args["filter"].(*model.ShowFilter), args["limit"].(*int), args["offset"].(*int)), true
 
 	case "Tivo.tsn":
 		if e.complexity.Tivo.Tsn == nil {
@@ -353,7 +344,10 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputShowFilter,
+		ec.unmarshalInputTivoFilter,
+	)
 	first := true
 
 	switch rc.Operation.Operation {
@@ -435,7 +429,25 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../../api/recording.graphql", Input: `scalar Date
+	{Name: "../../api/schema.graphql", Input: `directive @goTag(
+  key: String!
+  value: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
+directive @goField(
+    forceResolver: Boolean
+    name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
+type Query {
+  tivos(filter: TivoFilter): [Tivo!]!
+}
+
+schema {
+  query: Query
+}
+`, BuiltIn: false},
+	{Name: "../../api/shows.graphql", Input: `scalar Date
 scalar Time
 
 enum ShowKind {
@@ -447,12 +459,12 @@ enum ShowKind {
 interface Show {
   tivo: Tivo!
   kind: ShowKind!
-  recordingID: String!
   title: String!
   recordedOn: Time!
   description: String!
 }
 
+# Movies are any show that is a single program, which includes both cinema and one-off specials.
 type Movie implements Show {
   tivo: Tivo!
   kind: ShowKind!
@@ -461,13 +473,14 @@ type Movie implements Show {
   recordedOn: Time!
   description: String!
 
-  movieYear: String
+  movieYear: Int!
 }
 
+# A series is any show with multiple seasons/episodes.
 type Series implements Show {
   tivo: Tivo!
   kind: ShowKind!
-  recordingID: String!
+  collectionID: String!
   title: String!
   recordedOn: Time!
   description: String!
@@ -489,31 +502,27 @@ type Episode implements Show {
   episodeTitle: String!
   episodeDescription: String!
 }
+
+input ShowFilter {
+  kind: ShowKind
+  title: String
+  exactMatch: Boolean
+}
 `, BuiltIn: false},
-	{Name: "../../api/schema.graphql", Input: `directive @goTag(
-  key: String!
-  value: String
-) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
-
-directive @goField(
-    forceResolver: Boolean
-    name: String
-) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
-
+	{Name: "../../api/tivos.graphql", Input: `
 type Tivo {
+  # The name assigned to the Tivo. This value is obtained via the ZeroConfig beacon.
   name: String!
+  # The IP address of the Tivo. This value is obtained via the ZeroConfig beacon.
   address: String!
+  # The serial number of the Tivo. This value is obtained via the ZeroConfig beacon.
   tsn: String!
-  shows(limit: Int = 25, offset: Int = 0): [Show!] @goField(forceResolver: true)
-  recordings(limit: Int = 25, offset: Int = 0): [Show!] @goField(forceResolver: true)
+  # Get a list of series and movies.
+  shows(filter: ShowFilter, limit: Int = 25, offset: Int = 0): [Show!] @goField(forceResolver: true)
 }
 
-type Query {
-  tivos: [Tivo!]!
-}
-
-schema {
-  query: Query
+input TivoFilter {
+  name: String
 }
 `, BuiltIn: false},
 }
@@ -538,51 +547,51 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Tivo_recordings_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_tivos_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["limit"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+	var arg0 *model.TivoFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOTivoFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivoFilter(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["limit"] = arg0
-	var arg1 *int
-	if tmp, ok := rawArgs["offset"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["offset"] = arg1
+	args["filter"] = arg0
 	return args, nil
 }
 
 func (ec *executionContext) field_Tivo_shows_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["limit"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+	var arg0 *model.ShowFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOShowFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["limit"] = arg0
+	args["filter"] = arg0
 	var arg1 *int
-	if tmp, ok := rawArgs["offset"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
 		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["offset"] = arg1
+	args["limit"] = arg1
+	var arg2 *int
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -671,8 +680,6 @@ func (ec *executionContext) fieldContext_Episode_tivo(ctx context.Context, field
 				return ec.fieldContext_Tivo_tsn(ctx, field)
 			case "shows":
 				return ec.fieldContext_Tivo_shows(ctx, field)
-			case "recordings":
-				return ec.fieldContext_Tivo_recordings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tivo", field.Name)
 		},
@@ -1167,8 +1174,6 @@ func (ec *executionContext) fieldContext_Movie_tivo(ctx context.Context, field g
 				return ec.fieldContext_Tivo_tsn(ctx, field)
 			case "shows":
 				return ec.fieldContext_Tivo_shows(ctx, field)
-			case "recordings":
-				return ec.fieldContext_Tivo_recordings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tivo", field.Name)
 		},
@@ -1417,11 +1422,14 @@ func (ec *executionContext) _Movie_movieYear(ctx context.Context, field graphql.
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Movie_movieYear(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1431,7 +1439,7 @@ func (ec *executionContext) fieldContext_Movie_movieYear(ctx context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1451,7 +1459,7 @@ func (ec *executionContext) _Query_tivos(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Tivos(rctx)
+		return ec.resolvers.Query().Tivos(rctx, fc.Args["filter"].(*model.TivoFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1484,11 +1492,20 @@ func (ec *executionContext) fieldContext_Query_tivos(ctx context.Context, field 
 				return ec.fieldContext_Tivo_tsn(ctx, field)
 			case "shows":
 				return ec.fieldContext_Tivo_shows(ctx, field)
-			case "recordings":
-				return ec.fieldContext_Tivo_recordings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tivo", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_tivos_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1669,8 +1686,6 @@ func (ec *executionContext) fieldContext_Series_tivo(ctx context.Context, field 
 				return ec.fieldContext_Tivo_tsn(ctx, field)
 			case "shows":
 				return ec.fieldContext_Tivo_shows(ctx, field)
-			case "recordings":
-				return ec.fieldContext_Tivo_recordings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tivo", field.Name)
 		},
@@ -1722,8 +1737,8 @@ func (ec *executionContext) fieldContext_Series_kind(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Series_recordingID(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Series_recordingID(ctx, field)
+func (ec *executionContext) _Series_collectionID(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Series_collectionID(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1736,7 +1751,7 @@ func (ec *executionContext) _Series_recordingID(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.RecordingID, nil
+		return obj.CollectionID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1753,7 +1768,7 @@ func (ec *executionContext) _Series_recordingID(ctx context.Context, field graph
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Series_recordingID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Series_collectionID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Series",
 		Field:      field,
@@ -2112,7 +2127,7 @@ func (ec *executionContext) _Tivo_shows(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Tivo().Shows(rctx, obj, fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		return ec.resolvers.Tivo().Shows(rctx, obj, fc.Args["filter"].(*model.ShowFilter), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2144,58 +2159,6 @@ func (ec *executionContext) fieldContext_Tivo_shows(ctx context.Context, field g
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Tivo_shows_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Tivo_recordings(ctx context.Context, field graphql.CollectedField, obj *model.Tivo) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Tivo_recordings(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Tivo().Recordings(rctx, obj, fc.Args["limit"].(*int), fc.Args["offset"].(*int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]model.Show)
-	fc.Result = res
-	return ec.marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Tivo_recordings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Tivo",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("FieldContext.Child cannot be called on type INTERFACE")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Tivo_recordings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3975,6 +3938,82 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj interface{}) (model.ShowFilter, error) {
+	var it model.ShowFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "title", "exactMatch"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalOShowKind2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "exactMatch":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("exactMatch"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExactMatch = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputTivoFilter(ctx context.Context, obj interface{}) (model.TivoFilter, error) {
+	var it model.TivoFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -4145,6 +4184,9 @@ func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "movieYear":
 			out.Values[i] = ec._Movie_movieYear(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4261,8 +4303,8 @@ func (ec *executionContext) _Series(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
-		case "recordingID":
-			out.Values[i] = ec._Series_recordingID(ctx, field, obj)
+		case "collectionID":
+			out.Values[i] = ec._Series_collectionID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
@@ -4376,39 +4418,6 @@ func (ec *executionContext) _Tivo(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._Tivo_shows(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "recordings":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tivo_recordings(ctx, field, obj)
 				return res
 			}
 
@@ -5326,6 +5335,30 @@ func (ec *executionContext) marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplu
 	return ret
 }
 
+func (ec *executionContext) unmarshalOShowFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx context.Context, v interface{}) (*model.ShowFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputShowFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOShowKind2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx context.Context, v interface{}) (*model.ShowKind, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.ShowKind)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOShowKind2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx context.Context, sel ast.SelectionSet, v *model.ShowKind) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -5340,6 +5373,14 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	}
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOTivoFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivoFilter(ctx context.Context, v interface{}) (*model.TivoFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputTivoFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

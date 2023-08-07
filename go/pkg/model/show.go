@@ -3,48 +3,79 @@ package model
 import (
 	"fmt"
 
-	"github.com/tartale/go/pkg/primitive"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 )
 
-func NewShow(recordingItem message.RecordingItem, recordingID string) (Show, error) {
+func NewShow(recordingItem *message.RecordingItem, collectionDetails *message.CollectionItem) (Show, error) {
 
 	switch recordingItem.CollectionType {
 	case message.CollectionTypeSeries:
-		var episodeNumber int
-		if len(recordingItem.EpisodeNum) > 0 {
-			episodeNumber = recordingItem.EpisodeNum[0]
-		}
-		return &Episode{
-			Kind:               ShowKindEpisode,
-			RecordingID:        recordingID,
-			Title:              recordingItem.Title,
-			RecordedOn:         recordingItem.StartTime.Time,
-			Description:        "",
-			OriginalAirDate:    recordingItem.OriginalAirDate,
-			SeasonNumber:       recordingItem.SeasonNumber,
-			EpisodeNumber:      episodeNumber,
-			EpisodeTitle:       recordingItem.Subtitle,
-			EpisodeDescription: recordingItem.Description,
-		}, nil
+		return NewSeries(recordingItem, collectionDetails)
+
 	case message.CollectionTypeMovie, message.CollectionTypeSpecial:
-		return &Movie{
-			Kind:        ShowKindMovie,
-			RecordingID: recordingID,
-			Title:       recordingItem.Title,
-			RecordedOn:  recordingItem.StartTime.Time,
-			Description: recordingItem.Description,
-			MovieYear:   primitive.Ref(recordingItem.MovieYear),
-		}, nil
+		return NewMovie(recordingItem)
+
 	default:
 		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingItem.CollectionType)))
-
 	}
 
 }
 
+func NewMovie(recordingItem *message.RecordingItem) (*Movie, error) {
+	if recordingItem.CollectionType != message.CollectionTypeMovie && recordingItem.CollectionType != message.CollectionTypeSpecial {
+		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingItem.CollectionType)))
+	}
+
+	return &Movie{
+		Kind:        ShowKindMovie,
+		RecordingID: recordingItem.RecordingID,
+		Title:       recordingItem.Title,
+		RecordedOn:  recordingItem.StartTime.Time,
+		Description: recordingItem.Description,
+		MovieYear:   recordingItem.MovieYear,
+	}, nil
+}
+
+func NewSeries(recordingItem *message.RecordingItem, collectionItem *message.CollectionItem) (*Series, error) {
+	if recordingItem.CollectionType != message.CollectionTypeSeries {
+		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingItem.CollectionType)))
+	}
+
+	return &Series{
+		Kind:         ShowKindSeries,
+		CollectionID: recordingItem.CollectionID,
+		Title:        recordingItem.Title,
+		RecordedOn:   recordingItem.StartTime.Time,
+		Description:  collectionItem.Description,
+	}, nil
+}
+
+func NewEpisode(recordingItem *message.RecordingItem) (*Episode, error) {
+	if recordingItem.CollectionType != message.CollectionTypeSeries {
+		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingItem.CollectionType)))
+	}
+
+	var episodeNumber int
+	if len(recordingItem.EpisodeNum) > 0 {
+		episodeNumber = recordingItem.EpisodeNum[0]
+	}
+	return &Episode{
+		Kind:               ShowKindEpisode,
+		RecordingID:        recordingItem.RecordingID,
+		Title:              recordingItem.Title,
+		RecordedOn:         recordingItem.StartTime.Time,
+		Description:        "",
+		OriginalAirDate:    recordingItem.OriginalAirDate,
+		SeasonNumber:       recordingItem.SeasonNumber,
+		EpisodeNumber:      episodeNumber,
+		EpisodeTitle:       recordingItem.Subtitle,
+		EpisodeDescription: recordingItem.Description,
+	}, nil
+}
+
 func MergeEpisodes(shows []Show) []Show {
+
 	combinedShowsMap := make(map[string]Show)
 
 	for _, show := range shows {
@@ -59,7 +90,6 @@ func MergeEpisodes(shows []Show) []Show {
 			} else {
 				combinedShowsMap[episode.Title] = &Series{
 					Kind:        ShowKindSeries,
-					RecordingID: show.GetRecordingID(),
 					Title:       show.GetTitle(),
 					RecordedOn:  show.GetRecordedOn(),
 					Description: show.GetDescription(),
@@ -78,35 +108,3 @@ func MergeEpisodes(shows []Show) []Show {
 
 	return combinedShows
 }
-
-/*
-
-const parseShow = (obj: any): Show => {
-  const recording = obj.recording[0]
-  const show: Series | Movie = {
-    recordingID: recording.recordingID,
-    kind: recording.episodic ? ShowKind.Series : ShowKind.Movie,
-    title: recording.title,
-    recordedOn: new Date(recording.startTime),
-    description: recording.description,
-    movieYear: recording.movieYear,
-    episodes: recording.episodic ? [
-      {
-        recordingID: recording.recordingID,
-        kind: ShowKind.Episode,
-        title: recording.title,
-        recordedOn: new Date(recording.startTime),
-        description: recording.description,
-        originalAirDate: new Date(recording.originalAirDate),
-        seasonNumber: recording.seasonNumber ? recording.seasonNumber : 0,
-        episodeNumber: recording.episodeNum ? recording.episodeNum[0] : 0,
-        episodeTitle: recording.subtitle,
-        episodeDescription: recording.description,
-      }
-    ] : []
-  }
-
-  return show
-}
-
-*/

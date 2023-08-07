@@ -89,12 +89,12 @@ func Debug(input io.WriterTo, filename string) {
 
 }
 
-func DebugRaw(rawBytes []byte, filename string) {
+func DebugPayload(jsonBytes []byte, filename string) {
 
 	if Logger.Level() >= zap.DebugLevel {
 		file := MustCreateDebugFile(filename)
 		defer file.Close()
-		file.Write(formatJSON(rawBytes))
+		file.Write(formatJSON(jsonBytes))
 	}
 }
 

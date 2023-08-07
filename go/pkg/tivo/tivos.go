@@ -1,4 +1,4 @@
-package tivos
+package tivo
 
 import (
 	"context"
@@ -46,8 +46,11 @@ func GetClient(tivo *model.Tivo) (*client.TivoClient, error) {
 	return newTivoClient, nil
 }
 
-func List() []*model.Tivo {
+func List(filter ...*model.TivoFilter) []*model.Tivo {
+
 	list := maps.Values(tivos)
+	list = model.Filter(list, model.NewTivoFilter(filter...))
+
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Name < list[j].Name
 	})

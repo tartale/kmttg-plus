@@ -10,6 +10,8 @@ const (
 	TypeRecordingFolderItemList   Type = "recordingFolderItemList"
 	TypeRecordingSearch           Type = "recordingSearch"
 	TypeRecordingList             Type = "recordingList"
+	TypeCollectionSearch          Type = "collectionSearch"
+	TypeCollectionList            Type = "collectionList"
 	TypeError                     Type = "error"
 )
 
@@ -44,5 +46,7 @@ const (
 type LevelOfDetail string
 
 const (
+	LevelOfDetailLow    LevelOfDetail = "low"
 	LevelOfDetailMedium LevelOfDetail = "medium"
+	LevelOfDetailHigh   LevelOfDetail = "high"
 )

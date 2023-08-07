@@ -47,6 +47,7 @@ func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 		address:   tivo.Address,
 		tlsConfig: tlsConfig,
 		tsn:       tivo.Tsn,
+		rpcID:     1,
 	}
 	err = tivoClient.Connect()
 	if err != nil {
@@ -117,7 +118,6 @@ func (t *TivoClient) Connect() error {
 
 	t.connection = conn.(*tls.Conn)
 	t.sessionID = sessionID
-	t.rpcID = 1
 	t.lastHeartbeat = time.Now()
 
 	return nil
@@ -164,7 +164,7 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 	return nil
 }
 
-func (t *TivoClient) GetRecordingList(ctx context.Context) ([]model.Show, error) {
+func (t *TivoClient) GetShows(ctx context.Context) ([]model.Show, error) {
 
 	request := message.NewTivoMessage().WithGetRecordingListRequest(ctx, t.BodyID())
 	err := t.Send(ctx, request)
@@ -185,21 +185,39 @@ func (t *TivoClient) GetRecordingList(ctx context.Context) ([]model.Show, error)
 	var result []model.Show
 	var errs errorx.Errors
 	for _, recording := range responseBody.RecordingFolderItem {
-		show, err := t.GetRecordingDetails(ctx, recording.ChildRecordingID)
+		show, err := t.GetShowDetails(ctx, recording)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
 			result = append(result, show)
 		}
 	}
-	result = model.MergeEpisodes(result)
 
 	return result, errs.Combine("", "; ")
 }
 
-func (t *TivoClient) GetRecordingDetails(ctx context.Context, recordingID string) (model.Show, error) {
+func (t *TivoClient) GetShowDetails(ctx context.Context, recordingFolderItem message.RecordingFolderItem) (model.Show, error) {
 
-	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), recordingID)
+	recordingDetails, err := t.GetRecordingDetails(ctx, recordingFolderItem)
+	if err != nil {
+		return nil, err
+	}
+	collectionDetails, err := t.GetCollectionDetails(ctx, []string{recordingFolderItem.CollectionID})
+	if err != nil {
+		return nil, err
+	}
+
+	show, err := model.NewShow(recordingDetails, &collectionDetails[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return show, nil
+}
+
+func (t *TivoClient) GetRecordingDetails(ctx context.Context, recordingFolderItem message.RecordingFolderItem) (*message.RecordingItem, error) {
+
+	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), recordingFolderItem.ChildRecordingID)
 	err := t.Send(ctx, request)
 	if err != nil {
 		return nil, err
@@ -219,12 +237,37 @@ func (t *TivoClient) GetRecordingDetails(ctx context.Context, recordingID string
 	if recordingCount != 1 {
 		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected number of recordings in response: %d", recordingCount))
 	}
-	show, err := model.NewShow(responseBody.Recording[0], recordingID)
+	recording := responseBody.Recording[0]
+	recording.RecordingID = recordingFolderItem.ChildRecordingID
+	recording.CollectionID = recordingFolderItem.CollectionID
+
+	return &recording, nil
+}
+
+func (t *TivoClient) GetCollectionDetails(ctx context.Context, collectionIDs []string) ([]message.CollectionItem, error) {
+
+	request := message.NewTivoMessage().WithGetCollectionRequest(ctx, collectionIDs)
+	err := t.Send(ctx, request)
 	if err != nil {
 		return nil, err
 	}
 
-	return show, nil
+	responseBody := &message.CollectionSearchResponseBody{}
+	response := message.NewTivoMessage().WithBody(responseBody)
+	err = t.Receive(ctx, response)
+	if err != nil {
+		return nil, err
+	}
+	if responseBody.Type != message.TypeCollectionList {
+		logz.Logger.Error("tivo error response", zap.Any("responseBody", responseBody))
+		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected response type: %s", responseBody.Type))
+	}
+	collectionCount := len(responseBody.Collection)
+	if collectionCount != len(collectionIDs) {
+		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected number of collection items in response: %d", collectionCount))
+	}
+
+	return responseBody.Collection, nil
 }
 
 func (t *TivoClient) GetEpisodes(ctx context.Context, parentSeries *model.Series) ([]*model.Episode, error) {
@@ -239,7 +282,6 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage)
 		WithRpcID(t.rpcID)
 
 	logz.Debug(tivoRequestMessage, (fmt.Sprintf("%03d-request.txt", t.rpcID)))
-
 	err := t.ensureConnection(ctx)
 	if err != nil {
 		return err

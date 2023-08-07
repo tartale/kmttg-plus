@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
-	"github.com/tartale/kmttg-plus/go/pkg/tivos"
+	"github.com/tartale/kmttg-plus/go/pkg/tivo"
 	"github.com/tartale/kmttg-plus/go/test"
 )
 
@@ -24,7 +24,7 @@ var _ = Describe("Tivo Beacon", func() {
 
 		go Listen(ctx)
 
-		Eventually(func() []*model.Tivo { return tivos.List() }).
+		Eventually(func() []*model.Tivo { return tivo.List() }).
 			WithTimeout(10 * time.Second).
 			WithPolling(1 * time.Second).
 			Should(ContainElement(HaveField("Name", test.Tivo.Name)))

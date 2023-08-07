@@ -100,7 +100,7 @@ func (t *TivoMessage) WithGetRecordingListRequest(ctx context.Context, bodyID st
 		BodyID:  bodyID,
 		Offset:  primitive.Ref(apicontext.Offset(ctx)),
 		Count:   primitive.Ref(apicontext.Limit(ctx)),
-		Flatten: primitive.Ref(true),
+		Flatten: primitive.Ref(false),
 	}
 	t.Body = body
 
@@ -120,6 +120,43 @@ func (t *TivoMessage) WithGetRecordingRequest(ctx context.Context, bodyID, recor
 		BodyID:        bodyID,
 		LevelOfDetail: LevelOfDetailMedium,
 		RecordingID:   recordingID,
+	}
+	t.Body = body
+
+	return t
+}
+
+func (t *TivoMessage) WithGetCollectionRequest(ctx context.Context, collectionIDs []string) *TivoMessage {
+
+	t = t.WithStandardHeaders()
+	t.Headers.Set("Type", "request")
+	t.Headers.Set("RequestType", string(TypeCollectionSearch))
+	t.Headers.Set("ResponseCount", string(ResponseCountSingle))
+
+	body := &CollectionSearchRequestBody{
+		Type:          TypeCollectionSearch,
+		CollectionIDs: collectionIDs,
+		LevelOfDetail: LevelOfDetailMedium,
+	}
+	t.Body = body
+
+	return t
+}
+
+func (t *TivoMessage) WithGetEpisodesRequest(ctx context.Context, bodyID string) *TivoMessage {
+
+	t = t.WithStandardHeaders()
+	t.Headers.Set("Type", "request")
+	t.Headers.Set("RequestType", string(TypeCollectionSearch))
+	t.Headers.Set("ResponseCount", string(ResponseCountSingle))
+	t.Headers.Set("BodyId", bodyID)
+
+	body := &RecordingFolderItemSearchRequestBody{
+		Type:    TypeRecordingFolderItemSearch,
+		BodyID:  bodyID,
+		Offset:  primitive.Ref(apicontext.Offset(ctx)),
+		Count:   primitive.Ref(apicontext.Limit(ctx)),
+		Flatten: primitive.Ref(true),
 	}
 	t.Body = body
 
@@ -164,7 +201,7 @@ func (t *TivoMessage) ReadFrom(r io.Reader) (n int64, err error) {
 		return -1, err
 	}
 
-	logz.DebugRaw(bodyBytes, (fmt.Sprintf("%03d-response-raw.json", t.Headers.RpcID())))
+	logz.DebugPayload(bodyBytes, (fmt.Sprintf("%03d-response-payload.json", t.Headers.RpcID())))
 	err = jsontime.UnmarshalJSON(bodyBytes, &t.Body)
 	if err != nil {
 		return -1, err
@@ -180,7 +217,7 @@ func (t *TivoMessage) WriteTo(w io.Writer) (n int64, err error) {
 	if err != nil {
 		return -1, err
 	}
-	logz.DebugRaw(bodyBytes, (fmt.Sprintf("%03d-request-raw.json", t.Headers.RpcID())))
+	logz.DebugPayload(bodyBytes, (fmt.Sprintf("%03d-request-payload.json", t.Headers.RpcID())))
 	body := string(bodyBytes) + "\n"
 	preamble := fmt.Sprintf("MRPC/2 %d %d", len(headers), len(body))
 	message := preamble + crlf + headers + body + "\n"

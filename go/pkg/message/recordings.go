@@ -22,6 +22,7 @@ type RecordingFolderItemSearchResponseBody struct {
 type RecordingFolderItem struct {
 	ChildRecordingID      string         `json:"childRecordingId,omitempty"`
 	RecordingFolderItemID string         `json:"recordingFolderItemId,omitempty"`
+	CollectionID          string         `json:"collectionId,omitempty"`
 	StartTime             jsontime.Time  `json:"startTime,omitempty" format:"2006-01-02 15:04:05"`
 	Title                 string         `json:"title,omitempty"`
 	CollectionType        CollectionType `json:"collectionType,omitempty"`
@@ -46,6 +47,8 @@ type RecordingSearchResponseBody struct {
 
 type RecordingItem struct {
 	BodyID          string         `json:"bodyId,omitempty"`
+	RecordingID     string         `json:"recordingID,omitempty"`
+	CollectionID    string         `json:"collectionId,omitempty"`
 	CollectionType  CollectionType `json:"collectionType,omitempty"`
 	Description     string         `json:"description,omitempty"`
 	EpisodeNum      []int          `json:"episodeNum,omitempty"`
@@ -57,5 +60,5 @@ type RecordingItem struct {
 	StartTime       jsontime.Time  `json:"startTime,omitempty" format:"2006-01-02 15:04:05"`
 	Subtitle        string         `json:"subtitle,omitempty"`
 	Title           string         `json:"title,omitempty"`
-	MovieYear       string         `json:"movieYear,omitempty"`
+	MovieYear       int            `json:"movieYear,omitempty"`
 }
