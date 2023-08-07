@@ -135,14 +135,14 @@ func runTerminal() {
 
 	fmt.Println("detecting Tivos on the network")
 	for {
-		if len(tivo.List()) > 0 {
+		if len(tivo.List(context.Background())) > 0 {
 			break
 		}
 		time.Sleep(1 * time.Second)
 	}
 
 	// TODO: allow selection of a Tivo
-	tvo := tivo.List()[0]
+	tvo := tivo.List(context.Background())[0]
 	tivoClient, err := tivo.GetClient(tvo)
 	if err != nil {
 		fmt.Printf("error: %v", err)

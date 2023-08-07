@@ -24,7 +24,7 @@ var _ = Describe("Tivo Beacon", func() {
 
 		go Listen(ctx)
 
-		Eventually(func() []*model.Tivo { return tivo.List() }).
+		Eventually(func() []*model.Tivo { return tivo.List(context.Background()) }).
 			WithTimeout(10 * time.Second).
 			WithPolling(1 * time.Second).
 			Should(ContainElement(HaveField("Name", test.Tivo.Name)))

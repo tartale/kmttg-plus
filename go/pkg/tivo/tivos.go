@@ -5,6 +5,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
@@ -46,10 +47,12 @@ func GetClient(tivo *model.Tivo) (*client.TivoClient, error) {
 	return newTivoClient, nil
 }
 
-func List(filter ...*model.TivoFilter) []*model.Tivo {
+func List(ctx context.Context) []*model.Tivo {
 
 	list := maps.Values(tivos)
-	list = model.Filter(list, model.NewTivoFilter(filter...))
+	if filter, ok := apicontext.Filter(ctx).(model.TivoFilterFn); ok {
+		list = model.Filter(list, filter)
+	}
 
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Name < list[j].Name
