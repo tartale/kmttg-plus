@@ -20,11 +20,12 @@ import (
 
 	"github.com/tartale/kmttg-plus/go/dist"
 	"github.com/tartale/kmttg-plus/go/pkg/beacon"
+	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
+	"github.com/tartale/kmttg-plus/go/pkg/loader"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/resolvers"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
-	"github.com/tartale/kmttg-plus/go/pkg/tivo"
 )
 
 const port = "8080"
@@ -38,6 +39,7 @@ var rootCmd = &cobra.Command{
 	Short: "Port of KMTTG to golang",
 	Run: func(cmd *cobra.Command, args []string) {
 		startBeaconListener()
+		startLoader()
 		runWebServer()
 	},
 }
@@ -76,6 +78,10 @@ func init() {
 
 func startBeaconListener() {
 	go beacon.Listen(context.Background())
+}
+
+func startLoader() {
+	go loader.Run()
 }
 
 func runWebServer() {
@@ -135,15 +141,15 @@ func runTerminal() {
 
 	fmt.Println("detecting Tivos on the network")
 	for {
-		if len(tivo.List(context.Background())) > 0 {
+		if len(loader.List(context.Background())) > 0 {
 			break
 		}
 		time.Sleep(1 * time.Second)
 	}
 
 	// TODO: allow selection of a Tivo
-	tvo := tivo.List(context.Background())[0]
-	tivoClient, err := tivo.GetClient(tvo)
+	tvo := loader.List(context.Background())[0]
+	tivoClient, err := client.Get(tvo)
 	if err != nil {
 		fmt.Printf("error: %v", err)
 	}

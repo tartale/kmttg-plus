@@ -5,11 +5,12 @@ import (
 )
 
 type RecordingFolderItemSearchRequestBody struct {
-	Type    Type   `json:"type,omitempty"`
-	BodyID  string `json:"bodyId,omitempty"`
-	Offset  *int   `json:"offset,omitempty"`
-	Count   *int   `json:"count,omitempty"`
-	Flatten *bool  `json:"flatten,omitempty"`
+	Type         Type    `json:"type,omitempty"`
+	BodyID       string  `json:"bodyId,omitempty"`
+	CollectionID *string `json:"collectionId,omitempty"`
+	Offset       *int    `json:"offset,omitempty"`
+	Count        *int    `json:"count,omitempty"`
+	Flatten      *bool   `json:"flatten,omitempty"`
 }
 
 type RecordingFolderItemSearchResponseBody struct {

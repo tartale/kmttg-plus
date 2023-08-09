@@ -8,6 +8,7 @@ require (
 	github.com/grandcat/zeroconf v1.0.0
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.8
+	github.com/puzpuzpuz/xsync v1.5.2
 	github.com/rs/cors v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
@@ -15,7 +16,6 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.6
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.11.0
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 	golang.org/x/term v0.11.0
 	mvdan.cc/gofumpt v0.5.0
 )

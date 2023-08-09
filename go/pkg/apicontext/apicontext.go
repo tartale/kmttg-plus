@@ -17,10 +17,6 @@ const (
 
 type FilterFn func(any) bool
 
-var DefaultFilter = func(any) bool {
-	return true
-}
-
 type APIContext struct {
 	context.Context
 }
@@ -62,5 +58,5 @@ func Filter(ctx context.Context) any {
 	if val != nil {
 		return val
 	}
-	return DefaultFilter
+	return nil
 }

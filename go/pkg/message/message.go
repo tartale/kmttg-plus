@@ -100,7 +100,7 @@ func (t *TivoMessage) WithGetRecordingListRequest(ctx context.Context, bodyID st
 		BodyID:  bodyID,
 		Offset:  primitive.Ref(apicontext.Offset(ctx)),
 		Count:   primitive.Ref(apicontext.Limit(ctx)),
-		Flatten: primitive.Ref(false),
+		Flatten: primitive.Ref(true),
 	}
 	t.Body = body
 

@@ -8,7 +8,6 @@ enum ShowKind {
 }
 
 interface Show {
-  tivo: Tivo!
   kind: ShowKind!
   title: String!
   recordedOn: Time!
@@ -17,9 +16,8 @@ interface Show {
 
 # Movies are any show that is a single program, which includes both cinema and one-off specials.
 type Movie implements Show {
-  tivo: Tivo!
   kind: ShowKind!
-  recordingID: String!
+  recordingId: String! 
   title: String!
   recordedOn: Time!
   description: String!
@@ -29,20 +27,19 @@ type Movie implements Show {
 
 # A series is any show with multiple seasons/episodes.
 type Series implements Show {
-  tivo: Tivo!
   kind: ShowKind!
-  collectionID: String!
+  collectionId: String!
   title: String!
   recordedOn: Time!
   description: String!
 
-  episodes: [Episode!]! @goField(forceResolver: true)
+  episodes: [Episode!]!
 }
 
 type Episode implements Show {
-  tivo: Tivo!
   kind: ShowKind!
-  recordingID: String!
+  recordingId: String!
+  collectionId: String!
   title: String!
   recordedOn: Time!
   description: String!

@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/grandcat/zeroconf"
+	"github.com/tartale/kmttg-plus/go/pkg/loader"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
-	"github.com/tartale/kmttg-plus/go/pkg/tivo"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +31,7 @@ func Listen(ctx context.Context) error {
 			if err != nil {
 				continue
 			}
-			tivo.Add(tvo)
+			loader.LoadTivo(tvo)
 		case <-ctx.Done():
 			return nil
 		}
