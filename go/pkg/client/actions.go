@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
@@ -35,42 +36,66 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 
 func (t *TivoClient) GetShows(ctx context.Context) ([]model.Show, error) {
 
-	request := message.NewTivoMessage().WithGetRecordingListRequest(ctx, t.BodyID())
-	err := t.Send(ctx, request)
-	if err != nil {
-		return nil, err
-	}
-
-	responseBody := &message.RecordingFolderItemSearchResponseBody{}
-	response := message.NewTivoMessage().WithBody(responseBody)
-	err = t.Receive(ctx, response)
-	if err != nil {
-		return nil, err
-	}
-	if responseBody.Type != message.TypeRecordingFolderItemList {
-		logz.Logger.Warn("tivo error response", zap.Any("request", request), zap.Any("response", responseBody))
-		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected response type: %s", responseBody.Type))
-	}
 	var result []model.Show
-	for _, recording := range responseBody.RecordingFolderItem {
-		show, err := t.GetShowDetails(ctx, recording)
+
+	for {
+		shows, nextOffset, err := t.getShowsPage(ctx)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, show)
+		result = append(result, shows...)
+		if nextOffset < 0 {
+			break
+		}
+		ctx = apicontext.Wrap(ctx).WithOffset(nextOffset)
 	}
 	result = model.MergeEpisodes(result)
 
 	return result, nil
 }
 
-func (t *TivoClient) GetShowDetails(ctx context.Context, recordingFolderItem message.RecordingFolderItem) (model.Show, error) {
+func (t *TivoClient) getShowsPage(ctx context.Context) (shows []model.Show, nextOffset int, err error) {
 
-	recordingDetails, err := t.GetRecordingDetails(ctx, recordingFolderItem)
+	request := message.NewTivoMessage().WithGetRecordingListRequest(ctx, t.BodyID())
+	err = t.Send(ctx, request)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	responseBody := &message.RecordingFolderItemSearchResponseBody{}
+	response := message.NewTivoMessage().WithBody(responseBody)
+	err = t.Receive(ctx, response)
+	if err != nil {
+		return nil, 0, err
+	}
+	if responseBody.Type != message.TypeRecordingFolderItemList {
+		logz.Logger.Warn("tivo error response", zap.Any("request", request), zap.Any("response", responseBody))
+		return nil, 0, errorz.ErrResponse(fmt.Sprintf("unexpected response type: %s", responseBody.Type))
+	}
+	for _, recording := range responseBody.RecordingFolderItem {
+		show, err := t.getShowDetails(ctx, recording)
+		if err != nil {
+			return nil, 0, err
+		}
+		shows = append(shows, show)
+	}
+	showCount := len(shows)
+	if showCount < apicontext.Limit(ctx) {
+		nextOffset = -1
+	} else {
+		nextOffset = apicontext.Offset(ctx) + showCount
+	}
+
+	return
+}
+
+func (t *TivoClient) getShowDetails(ctx context.Context, recordingFolderItem message.RecordingFolderItem) (model.Show, error) {
+
+	recordingDetails, err := t.getRecordingDetails(ctx, recordingFolderItem)
 	if err != nil {
 		return nil, err
 	}
-	collectionDetails, err := t.GetCollectionDetails(ctx, []string{recordingFolderItem.CollectionID})
+	collectionDetails, err := t.getCollectionDetails(ctx, []string{recordingFolderItem.CollectionID})
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +108,7 @@ func (t *TivoClient) GetShowDetails(ctx context.Context, recordingFolderItem mes
 	return show, nil
 }
 
-func (t *TivoClient) GetRecordingDetails(ctx context.Context, recordingFolderItem message.RecordingFolderItem) (*message.RecordingItem, error) {
+func (t *TivoClient) getRecordingDetails(ctx context.Context, recordingFolderItem message.RecordingFolderItem) (*message.RecordingItem, error) {
 
 	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), recordingFolderItem.ChildRecordingID)
 	err := t.Send(ctx, request)
@@ -112,7 +137,7 @@ func (t *TivoClient) GetRecordingDetails(ctx context.Context, recordingFolderIte
 	return &recording, nil
 }
 
-func (t *TivoClient) GetCollectionDetails(ctx context.Context, collectionIDs []string) ([]message.CollectionItem, error) {
+func (t *TivoClient) getCollectionDetails(ctx context.Context, collectionIDs []string) ([]message.CollectionItem, error) {
 
 	request := message.NewTivoMessage().WithGetCollectionRequest(ctx, collectionIDs)
 	err := t.Send(ctx, request)

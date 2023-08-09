@@ -1,4 +1,4 @@
-package loader
+package tivos
 
 import (
 	"context"
@@ -17,33 +17,52 @@ import (
 	"go.uber.org/zap"
 )
 
-var Tivos = xsync.NewMapOf[*model.Tivo]()
+const (
+	retryCount = 3
+)
 
-const retryCount = 3
+var tivoMap = xsync.NewMapOf[*model.Tivo]()
+
+func RunBackgroundLoader() {
+	loadTicker := time.NewTicker(5 * time.Minute)
+
+	for range loadTicker.C {
+		err := LoadAll()
+		if err != nil {
+			logz.Logger.Warn("error loading shows", zap.Error(err))
+			loadTicker.Reset(1 * time.Minute)
+		} else {
+			loadTicker.Reset(5 * time.Minute)
+		}
+	}
+}
 
 func LoadAll() error {
 
 	var errs errorx.Errors
 	tivoz := List(context.Background())
 	for _, tvo := range tivoz {
-		errs = append(errs, LoadTivo(tvo))
+		errs = append(errs, Load(tvo))
 	}
 
 	return errs.Combine("errors when loading shows", "\n")
 }
 
-func LoadTivo(tvo *model.Tivo) error {
+func Load(tvo *model.Tivo) error {
 
 	logz.Logger.Debug("loading shows", zap.String("tivoName", tvo.Name))
 	tivoClient, err := client.Get(tvo)
 	if err != nil {
 		return err
 	}
-	err = PopulateShows(context.Background(), tivoClient, tvo)
+
+	shows, err := getShows(context.Background(), tivoClient)
 	if err != nil {
 		return err
 	}
-	Tivos.Store(tvo.Name, tvo)
+
+	tvo.Shows = shows
+	tivoMap.Store(tvo.Name, tvo)
 
 	return nil
 }
@@ -53,7 +72,7 @@ func List(ctx context.Context) []*model.Tivo {
 	var list []*model.Tivo
 	filterFn := apicontext.Filter(ctx)
 
-	Tivos.Range(func(key string, val *model.Tivo) bool {
+	tivoMap.Range(func(key string, val *model.Tivo) bool {
 		if filterFn == nil || filterFn.(model.TivoFilterFn)(val) {
 			list = append(list, val)
 			return true
@@ -68,11 +87,13 @@ func List(ctx context.Context) []*model.Tivo {
 	return list
 }
 
-func PopulateShows(ctx context.Context, tivoClient *client.TivoClient, tivo *model.Tivo) error {
+func getShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show, error) {
 
-	var shows []model.Show
-	var success bool
-	var err error
+	var (
+		shows   []model.Show
+		success bool
+		err     error
+	)
 
 	for retries := 0; retries < retryCount; retries++ {
 		shows, err = tivoClient.GetShows(ctx)
@@ -80,27 +101,14 @@ func PopulateShows(ctx context.Context, tivoClient *client.TivoClient, tivo *mod
 			continue
 		}
 		if err != nil {
-			return fmt.Errorf("failed to get shows: %w", err)
+			return nil, fmt.Errorf("failed to get shows: %w", err)
 		}
 		success = true
 		break
 	}
 	if !success {
-		return fmt.Errorf("failed to get shows; number of retries exceeded: %w", err)
+		return nil, fmt.Errorf("failed to get shows; number of retries exceeded: %w", err)
 	}
 
-	tivo.Shows = shows
-
-	return nil
-}
-
-func Run() {
-	loadTicker := time.NewTicker(30 * time.Second)
-
-	for range loadTicker.C {
-		err := LoadAll()
-		if err != nil {
-			logz.Logger.Warn("error loading shows", zap.Error(err))
-		}
-	}
+	return shows, nil
 }

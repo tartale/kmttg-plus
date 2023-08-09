@@ -21,7 +21,7 @@ type APIContext struct {
 	context.Context
 }
 
-func New(parent context.Context) APIContext {
+func Wrap(parent context.Context) APIContext {
 	return APIContext{parent}
 }
 

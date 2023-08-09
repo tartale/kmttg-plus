@@ -1,17 +1,21 @@
 package logz
 
 import (
-	"bytes"
+	"encoding"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path"
 	"runtime"
 
 	"go.uber.org/zap"
 )
+
+type FullMarshaler interface {
+	encoding.TextMarshaler
+	json.Marshaler
+}
 
 func InitDebugDir() error {
 
@@ -80,29 +84,21 @@ func MustCreateDebugFile(filename string) *os.File {
 	return debugFile
 }
 
-func Debug(input io.WriterTo, filename string) {
+func Debug(m FullMarshaler, filename string) {
 	if Logger.Level() >= zap.DebugLevel {
-		file := MustCreateDebugFile(filename)
-		defer file.Close()
-		input.WriteTo(file)
+		textFile := MustCreateDebugFile(filename + ".txt")
+		defer textFile.Close()
+
+		textBytes, err := m.MarshalText()
+		if err == nil {
+			textFile.Write(textBytes)
+		}
+
+		jsonFile := MustCreateDebugFile(filename + ".json")
+		defer jsonFile.Close()
+		jsonBytes, err := m.MarshalJSON()
+		if err == nil {
+			jsonFile.Write(jsonBytes)
+		}
 	}
-
-}
-
-func DebugPayload(jsonBytes []byte, filename string) {
-
-	if Logger.Level() >= zap.DebugLevel {
-		file := MustCreateDebugFile(filename)
-		defer file.Close()
-		file.Write(formatJSON(jsonBytes))
-	}
-}
-
-func formatJSON(rawBytes []byte) []byte {
-	var formattedBytes bytes.Buffer
-	if err := json.Indent(&formattedBytes, rawBytes, "", "  "); err != nil {
-		return rawBytes
-	}
-
-	return formattedBytes.Bytes()
 }

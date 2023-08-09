@@ -22,10 +22,10 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/beacon"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
-	"github.com/tartale/kmttg-plus/go/pkg/loader"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/resolvers"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
+	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
 const port = "8080"
@@ -81,7 +81,7 @@ func startBeaconListener() {
 }
 
 func startLoader() {
-	go loader.Run()
+	go tivos.RunBackgroundLoader()
 }
 
 func runWebServer() {
@@ -141,14 +141,14 @@ func runTerminal() {
 
 	fmt.Println("detecting Tivos on the network")
 	for {
-		if len(loader.List(context.Background())) > 0 {
+		if len(tivos.List(context.Background())) > 0 {
 			break
 		}
 		time.Sleep(1 * time.Second)
 	}
 
 	// TODO: allow selection of a Tivo
-	tvo := loader.List(context.Background())[0]
+	tvo := tivos.List(context.Background())[0]
 	tivoClient, err := client.Get(tvo)
 	if err != nil {
 		fmt.Printf("error: %v", err)

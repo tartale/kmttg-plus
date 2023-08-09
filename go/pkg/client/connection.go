@@ -150,7 +150,6 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage)
 		WithSessionID(t.sessionID).
 		WithRpcID(t.rpcID)
 
-	logz.Debug(tivoRequestMessage, (fmt.Sprintf("%03d-request.txt", t.rpcID)))
 	err := t.ensureConnection(ctx)
 	if err != nil {
 		return err
@@ -194,7 +193,6 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessa
 	if err != nil {
 		return err
 	}
-	logz.Debug(tivoMessage, fmt.Sprintf("%03d-response.txt", tivoMessage.Headers.RpcID()))
 
 	return nil
 }

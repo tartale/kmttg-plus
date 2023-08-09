@@ -8,17 +8,17 @@ import (
 	"context"
 
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
-	"github.com/tartale/kmttg-plus/go/pkg/loader"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
+	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
 // Tivos is the resolver for the tivos field.
 func (r *queryResolver) Tivos(ctx context.Context, filter *model.TivoFilter) ([]*model.Tivo, error) {
 	tivoFilter := model.NewTivoFilter(filter)
-	ctx = apicontext.New(ctx).WithFilter(tivoFilter)
+	ctx = apicontext.Wrap(ctx).WithFilter(tivoFilter)
 
-	return loader.List(ctx), nil
+	return tivos.List(ctx), nil
 }
 
 // Query returns server.QueryResolver implementation.
