@@ -2,6 +2,8 @@ package apicontext
 
 import (
 	"context"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 type ContextKey string
@@ -21,20 +23,52 @@ type APIContext struct {
 	context.Context
 }
 
-func Wrap(parent context.Context) APIContext {
-	return APIContext{parent}
+func Wrap(ctx context.Context) APIContext {
+	return APIContext{
+		Context: ctx,
+	}
 }
 
 func (a APIContext) WithOffset(offset int) APIContext {
-	return APIContext{context.WithValue(a.Context, OffsetKey, offset)}
+	return Wrap(context.WithValue(a, OffsetKey, offset))
 }
 
 func (a APIContext) WithLimit(limit int) APIContext {
-	return APIContext{context.WithValue(a.Context, LimitKey, limit)}
+	return Wrap(context.WithValue(a, LimitKey, limit))
 }
 
 func (a APIContext) WithFilter(filter any) APIContext {
-	return APIContext{context.WithValue(a.Context, FilterKey, filter)}
+	return Wrap(context.WithValue(a, FilterKey, filter))
+}
+
+func (a APIContext) GqlValue(path string, key ContextKey) any {
+
+	fctx := graphql.GetFieldContext(a)
+	octx := graphql.GetOperationContext(a)
+	if fctx == nil || octx == nil {
+		return nil
+	}
+	if path == "" {
+		if val, ok := fctx.Args[string(key)]; ok {
+			return val
+		}
+		return nil
+	}
+
+	collectedFields := graphql.CollectFields(octx, fctx.Field.Selections, nil)
+	for _, cf := range collectedFields {
+		child, err := fctx.Child(a, cf)
+		if err != nil {
+			return nil
+		}
+		if child.Path().String() == path {
+			if val, ok := child.Args[string(key)]; ok {
+				return val
+			}
+		}
+	}
+
+	return nil
 }
 
 func Offset(ctx context.Context) int {

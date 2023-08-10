@@ -50,7 +50,7 @@ func LoadAll() error {
 
 func Load(tvo *model.Tivo) error {
 
-	logz.Logger.Debug("loading shows", zap.String("tivoName", tvo.Name))
+	logz.Logger.Debug("loading all shows", zap.String("tivoName", tvo.Name))
 	tivoClient, err := client.Get(tvo)
 	if err != nil {
 		return err
@@ -63,6 +63,7 @@ func Load(tvo *model.Tivo) error {
 
 	tvo.Shows = shows
 	tivoMap.Store(tvo.Name, tvo)
+	logz.Logger.Debug("Successfully loaded all shows", zap.String("tivoName", tvo.Name))
 
 	return nil
 }

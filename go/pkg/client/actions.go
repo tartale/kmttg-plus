@@ -13,6 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const maxLimitValue = 50
+
 func (t *TivoClient) Authenticate(ctx context.Context) error {
 
 	authRequest := message.NewTivoMessage().WithAuthRequest(config.Values.MediaAccessKey)
@@ -37,6 +39,9 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 func (t *TivoClient) GetShows(ctx context.Context) ([]model.Show, error) {
 
 	var result []model.Show
+	ctx = apicontext.Wrap(ctx).
+		WithOffset(0).
+		WithLimit(maxLimitValue)
 
 	for {
 		shows, nextOffset, err := t.getShowsPage(ctx)
