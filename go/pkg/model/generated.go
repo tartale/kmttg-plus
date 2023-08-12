@@ -113,16 +113,10 @@ type SeriesFilter struct {
 }
 
 type ShowFilter struct {
-	Kind               *FilterOperator `json:"kind,omitempty"`
-	Title              *FilterOperator `json:"title,omitempty"`
-	RecordedOn         *FilterOperator `json:"recordedOn,omitempty"`
-	Description        *FilterOperator `json:"description,omitempty"`
-	MovieYear          *FilterOperator `json:"movieYear,omitempty"`
-	OriginalAirDate    *FilterOperator `json:"originalAirDate,omitempty"`
-	SeasonNumber       *FilterOperator `json:"seasonNumber,omitempty"`
-	EpisodeNumber      *FilterOperator `json:"episodeNumber,omitempty"`
-	EpisodeTitle       *FilterOperator `json:"episodeTitle,omitempty"`
-	EpisodeDescription *FilterOperator `json:"episodeDescription,omitempty"`
+	Kind        *FilterOperator `json:"kind,omitempty"`
+	Title       *FilterOperator `json:"title,omitempty"`
+	RecordedOn  *FilterOperator `json:"recordedOn,omitempty"`
+	Description *FilterOperator `json:"description,omitempty"`
 }
 
 type SortBy struct {

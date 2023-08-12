@@ -526,12 +526,6 @@ input ShowFilter {
   title: FilterOperator
   recordedOn: FilterOperator
   description: FilterOperator
-  movieYear: FilterOperator
-  originalAirDate: FilterOperator
-  seasonNumber: FilterOperator
-  episodeNumber: FilterOperator
-  episodeTitle: FilterOperator
-  episodeDescription: FilterOperator
 }
 
 input MovieFilter {
@@ -4293,7 +4287,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description", "movieYear", "originalAirDate", "seasonNumber", "episodeNumber", "episodeTitle", "episodeDescription"}
+	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -4336,60 +4330,6 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 				return it, err
 			}
 			it.Description = data
-		case "movieYear":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("movieYear"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.MovieYear = data
-		case "originalAirDate":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originalAirDate"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.OriginalAirDate = data
-		case "seasonNumber":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("seasonNumber"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.SeasonNumber = data
-		case "episodeNumber":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeNumber"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.EpisodeNumber = data
-		case "episodeTitle":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeTitle"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.EpisodeTitle = data
-		case "episodeDescription":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeDescription"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.EpisodeDescription = data
 		}
 	}
 

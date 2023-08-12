@@ -10,7 +10,7 @@ var _ = Describe("Filters", func() {
 	DescribeTable("legal operators can be converted to expressions",
 		func(operator FilterOperator, expectedExpression string) {
 
-			expression, err := operator.AsExpression()
+			expression, err := OperatorExpression(&operator)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(expression).To(Equal(expectedExpression))
@@ -57,20 +57,20 @@ var _ = Describe("Filters", func() {
 
 		It("can be converted to an expression", func() {
 
-			expression, err := showFilter.AsExpression()
+			expression, err := FilterExpression(showFilter)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(expression).To(Equal(`kind == "MOVIE"`))
 		})
 
-		It("can extract variables from an input value", func() {
+		It("can get variables from an input value", func() {
 
-			vars, err := showFilter.ExtractVariables(show)
+			vars, err := GetValues(showFilter, show)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(vars).To(HaveKeyWithValue("kind", ShowKindMovie))
 			Expect(vars).ToNot(HaveKeyWithValue("title", ShowKindMovie))
-			Expect(vars).ToNot(HaveKeyWithValue("movieYear", ShowKindMovie))
+			Expect(vars).ToNot(HaveKey("movieYear"))
 		})
 	})
 
@@ -93,19 +93,20 @@ var _ = Describe("Filters", func() {
 
 		It("can be converted to an expression", func() {
 
-			expression, err := showFilter.AsExpression()
+			expression, err := FilterExpression(showFilter)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(expression).To(Equal(`kind == "SERIES" && title =~ "Back to the .*"`))
 		})
 
-		It("can extract variables from an input value", func() {
+		It("can get variables from an input value", func() {
 
-			vars, err := showFilter.ExtractVariables(show)
+			vars, err := GetValues(showFilter, show)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(vars).To(HaveKeyWithValue("kind", ShowKindMovie))
 			Expect(vars).To(HaveKeyWithValue("title", "Back to the Future"))
+			Expect(vars).ToNot(HaveKey("movieYear"))
 		})
 	})
 })

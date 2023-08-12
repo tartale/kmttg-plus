@@ -10,8 +10,6 @@ import (
 	"github.com/tartale/go/pkg/structs"
 )
 
-const maxExpressionDepth = 10
-
 var (
 	whitespaces      = regexp.MustCompile(`\s+`)
 	operatorReplacer = strings.NewReplacer(
@@ -42,26 +40,21 @@ func Filter[T any](slice []T, f func(T) bool) []T {
 	return result
 }
 
-func (f *FilterOperator) Filter() (bool, error) {
-
-	return false, nil
-}
-
 // Example:
 //
-//	f:          {eq: "foo"}
+//	operator:   {eq: "foo"}
 //	expression: `== "foo"`
-func (f *FilterOperator) AsExpression() (expression string, err error) {
+func OperatorExpression(operator *FilterOperator) (expression string, err error) {
 
-	operatorJsonBytes, err := json.Marshal(f)
+	operatorJsonBytes, err := json.Marshal(operator)
 	if err != nil {
 		return
 	}
 	expression = format(string(operatorJsonBytes))
-	if f.And != nil {
+	if operator.And != nil {
 		expression = "&&"
 	}
-	if f.Or != nil {
+	if operator.Or != nil {
 		expression = "||"
 	}
 
@@ -70,9 +63,9 @@ func (f *FilterOperator) AsExpression() (expression string, err error) {
 
 // Example:
 //
-//		s:          {kind: {eq: "SERIES"}}
+//		filter:     {kind: {eq: "SERIES"}}
 //	  expression: `kind == "SERIES"`
-func (s *ShowFilter) AsExpression() (string, error) {
+func FilterExpression(filter any) (string, error) {
 
 	var expressions []string
 	filterWalkFn := func(field reflect.StructField, value reflect.Value) error {
@@ -83,7 +76,7 @@ func (s *ShowFilter) AsExpression() (string, error) {
 
 		switch val := value.Interface().(type) {
 		case *FilterOperator:
-			operatorExpression, err := val.AsExpression()
+			operatorExpression, err := OperatorExpression(val)
 			if err != nil {
 				return err
 			}
@@ -93,20 +86,20 @@ func (s *ShowFilter) AsExpression() (string, error) {
 
 		return nil
 	}
-	structs.Walk(s, filterWalkFn)
+	structs.Walk(filter, filterWalkFn)
 
 	return strings.Join(expressions, " && "), nil
 }
 
 // Example:
 //
-//		s:          {kind: {eq: "SERIES"}}
-//		show:       {kind: "MOVIE", title: "Back to the Future"}
-//	  vars:       {kind => "MOVIE"}
+//		filter:     {kind: {eq: "SERIES"}}
+//		input:      {kind: "MOVIE", title: "Back to the Future"}
+//	  values:     {kind => "MOVIE"}
 //	                    ^^ title is not in the map, since it's not in the filter
-func (s *ShowFilter) ExtractVariables(input Show) (map[string]any, error) {
+func GetValues(filter, input any) (map[string]any, error) {
 
-	vars := map[string]any{}
+	values := map[string]any{}
 	filterWalkFn := func(filterField reflect.StructField, filterValue reflect.Value) error {
 
 		if filterValue.IsNil() {
@@ -119,14 +112,14 @@ func (s *ShowFilter) ExtractVariables(input Show) (map[string]any, error) {
 				panic(fmt.Errorf("filter contains a field that is not in the input: %s", filterField.Name))
 			}
 			showFieldName := jsonNameForStructsField(showField)
-			vars[showFieldName] = showField.Value()
+			values[showFieldName] = showField.Value()
 		}
 
 		return nil
 	}
-	structs.Walk(s, filterWalkFn)
+	structs.Walk(filter, filterWalkFn)
 
-	return vars, nil
+	return values, nil
 }
 
 func format(expression string) string {
@@ -156,21 +149,4 @@ func jsonNameForStructsField(field *structs.Field) string {
 	}
 
 	return strings.Split(jsonTag, ",")[0]
-}
-
-type TivoFilterFn = func(t *Tivo) bool
-
-func NewTivoFilter(f *TivoFilter) TivoFilterFn {
-
-	return func(t *Tivo) bool {
-
-		if f == nil {
-			return true
-		}
-		if f.Name != nil {
-			return true
-		}
-
-		return false
-	}
 }

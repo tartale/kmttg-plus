@@ -21,7 +21,26 @@ const (
 	retryCount = 3
 )
 
-var tivoMap = xsync.NewMapOf[*model.Tivo]()
+var (
+	tivoMap = xsync.NewMapOf[*model.Tivo]()
+)
+
+type TivoFilterFn = func(t *model.Tivo) bool
+
+func NewTivoFilter(f *model.TivoFilter) TivoFilterFn {
+
+	return func(t *model.Tivo) bool {
+
+		if f == nil {
+			return true
+		}
+		if f.Name != nil {
+			return true
+		}
+
+		return false
+	}
+}
 
 func RunBackgroundLoader() {
 	loadTicker := time.NewTicker(5 * time.Minute)
@@ -74,7 +93,7 @@ func List(ctx context.Context) []*model.Tivo {
 	filterFn := apicontext.Filter(ctx)
 
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
-		if filterFn == nil || filterFn.(model.TivoFilterFn)(val) {
+		if filterFn == nil || filterFn.(TivoFilterFn)(val) {
 			list = append(list, val)
 			return true
 		}

@@ -53,12 +53,6 @@ input ShowFilter {
   title: FilterOperator
   recordedOn: FilterOperator
   description: FilterOperator
-  movieYear: FilterOperator
-  originalAirDate: FilterOperator
-  seasonNumber: FilterOperator
-  episodeNumber: FilterOperator
-  episodeTitle: FilterOperator
-  episodeDescription: FilterOperator
 }
 
 input MovieFilter {
