@@ -1,4 +1,4 @@
-package model
+package filters
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/tartale/go/pkg/structs"
+	"github.com/tartale/kmttg-plus/go/pkg/model"
 )
 
 var (
@@ -44,7 +45,7 @@ func Filter[T any](slice []T, f func(T) bool) []T {
 //
 //	operator:   {eq: "foo"}
 //	expression: `== "foo"`
-func OperatorExpression(operator *FilterOperator) (expression string, err error) {
+func OperatorExpression(operator *model.FilterOperator) (expression string, err error) {
 
 	operatorJsonBytes, err := json.Marshal(operator)
 	if err != nil {
@@ -75,7 +76,7 @@ func FilterExpression(filter any) (string, error) {
 		}
 
 		switch val := value.Interface().(type) {
-		case *FilterOperator:
+		case *model.FilterOperator:
 			operatorExpression, err := OperatorExpression(val)
 			if err != nil {
 				return err
@@ -106,7 +107,7 @@ func GetValues(filter, input any) (map[string]any, error) {
 			return nil
 		}
 		switch filterValue.Interface().(type) {
-		case *FilterOperator:
+		case *model.FilterOperator:
 			showField, ok := structs.New(input).FieldOk(filterField.Name)
 			if !ok {
 				panic(fmt.Errorf("filter contains a field that is not in the input: %s", filterField.Name))
