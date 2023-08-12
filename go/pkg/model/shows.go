@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
@@ -107,6 +108,9 @@ func MergeEpisodes(shows []Show) []Show {
 	for _, show := range combinedShowsMap {
 		combinedShows = append(combinedShows, show)
 	}
+	sort.Slice(combinedShows, func(i, j int) bool {
+		return combinedShows[i].GetTitle() < combinedShows[j].GetTitle()
+	})
 
 	return combinedShows
 }

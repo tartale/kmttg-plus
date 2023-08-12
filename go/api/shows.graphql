@@ -1,6 +1,3 @@
-scalar Date
-scalar Time
-
 enum ShowKind {
   MOVIE
   SERIES
@@ -33,7 +30,7 @@ type Series implements Show {
   recordedOn: Time!
   description: String!
 
-  episodes: [Episode!]!
+  episodes(filter: [ShowFilter], offset: Int = 0, limit: Int = 25): [Episode!]!
 }
 
 type Episode implements Show {
@@ -52,7 +49,41 @@ type Episode implements Show {
 }
 
 input ShowFilter {
-  kind: ShowKind
-  title: String
-  exactMatch: Boolean
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  movieYear: FilterOperator
+  originalAirDate: FilterOperator
+  seasonNumber: FilterOperator
+  episodeNumber: FilterOperator
+  episodeTitle: FilterOperator
+  episodeDescription: FilterOperator
+}
+
+input MovieFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  movieYear: FilterOperator
+}
+
+input SeriesFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+}
+
+input EpisodeFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  originalAirDate: FilterOperator
+  seasonNumber: FilterOperator
+  episodeNumber: FilterOperator
+  episodeTitle: FilterOperator
+  episodeDescription: FilterOperator
 }

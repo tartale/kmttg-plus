@@ -74,7 +74,7 @@ type ComplexityRoot struct {
 	Series struct {
 		CollectionID func(childComplexity int) int
 		Description  func(childComplexity int) int
-		Episodes     func(childComplexity int) int
+		Episodes     func(childComplexity int, filter []*model.ShowFilter, offset *int, limit *int) int
 		Kind         func(childComplexity int) int
 		RecordedOn   func(childComplexity int) int
 		Title        func(childComplexity int) int
@@ -83,7 +83,7 @@ type ComplexityRoot struct {
 	Tivo struct {
 		Address func(childComplexity int) int
 		Name    func(childComplexity int) int
-		Shows   func(childComplexity int, filter *model.ShowFilter, limit *int, offset *int) int
+		Shows   func(childComplexity int, filter []*model.ShowFilter, offset *int, limit *int) int
 		Tsn     func(childComplexity int) int
 	}
 }
@@ -257,7 +257,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Series.Episodes(childComplexity), true
+		args, err := ec.field_Series_episodes_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Series.Episodes(childComplexity, args["filter"].([]*model.ShowFilter), args["offset"].(*int), args["limit"].(*int)), true
 
 	case "Series.kind":
 		if e.complexity.Series.Kind == nil {
@@ -304,7 +309,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Tivo.Shows(childComplexity, args["filter"].(*model.ShowFilter), args["limit"].(*int), args["offset"].(*int)), true
+		return e.complexity.Tivo.Shows(childComplexity, args["filter"].([]*model.ShowFilter), args["offset"].(*int), args["limit"].(*int)), true
 
 	case "Tivo.tsn":
 		if e.complexity.Tivo.Tsn == nil {
@@ -321,7 +326,14 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputEpisodeFilter,
+		ec.unmarshalInputFilterBy,
+		ec.unmarshalInputFilterOperator,
+		ec.unmarshalInputMovieFilter,
+		ec.unmarshalInputSeriesFilter,
 		ec.unmarshalInputShowFilter,
+		ec.unmarshalInputSortBy,
+		ec.unmarshalInputSorter,
 		ec.unmarshalInputTivoFilter,
 	)
 	first := true
@@ -405,17 +417,53 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../../api/schema.graphql", Input: `directive @goTag(
+	{Name: "../../api/common.graphql", Input: `scalar Any
+scalar Date
+scalar Time
+
+directive @goTag(
   key: String!
   value: String
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
 directive @goField(
-    forceResolver: Boolean
-    name: String
+  forceResolver: Boolean
+  name: String
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
-type Query {
+input FilterOperator {
+  eq: Any
+  ne: Any
+  lt: Any
+  gt: Any
+  lte: Any
+  gte: Any
+  matches: Any
+  and: FilterOperator @goTag(key: "json", value: "-")
+  or: FilterOperator @goTag(key: "json", value: "-")
+}
+
+input FilterBy {
+  field: Any!
+  operator: FilterOperator!
+  value: Any!
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+input SortBy {
+  field: Any!
+  direction: SortDirection!
+}
+
+input Sorter {
+  fields: [SortBy!]!
+}
+`, BuiltIn: false},
+	{Name: "../../api/schema.graphql", Input: `type Query {
   tivos(filter: TivoFilter): [Tivo!]!
 }
 
@@ -423,10 +471,7 @@ schema {
   query: Query
 }
 `, BuiltIn: false},
-	{Name: "../../api/shows.graphql", Input: `scalar Date
-scalar Time
-
-enum ShowKind {
+	{Name: "../../api/shows.graphql", Input: `enum ShowKind {
   MOVIE
   SERIES
   EPISODE
@@ -458,7 +503,7 @@ type Series implements Show {
   recordedOn: Time!
   description: String!
 
-  episodes: [Episode!]!
+  episodes(filter: [ShowFilter], offset: Int = 0, limit: Int = 25): [Episode!]!
 }
 
 type Episode implements Show {
@@ -477,9 +522,43 @@ type Episode implements Show {
 }
 
 input ShowFilter {
-  kind: ShowKind
-  title: String
-  exactMatch: Boolean
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  movieYear: FilterOperator
+  originalAirDate: FilterOperator
+  seasonNumber: FilterOperator
+  episodeNumber: FilterOperator
+  episodeTitle: FilterOperator
+  episodeDescription: FilterOperator
+}
+
+input MovieFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  movieYear: FilterOperator
+}
+
+input SeriesFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+}
+
+input EpisodeFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  originalAirDate: FilterOperator
+  seasonNumber: FilterOperator
+  episodeNumber: FilterOperator
+  episodeTitle: FilterOperator
+  episodeDescription: FilterOperator
 }
 `, BuiltIn: false},
 	{Name: "../../api/tivos.graphql", Input: `
@@ -491,11 +570,11 @@ type Tivo {
   # The serial number of the Tivo. This value is obtained via the ZeroConfig beacon.
   tsn: String!
   # Get a list of series and movies.
-  shows(filter: ShowFilter, limit: Int = 25, offset: Int = 0): [Show]
+  shows(filter: [ShowFilter], offset: Int = 0, limit: Int = 25): [Show]
 }
 
 input TivoFilter {
-  name: String
+  name: FilterOperator
 }
 `, BuiltIn: false},
 }
@@ -535,36 +614,69 @@ func (ec *executionContext) field_Query_tivos_args(ctx context.Context, rawArgs 
 	return args, nil
 }
 
-func (ec *executionContext) field_Tivo_shows_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Series_episodes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.ShowFilter
+	var arg0 []*model.ShowFilter
 	if tmp, ok := rawArgs["filter"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
-		arg0, err = ec.unmarshalOShowFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, tmp)
+		arg0, err = ec.unmarshalOShowFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["filter"] = arg0
 	var arg1 *int
-	if tmp, ok := rawArgs["limit"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
 		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["limit"] = arg1
+	args["offset"] = arg1
 	var arg2 *int
-	if tmp, ok := rawArgs["offset"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
 		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["offset"] = arg2
+	args["limit"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Tivo_shows_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []*model.ShowFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOShowFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["offset"] = arg1
+	var arg2 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg2
 	return args, nil
 }
 
@@ -1832,6 +1944,17 @@ func (ec *executionContext) fieldContext_Series_episodes(ctx context.Context, fi
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Episode", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Series_episodes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3793,14 +3916,14 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj interface{}) (model.ShowFilter, error) {
-	var it model.ShowFilter
+func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj interface{}) (model.EpisodeFilter, error) {
+	var it model.EpisodeFilter
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"kind", "title", "exactMatch"}
+	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description", "originalAirDate", "seasonNumber", "episodeNumber", "episodeTitle", "episodeDescription"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -3811,7 +3934,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
-			data, err := ec.unmarshalOShowKind2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3820,20 +3943,520 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Title = data
-		case "exactMatch":
+		case "recordedOn":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("exactMatch"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ExactMatch = data
+			it.RecordedOn = data
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "originalAirDate":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originalAirDate"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OriginalAirDate = data
+		case "seasonNumber":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("seasonNumber"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SeasonNumber = data
+		case "episodeNumber":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeNumber"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EpisodeNumber = data
+		case "episodeTitle":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeTitle"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EpisodeTitle = data
+		case "episodeDescription":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeDescription"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EpisodeDescription = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFilterBy(ctx context.Context, obj interface{}) (model.FilterBy, error) {
+	var it model.FilterBy
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"field", "operator", "value"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "field":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		case "operator":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("operator"))
+			data, err := ec.unmarshalNFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Operator = data
+		case "value":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("value"))
+			data, err := ec.unmarshalNAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Value = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, obj interface{}) (model.FilterOperator, error) {
+	var it model.FilterOperator
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"eq", "ne", "lt", "gt", "lte", "gte", "matches", "and", "or"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "eq":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eq"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Eq = data
+		case "ne":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ne"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Ne = data
+		case "lt":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lt"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lt = data
+		case "gt":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gt"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Gt = data
+		case "lte":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lte"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lte = data
+		case "gte":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gte"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Gte = data
+		case "matches":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("matches"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Matches = data
+		case "and":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("and"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.And = data
+		case "or":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("or"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Or = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj interface{}) (model.MovieFilter, error) {
+	var it model.MovieFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description", "movieYear"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "recordedOn":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RecordedOn = data
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "movieYear":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("movieYear"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MovieYear = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj interface{}) (model.SeriesFilter, error) {
+	var it model.SeriesFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "recordedOn":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RecordedOn = data
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj interface{}) (model.ShowFilter, error) {
+	var it model.ShowFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description", "movieYear", "originalAirDate", "seasonNumber", "episodeNumber", "episodeTitle", "episodeDescription"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "recordedOn":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RecordedOn = data
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "movieYear":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("movieYear"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MovieYear = data
+		case "originalAirDate":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originalAirDate"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OriginalAirDate = data
+		case "seasonNumber":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("seasonNumber"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SeasonNumber = data
+		case "episodeNumber":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeNumber"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EpisodeNumber = data
+		case "episodeTitle":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeTitle"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EpisodeTitle = data
+		case "episodeDescription":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeDescription"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EpisodeDescription = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSortBy(ctx context.Context, obj interface{}) (model.SortBy, error) {
+	var it model.SortBy
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"field", "direction"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "field":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		case "direction":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			data, err := ec.unmarshalNSortDirection2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Direction = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSorter(ctx context.Context, obj interface{}) (model.Sorter, error) {
+	var it model.Sorter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"fields"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "fields":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fields"))
+			data, err := ec.unmarshalNSortBy2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortByᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Fields = data
 		}
 	}
 
@@ -3858,7 +4481,7 @@ func (ec *executionContext) unmarshalInputTivoFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4573,6 +5196,27 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNAny2interface(ctx context.Context, v interface{}) (interface{}, error) {
+	res, err := graphql.UnmarshalAny(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAny2interface(ctx context.Context, sel ast.SelectionSet, v interface{}) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	res := graphql.MarshalAny(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4657,6 +5301,11 @@ func (ec *executionContext) marshalNEpisode2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑ
 	return ec._Episode(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx context.Context, v interface{}) (*model.FilterOperator, error) {
+	res, err := ec.unmarshalInputFilterOperator(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4679,6 +5328,38 @@ func (ec *executionContext) unmarshalNShowKind2githubᚗcomᚋtartaleᚋkmttgᚑ
 }
 
 func (ec *executionContext) marshalNShowKind2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx context.Context, sel ast.SelectionSet, v model.ShowKind) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNSortBy2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortByᚄ(ctx context.Context, v interface{}) ([]*model.SortBy, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.SortBy, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNSortBy2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortBy(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNSortBy2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortBy(ctx context.Context, v interface{}) (*model.SortBy, error) {
+	res, err := ec.unmarshalInputSortBy(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNSortDirection2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortDirection(ctx context.Context, v interface{}) (model.SortDirection, error) {
+	var res model.SortDirection
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSortDirection2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortDirection(ctx context.Context, sel ast.SelectionSet, v model.SortDirection) graphql.Marshaler {
 	return v
 }
 
@@ -5019,6 +5700,22 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) unmarshalOAny2interface(ctx context.Context, v interface{}) (interface{}, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalAny(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAny2interface(ctx context.Context, sel ast.SelectionSet, v interface{}) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalAny(v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5043,6 +5740,14 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	}
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx context.Context, v interface{}) (*model.FilterOperator, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFilterOperator(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
@@ -5109,28 +5814,32 @@ func (ec *executionContext) marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplu
 	return ret
 }
 
+func (ec *executionContext) unmarshalOShowFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx context.Context, v interface{}) ([]*model.ShowFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.ShowFilter, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOShowFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) unmarshalOShowFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx context.Context, v interface{}) (*model.ShowFilter, error) {
 	if v == nil {
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputShowFilter(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalOShowKind2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx context.Context, v interface{}) (*model.ShowKind, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var res = new(model.ShowKind)
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOShowKind2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx context.Context, sel ast.SelectionSet, v *model.ShowKind) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return v
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

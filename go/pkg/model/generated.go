@@ -37,6 +37,36 @@ func (this Episode) GetTitle() string         { return this.Title }
 func (this Episode) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Episode) GetDescription() string   { return this.Description }
 
+type EpisodeFilter struct {
+	Kind               *FilterOperator `json:"kind,omitempty"`
+	Title              *FilterOperator `json:"title,omitempty"`
+	RecordedOn         *FilterOperator `json:"recordedOn,omitempty"`
+	Description        *FilterOperator `json:"description,omitempty"`
+	OriginalAirDate    *FilterOperator `json:"originalAirDate,omitempty"`
+	SeasonNumber       *FilterOperator `json:"seasonNumber,omitempty"`
+	EpisodeNumber      *FilterOperator `json:"episodeNumber,omitempty"`
+	EpisodeTitle       *FilterOperator `json:"episodeTitle,omitempty"`
+	EpisodeDescription *FilterOperator `json:"episodeDescription,omitempty"`
+}
+
+type FilterBy struct {
+	Field    interface{}     `json:"field"`
+	Operator *FilterOperator `json:"operator"`
+	Value    interface{}     `json:"value"`
+}
+
+type FilterOperator struct {
+	Eq      interface{}     `json:"eq,omitempty"`
+	Ne      interface{}     `json:"ne,omitempty"`
+	Lt      interface{}     `json:"lt,omitempty"`
+	Gt      interface{}     `json:"gt,omitempty"`
+	Lte     interface{}     `json:"lte,omitempty"`
+	Gte     interface{}     `json:"gte,omitempty"`
+	Matches interface{}     `json:"matches,omitempty"`
+	And     *FilterOperator `json:"-"`
+	Or      *FilterOperator `json:"-"`
+}
+
 type Movie struct {
 	Kind        ShowKind  `json:"kind"`
 	RecordingID string    `json:"recordingId"`
@@ -51,6 +81,14 @@ func (this Movie) GetKind() ShowKind        { return this.Kind }
 func (this Movie) GetTitle() string         { return this.Title }
 func (this Movie) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Movie) GetDescription() string   { return this.Description }
+
+type MovieFilter struct {
+	Kind        *FilterOperator `json:"kind,omitempty"`
+	Title       *FilterOperator `json:"title,omitempty"`
+	RecordedOn  *FilterOperator `json:"recordedOn,omitempty"`
+	Description *FilterOperator `json:"description,omitempty"`
+	MovieYear   *FilterOperator `json:"movieYear,omitempty"`
+}
 
 type Series struct {
 	Kind         ShowKind   `json:"kind"`
@@ -67,10 +105,33 @@ func (this Series) GetTitle() string         { return this.Title }
 func (this Series) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Series) GetDescription() string   { return this.Description }
 
+type SeriesFilter struct {
+	Kind        *FilterOperator `json:"kind,omitempty"`
+	Title       *FilterOperator `json:"title,omitempty"`
+	RecordedOn  *FilterOperator `json:"recordedOn,omitempty"`
+	Description *FilterOperator `json:"description,omitempty"`
+}
+
 type ShowFilter struct {
-	Kind       *ShowKind `json:"kind,omitempty"`
-	Title      *string   `json:"title,omitempty"`
-	ExactMatch *bool     `json:"exactMatch,omitempty"`
+	Kind               *FilterOperator `json:"kind,omitempty"`
+	Title              *FilterOperator `json:"title,omitempty"`
+	RecordedOn         *FilterOperator `json:"recordedOn,omitempty"`
+	Description        *FilterOperator `json:"description,omitempty"`
+	MovieYear          *FilterOperator `json:"movieYear,omitempty"`
+	OriginalAirDate    *FilterOperator `json:"originalAirDate,omitempty"`
+	SeasonNumber       *FilterOperator `json:"seasonNumber,omitempty"`
+	EpisodeNumber      *FilterOperator `json:"episodeNumber,omitempty"`
+	EpisodeTitle       *FilterOperator `json:"episodeTitle,omitempty"`
+	EpisodeDescription *FilterOperator `json:"episodeDescription,omitempty"`
+}
+
+type SortBy struct {
+	Field     interface{}   `json:"field"`
+	Direction SortDirection `json:"direction"`
+}
+
+type Sorter struct {
+	Fields []*SortBy `json:"fields"`
 }
 
 type Tivo struct {
@@ -81,7 +142,7 @@ type Tivo struct {
 }
 
 type TivoFilter struct {
-	Name *string `json:"name,omitempty"`
+	Name *FilterOperator `json:"name,omitempty"`
 }
 
 type ShowKind string
@@ -124,5 +185,46 @@ func (e *ShowKind) UnmarshalGQL(v interface{}) error {
 }
 
 func (e ShowKind) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SortDirection string
+
+const (
+	SortDirectionAsc  SortDirection = "ASC"
+	SortDirectionDesc SortDirection = "DESC"
+)
+
+var AllSortDirection = []SortDirection{
+	SortDirectionAsc,
+	SortDirectionDesc,
+}
+
+func (e SortDirection) IsValid() bool {
+	switch e {
+	case SortDirectionAsc, SortDirectionDesc:
+		return true
+	}
+	return false
+}
+
+func (e SortDirection) String() string {
+	return string(e)
+}
+
+func (e *SortDirection) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortDirection(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortDirection", str)
+	}
+	return nil
+}
+
+func (e SortDirection) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

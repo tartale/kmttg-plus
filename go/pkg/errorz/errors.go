@@ -16,3 +16,8 @@ func ErrResponse(message string) error {
 }
 
 var ErrReconnected error = errors.New("connection was restarted")
+
+func ErrBadRequest(message string) error {
+
+	return fmt.Errorf("bad request: %s", message)
+}

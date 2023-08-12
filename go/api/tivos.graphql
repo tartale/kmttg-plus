@@ -7,9 +7,9 @@ type Tivo {
   # The serial number of the Tivo. This value is obtained via the ZeroConfig beacon.
   tsn: String!
   # Get a list of series and movies.
-  shows(filter: ShowFilter, limit: Int = 25, offset: Int = 0): [Show]
+  shows(filter: [ShowFilter], offset: Int = 0, limit: Int = 25): [Show]
 }
 
 input TivoFilter {
-  name: String
+  name: FilterOperator
 }
