@@ -7,6 +7,8 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"github.com/tartale/kmttg-plus/go/pkg/filter"
 )
 
 type Show interface {
@@ -38,33 +40,15 @@ func (this Episode) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Episode) GetDescription() string   { return this.Description }
 
 type EpisodeFilter struct {
-	Kind               *FilterOperator `json:"kind,omitempty"`
-	Title              *FilterOperator `json:"title,omitempty"`
-	RecordedOn         *FilterOperator `json:"recordedOn,omitempty"`
-	Description        *FilterOperator `json:"description,omitempty"`
-	OriginalAirDate    *FilterOperator `json:"originalAirDate,omitempty"`
-	SeasonNumber       *FilterOperator `json:"seasonNumber,omitempty"`
-	EpisodeNumber      *FilterOperator `json:"episodeNumber,omitempty"`
-	EpisodeTitle       *FilterOperator `json:"episodeTitle,omitempty"`
-	EpisodeDescription *FilterOperator `json:"episodeDescription,omitempty"`
-}
-
-type FilterBy struct {
-	Field    interface{}     `json:"field"`
-	Operator *FilterOperator `json:"operator"`
-	Value    interface{}     `json:"value"`
-}
-
-type FilterOperator struct {
-	Eq      interface{}     `json:"eq,omitempty"`
-	Ne      interface{}     `json:"ne,omitempty"`
-	Lt      interface{}     `json:"lt,omitempty"`
-	Gt      interface{}     `json:"gt,omitempty"`
-	Lte     interface{}     `json:"lte,omitempty"`
-	Gte     interface{}     `json:"gte,omitempty"`
-	Matches interface{}     `json:"matches,omitempty"`
-	And     *FilterOperator `json:"-"`
-	Or      *FilterOperator `json:"-"`
+	Kind               *filter.Operator `json:"kind,omitempty"`
+	Title              *filter.Operator `json:"title,omitempty"`
+	RecordedOn         *filter.Operator `json:"recordedOn,omitempty"`
+	Description        *filter.Operator `json:"description,omitempty"`
+	OriginalAirDate    *filter.Operator `json:"originalAirDate,omitempty"`
+	SeasonNumber       *filter.Operator `json:"seasonNumber,omitempty"`
+	EpisodeNumber      *filter.Operator `json:"episodeNumber,omitempty"`
+	EpisodeTitle       *filter.Operator `json:"episodeTitle,omitempty"`
+	EpisodeDescription *filter.Operator `json:"episodeDescription,omitempty"`
 }
 
 type Movie struct {
@@ -83,11 +67,11 @@ func (this Movie) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Movie) GetDescription() string   { return this.Description }
 
 type MovieFilter struct {
-	Kind        *FilterOperator `json:"kind,omitempty"`
-	Title       *FilterOperator `json:"title,omitempty"`
-	RecordedOn  *FilterOperator `json:"recordedOn,omitempty"`
-	Description *FilterOperator `json:"description,omitempty"`
-	MovieYear   *FilterOperator `json:"movieYear,omitempty"`
+	Kind        *filter.Operator `json:"kind,omitempty"`
+	Title       *filter.Operator `json:"title,omitempty"`
+	RecordedOn  *filter.Operator `json:"recordedOn,omitempty"`
+	Description *filter.Operator `json:"description,omitempty"`
+	MovieYear   *filter.Operator `json:"movieYear,omitempty"`
 }
 
 type Series struct {
@@ -106,17 +90,17 @@ func (this Series) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Series) GetDescription() string   { return this.Description }
 
 type SeriesFilter struct {
-	Kind        *FilterOperator `json:"kind,omitempty"`
-	Title       *FilterOperator `json:"title,omitempty"`
-	RecordedOn  *FilterOperator `json:"recordedOn,omitempty"`
-	Description *FilterOperator `json:"description,omitempty"`
+	Kind        *filter.Operator `json:"kind,omitempty"`
+	Title       *filter.Operator `json:"title,omitempty"`
+	RecordedOn  *filter.Operator `json:"recordedOn,omitempty"`
+	Description *filter.Operator `json:"description,omitempty"`
 }
 
 type ShowFilter struct {
-	Kind        *FilterOperator `json:"kind,omitempty"`
-	Title       *FilterOperator `json:"title,omitempty"`
-	RecordedOn  *FilterOperator `json:"recordedOn,omitempty"`
-	Description *FilterOperator `json:"description,omitempty"`
+	Kind        *filter.Operator `json:"kind,omitempty"`
+	Title       *filter.Operator `json:"title,omitempty"`
+	RecordedOn  *filter.Operator `json:"recordedOn,omitempty"`
+	Description *filter.Operator `json:"description,omitempty"`
 }
 
 type SortBy struct {
@@ -136,7 +120,7 @@ type Tivo struct {
 }
 
 type TivoFilter struct {
-	Name *FilterOperator `json:"name,omitempty"`
+	Name *filter.Operator `json:"name,omitempty"`
 }
 
 type ShowKind string

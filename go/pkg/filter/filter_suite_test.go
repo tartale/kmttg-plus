@@ -1,4 +1,4 @@
-package filters
+package filter_test
 
 import (
 	"testing"

@@ -14,6 +14,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/tartale/kmttg-plus/go/pkg/filter"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -327,7 +328,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputEpisodeFilter,
-		ec.unmarshalInputFilterBy,
 		ec.unmarshalInputFilterOperator,
 		ec.unmarshalInputMovieFilter,
 		ec.unmarshalInputSeriesFilter,
@@ -421,6 +421,11 @@ var sources = []*ast.Source{
 scalar Date
 scalar Time
 
+directive @goModel(
+	model: String
+	models: [String!]
+) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+
 directive @goTag(
   key: String!
   value: String
@@ -431,7 +436,7 @@ directive @goField(
   name: String
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
-input FilterOperator {
+input FilterOperator @goModel(model: "github.com/tartale/kmttg-plus/go/pkg/filter.Operator") {
   eq: Any
   ne: Any
   lt: Any
@@ -441,12 +446,6 @@ input FilterOperator {
   matches: Any
   and: FilterOperator @goTag(key: "json", value: "-")
   or: FilterOperator @goTag(key: "json", value: "-")
-}
-
-input FilterBy {
-  field: Any!
-  operator: FilterOperator!
-  value: Any!
 }
 
 enum SortDirection {
@@ -3928,7 +3927,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3937,7 +3936,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3946,7 +3945,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3955,7 +3954,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3964,7 +3963,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originalAirDate"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3973,7 +3972,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("seasonNumber"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3982,7 +3981,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeNumber"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3991,7 +3990,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeTitle"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4000,7 +3999,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeDescription"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4011,55 +4010,8 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputFilterBy(ctx context.Context, obj interface{}) (model.FilterBy, error) {
-	var it model.FilterBy
-	asMap := map[string]interface{}{}
-	for k, v := range obj.(map[string]interface{}) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"field", "operator", "value"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "field":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
-			data, err := ec.unmarshalNAny2interface(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Field = data
-		case "operator":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("operator"))
-			data, err := ec.unmarshalNFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Operator = data
-		case "value":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("value"))
-			data, err := ec.unmarshalNAny2interface(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Value = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, obj interface{}) (model.FilterOperator, error) {
-	var it model.FilterOperator
+func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, obj interface{}) (filter.Operator, error) {
+	var it filter.Operator
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -4139,7 +4091,7 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("and"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4148,7 +4100,7 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("or"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4177,7 +4129,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4186,7 +4138,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4195,7 +4147,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4204,7 +4156,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4213,7 +4165,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("movieYear"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4242,7 +4194,7 @@ func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4251,7 +4203,7 @@ func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4260,7 +4212,7 @@ func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4269,7 +4221,7 @@ func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4298,7 +4250,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4307,7 +4259,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4316,7 +4268,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4325,7 +4277,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4421,7 +4373,7 @@ func (ec *executionContext) unmarshalInputTivoFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5241,11 +5193,6 @@ func (ec *executionContext) marshalNEpisode2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑ
 	return ec._Episode(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx context.Context, v interface{}) (*model.FilterOperator, error) {
-	res, err := ec.unmarshalInputFilterOperator(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5682,7 +5629,7 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐFilterOperator(ctx context.Context, v interface{}) (*model.FilterOperator, error) {
+func (ec *executionContext) unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx context.Context, v interface{}) (*filter.Operator, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -5780,6 +5727,44 @@ func (ec *executionContext) unmarshalOShowFilter2ᚖgithubᚗcomᚋtartaleᚋkmt
 	}
 	res, err := ec.unmarshalInputShowFilter(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

@@ -7,11 +7,13 @@ import (
 	"sort"
 	"time"
 
+	"github.com/PaesslerAG/gval"
 	"github.com/puzpuzpuz/xsync"
 	"github.com/tartale/go/pkg/errorx"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
+	"github.com/tartale/kmttg-plus/go/pkg/filter"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"go.uber.org/zap"
@@ -31,14 +33,15 @@ func NewTivoFilter(f *model.TivoFilter) TivoFilterFn {
 
 	return func(t *model.Tivo) bool {
 
-		if f == nil {
-			return true
-		}
-		if f.Name != nil {
+		expression := filter.GetExpression(f)
+		values := filter.GetValues(f, t)
+		eval, err := gval.Evaluate(expression, values)
+		if err != nil {
+			logz.Logger.Warn("error attempting to filter tivos", zap.Error(err))
 			return true
 		}
 
-		return false
+		return eval.(bool)
 	}
 }
 

@@ -2,6 +2,11 @@ scalar Any
 scalar Date
 scalar Time
 
+directive @goModel(
+	model: String
+	models: [String!]
+) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+
 directive @goTag(
   key: String!
   value: String
@@ -12,7 +17,7 @@ directive @goField(
   name: String
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
-input FilterOperator {
+input FilterOperator @goModel(model: "github.com/tartale/kmttg-plus/go/pkg/filter.Operator") {
   eq: Any
   ne: Any
   lt: Any
@@ -22,12 +27,6 @@ input FilterOperator {
   matches: Any
   and: FilterOperator @goTag(key: "json", value: "-")
   or: FilterOperator @goTag(key: "json", value: "-")
-}
-
-input FilterBy {
-  field: Any!
-  operator: FilterOperator!
-  value: Any!
 }
 
 enum SortDirection {

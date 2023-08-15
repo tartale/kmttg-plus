@@ -4,9 +4,31 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/PaesslerAG/gval"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
+	"github.com/tartale/kmttg-plus/go/pkg/filter"
+	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
+	"go.uber.org/zap"
 )
+
+type ShowFilterFn = func(s Show) bool
+
+func NewShowFilter(sf *ShowFilter) ShowFilterFn {
+
+	return func(s Show) bool {
+
+		expression := filter.GetExpression(s)
+		values := filter.GetValues(sf, s)
+		eval, err := gval.Evaluate(expression, values)
+		if err != nil {
+			logz.Logger.Warn("error attempting to filter shows", zap.Error(err))
+			return true
+		}
+
+		return eval.(bool)
+	}
+}
 
 func NewShow(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (Show, error) {
 

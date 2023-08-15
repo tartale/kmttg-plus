@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/99designs/gqlgen v0.17.36
+	github.com/PaesslerAG/gval v1.2.2
 	github.com/gorilla/mux v1.8.0
 	github.com/grandcat/zeroconf v1.0.0
 	github.com/onsi/ginkgo/v2 v2.11.0
@@ -38,6 +39,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
