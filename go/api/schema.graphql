@@ -1,5 +1,5 @@
 type Query {
-  tivos(filter: TivoFilter): [Tivo!]!
+  tivos(filter: [TivoFilter]): [Tivo!]!
 }
 
 schema {

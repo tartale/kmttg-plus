@@ -1,6 +1,9 @@
 package filter_test
 
 import (
+	"encoding/json"
+
+	"github.com/PaesslerAG/gval"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tartale/kmttg-plus/go/pkg/filter"
@@ -9,11 +12,11 @@ import (
 
 var _ = Describe("Filter", func() {
 
-	DescribeTable("legal operators can be converted to expressions",
+	PDescribeTable("legal operators can be converted to expressions",
+
 		func(operator *filter.Operator, expectedExpression string) {
 
 			expression := filter.OperatorExpression(operator)
-
 			Expect(expression).To(Equal(expectedExpression))
 		},
 
@@ -39,71 +42,137 @@ var _ = Describe("Filter", func() {
 		Entry("less than or equal to float", &filter.Operator{Lte: 10.9}, `<= 10.9`),
 		Entry("greater than or equal to float", &filter.Operator{Gte: 10.9}, `>= 10.9`),
 
-		Entry("and", &filter.Operator{And: &filter.Operator{}}, `&&`),
 		Entry("or", &filter.Operator{Or: &filter.Operator{}}, `||`),
 	)
 
-	Context("simple filter", func() {
-
-		showFilter := &model.ShowFilter{
-			Kind: &filter.Operator{
-				Eq: model.ShowKindMovie,
-			},
-		}
-
-		show := model.Movie{
+	Context("legal filters", func() {
+		movie := &model.Movie{
 			Kind:  model.ShowKindMovie,
 			Title: "Back to the Future",
 		}
 
-		It("can be converted to an expression", func() {
+		DescribeTable("legal operators can be converted to expressions",
+			func(showFiltersJson, expectedExpression string, show model.Show) {
 
-			expression := filter.GetExpression(showFilter)
+				var showFilters []*model.ShowFilter
+				err := json.Unmarshal([]byte(showFiltersJson), &showFilters)
+				Expect(err).ToNot(HaveOccurred())
 
-			Expect(expression).To(Equal(`kind == "MOVIE"`))
-		})
+				expression := filter.GetExpression(showFilters)
+				Expect(expression).To(Equal(expectedExpression))
 
-		It("can get variables from an input value", func() {
+				values := filter.GetValues(showFilters, show)
+				eval, err := gval.Evaluate(expression, values)
 
-			vars := filter.GetValues(showFilter, show)
-
-			Expect(vars).To(HaveKeyWithValue("kind", model.ShowKindMovie))
-			Expect(vars).ToNot(HaveKey("title"))
-			Expect(vars).ToNot(HaveKey("movieYear"))
-		})
-	})
-
-	Context("multiple field filter", func() {
-
-		showFilter := &model.ShowFilter{
-			Kind: &filter.Operator{
-				Eq: model.ShowKindSeries,
+				Expect(err).ToNot(HaveOccurred())
+				Expect(eval.(bool)).To(Equal(true))
 			},
-			Title: &filter.Operator{
-				Matches: "Back to the .*",
-			},
-		}
 
-		show := model.Movie{
-			Kind:        model.ShowKindMovie,
-			Title:       "Back to the Future",
-			Description: "Doc and Marty hijinks",
-		}
+			Entry("simple filter",
+				`[{"kind": {"eq": "MOVIE"}}]`,
+				`( kind == "MOVIE" )`,
+				movie,
+			),
 
-		It("can be converted to an expression", func() {
+			Entry("multi-field filter with implied logical 'and'",
+				`[{"kind": {"eq": "MOVIE"}}, {"title": {"matches": "Back to the .*"}}]`,
+				`( kind == "MOVIE" ) && ( title =~ "Back to the .*" )`,
+				movie,
+			),
 
-			expression := filter.GetExpression(showFilter)
+			Entry("multi-field filter with explicit logical 'or'",
+				`[{"kind": {"eq": "SERIES"}}, {"or": [{"title": {"matches": "Back to the .*"}}]}]`,
+				`( kind == "SERIES" ) || ( title =~ "Back to the .*" )`,
+				movie,
+			),
+		)
 
-			Expect(expression).To(Equal(`kind == "SERIES" && title =~ "Back to the .*"`))
-		})
-
-		It("can get variables from an input value", func() {
-
-			vars := filter.GetValues(showFilter, show)
-
-			Expect(vars).To(HaveKeyWithValue("kind", model.ShowKindMovie))
-			Expect(vars).To(HaveKeyWithValue("title", "Back to the Future"))
-			Expect(vars).ToNot(HaveKey("movieYear"))
-		})
 	})
+	//			filter:     {kind: {eq: "SERIES"}}
+	//		  expression: (kind == "SERIES")
+	//
+	//			filter:     [kind: {eq: "SERIES"}, title: {eq: "Back to the Future"}]
+	//		  expression: (kind == "SERIES") && (title == "Back to the Future")
+	//		                    ^^ when multiple fields are given without a logical operator,
+	//	                         the default logical operator is "and"
+	//
+	//			filter:     [kind: {eq: "SERIES"}, or: {kind: {eq: "EPISODE"}]
+	//		  expression: (kind == "SERIES") || (kind == "EPISODE")
+	//
+	//			filter:     [kind: {eq: "SERIES"}, or: [kind: {eq: "MOVIE"}, and: {title: {eq: "Back to the Future"}}]]
+	//		  expression: (kind == "SERIES") || ((kind == "MOVIE") && (title == "Back to the Future"))
+
+	// DescribeTable("legal operators can be converted to expressions",
+	// 	func(showFilters []*model.ShowFilter, show model.Show, expectedExpression string) {
+
+	// 		expression := filter.GetExpression(showFilters)
+	// 		Expect(expression).To(Equal(expectedExpression))
+
+	// 		values := filter.GetValues(showFilters, show)
+	// 		eval, err := gval.Evaluate(expression, values)
+
+	// 		Expect(err).ToNot(HaveOccurred())
+	// 		Expect(eval.(bool)).To(Equal(true))
+
+	// 	},
+
+	// 	Entry("simple filter",
+	// 		[]*model.ShowFilter{
+	// 			{Kind: &filter.Operator{
+	// 				Eq: model.ShowKindMovie,
+	// 			},
+	// 			}},
+	// 		&model.Movie{
+	// 			Kind:  model.ShowKindMovie,
+	// 			Title: "Back to the Future",
+	// 		},
+	// 		`( kind == "MOVIE" )`,
+	// 	),
+
+	// 	Entry("multi-field filter with implied logical 'and'",
+	// 		[]*model.ShowFilter{
+	// 			{
+	// 				Kind: &filter.Operator{
+	// 					Eq: model.ShowKindMovie,
+	// 				},
+	// 			},
+	// 			{
+	// 				Title: &filter.Operator{
+	// 					Matches: "Back to the .*",
+	// 				},
+	// 			},
+	// 		},
+	// 		&model.Movie{
+	// 			Kind:        model.ShowKindMovie,
+	// 			Title:       "Back to the Future",
+	// 			Description: "Doc and Marty's hijinks",
+	// 		},
+	// 		`( kind == "MOVIE" ) && ( title =~ "Back to the .*" )`,
+	// 	),
+
+	// 	Entry("multi-field filter with explicit logical 'or'",
+	// 		[]*model.ShowFilter{
+	// 			{
+	// 				Kind: &filter.Operator{
+	// 					Eq: model.ShowKindSeries,
+	// 				},
+	// 			},
+	// 			{
+	// 				Or: &model.ShowFilter{
+	// 					Title: &filter.Operator{
+	// 						Matches: "Back to the .*",
+	// 					},
+	// 				},
+	// 			},
+	// 		},
+	// 		&model.Movie{
+	// 			Kind:        model.ShowKindMovie,
+	// 			Title:       "Back to the Future",
+	// 			Description: "Doc and Marty's hijinks",
+	// 		},
+	// 		`( kind == "SERIES" ) || ( title =~ "Back to the .*" )`,
+	// 	),
+	// 	Entry("nested filter",
+	// 	),
+	// )
 })

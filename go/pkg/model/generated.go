@@ -101,6 +101,8 @@ type ShowFilter struct {
 	Title       *filter.Operator `json:"title,omitempty"`
 	RecordedOn  *filter.Operator `json:"recordedOn,omitempty"`
 	Description *filter.Operator `json:"description,omitempty"`
+	And         []*ShowFilter    `json:"and,omitempty"`
+	Or          []*ShowFilter    `json:"or,omitempty"`
 }
 
 type SortBy struct {

@@ -29,7 +29,7 @@ var (
 
 type TivoFilterFn = func(t *model.Tivo) bool
 
-func NewTivoFilter(f *model.TivoFilter) TivoFilterFn {
+func NewTivoFilter(f []*model.TivoFilter) TivoFilterFn {
 
 	return func(t *model.Tivo) bool {
 

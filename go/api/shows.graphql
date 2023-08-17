@@ -30,7 +30,7 @@ type Series implements Show {
   recordedOn: Time!
   description: String!
 
-  episodes(filter: [ShowFilter], offset: Int = 0, limit: Int = 25): [Episode!]!
+  episodes(filter: [EpisodeFilter], offset: Int = 0, limit: Int = 25): [Episode!]!
 }
 
 type Episode implements Show {
@@ -53,6 +53,8 @@ input ShowFilter {
   title: FilterOperator
   recordedOn: FilterOperator
   description: FilterOperator
+  and: [ShowFilter]
+  or: [ShowFilter]
 }
 
 input MovieFilter {

@@ -25,8 +25,8 @@ input FilterOperator @goModel(model: "github.com/tartale/kmttg-plus/go/pkg/filte
   lte: Any
   gte: Any
   matches: Any
-  and: FilterOperator @goTag(key: "json", value: "-")
-  or: FilterOperator @goTag(key: "json", value: "-")
+  and: Any
+  or: Any
 }
 
 enum SortDirection {
