@@ -12,7 +12,7 @@ import (
 
 var _ = Describe("Filter", func() {
 
-	PDescribeTable("legal operators can be converted to expressions",
+	DescribeTable("legal operators can be converted to expressions",
 
 		func(operator *filter.Operator, expectedExpression string) {
 
@@ -41,8 +41,6 @@ var _ = Describe("Filter", func() {
 		Entry("greater than float", &filter.Operator{Gt: 10.9}, `> 10.9`),
 		Entry("less than or equal to float", &filter.Operator{Lte: 10.9}, `<= 10.9`),
 		Entry("greater than or equal to float", &filter.Operator{Gte: 10.9}, `>= 10.9`),
-
-		Entry("or", &filter.Operator{Or: &filter.Operator{}}, `||`),
 	)
 
 	Context("legal filters", func() {
@@ -51,7 +49,7 @@ var _ = Describe("Filter", func() {
 			Title: "Back to the Future",
 		}
 
-		DescribeTable("legal operators can be converted to expressions",
+		FDescribeTable("can be evaluated as expressions",
 			func(showFiltersJson, expectedExpression string, show model.Show) {
 
 				var showFilters []*model.ShowFilter
@@ -85,94 +83,16 @@ var _ = Describe("Filter", func() {
 				`( kind == "SERIES" ) || ( title =~ "Back to the .*" )`,
 				movie,
 			),
-		)
 
+			// Entry("multi-field nested filter",
+			// 	`[{"kind": {"eq": "SERIES"}}, {"or": [{"kind": {"eq": "MOVIE"}}, {"and": [{"title": {"eq": "Back to the Future"}}]}]}]`,
+			// 	`(kind == "SERIES") || ((kind == "MOVIE") && (title == "Back to the Future"))`,
+			// 	movie,
+			// ),
+		)
 	})
-	//			filter:     {kind: {eq: "SERIES"}}
-	//		  expression: (kind == "SERIES")
-	//
-	//			filter:     [kind: {eq: "SERIES"}, title: {eq: "Back to the Future"}]
-	//		  expression: (kind == "SERIES") && (title == "Back to the Future")
-	//		                    ^^ when multiple fields are given without a logical operator,
-	//	                         the default logical operator is "and"
-	//
-	//			filter:     [kind: {eq: "SERIES"}, or: {kind: {eq: "EPISODE"}]
-	//		  expression: (kind == "SERIES") || (kind == "EPISODE")
+
 	//
 	//			filter:     [kind: {eq: "SERIES"}, or: [kind: {eq: "MOVIE"}, and: {title: {eq: "Back to the Future"}}]]
 	//		  expression: (kind == "SERIES") || ((kind == "MOVIE") && (title == "Back to the Future"))
-
-	// DescribeTable("legal operators can be converted to expressions",
-	// 	func(showFilters []*model.ShowFilter, show model.Show, expectedExpression string) {
-
-	// 		expression := filter.GetExpression(showFilters)
-	// 		Expect(expression).To(Equal(expectedExpression))
-
-	// 		values := filter.GetValues(showFilters, show)
-	// 		eval, err := gval.Evaluate(expression, values)
-
-	// 		Expect(err).ToNot(HaveOccurred())
-	// 		Expect(eval.(bool)).To(Equal(true))
-
-	// 	},
-
-	// 	Entry("simple filter",
-	// 		[]*model.ShowFilter{
-	// 			{Kind: &filter.Operator{
-	// 				Eq: model.ShowKindMovie,
-	// 			},
-	// 			}},
-	// 		&model.Movie{
-	// 			Kind:  model.ShowKindMovie,
-	// 			Title: "Back to the Future",
-	// 		},
-	// 		`( kind == "MOVIE" )`,
-	// 	),
-
-	// 	Entry("multi-field filter with implied logical 'and'",
-	// 		[]*model.ShowFilter{
-	// 			{
-	// 				Kind: &filter.Operator{
-	// 					Eq: model.ShowKindMovie,
-	// 				},
-	// 			},
-	// 			{
-	// 				Title: &filter.Operator{
-	// 					Matches: "Back to the .*",
-	// 				},
-	// 			},
-	// 		},
-	// 		&model.Movie{
-	// 			Kind:        model.ShowKindMovie,
-	// 			Title:       "Back to the Future",
-	// 			Description: "Doc and Marty's hijinks",
-	// 		},
-	// 		`( kind == "MOVIE" ) && ( title =~ "Back to the .*" )`,
-	// 	),
-
-	// 	Entry("multi-field filter with explicit logical 'or'",
-	// 		[]*model.ShowFilter{
-	// 			{
-	// 				Kind: &filter.Operator{
-	// 					Eq: model.ShowKindSeries,
-	// 				},
-	// 			},
-	// 			{
-	// 				Or: &model.ShowFilter{
-	// 					Title: &filter.Operator{
-	// 						Matches: "Back to the .*",
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 		&model.Movie{
-	// 			Kind:        model.ShowKindMovie,
-	// 			Title:       "Back to the Future",
-	// 			Description: "Doc and Marty's hijinks",
-	// 		},
-	// 		`( kind == "SERIES" ) || ( title =~ "Back to the .*" )`,
-	// 	),
-	// 	Entry("nested filter",
-	// 	),
-	// )
 })

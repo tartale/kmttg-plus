@@ -19,10 +19,10 @@ var (
 	replacer          = strings.NewReplacer(
 		`eq`, ` == `,
 		`ne`, ` != `,
-		`lt`, ` < `,
-		`gt`, ` > `,
 		`lte`, ` <= `,
 		`gte`, ` >= `,
+		`lt`, ` < `,
+		`gt`, ` > `,
 		`matches`, ` =~ `,
 		`,{or`, ` ) || ( `,
 		`,{and`, ` ) && ( `,
@@ -43,8 +43,6 @@ type Operator struct {
 	Lte     any `json:"lte,omitempty"`
 	Gte     any `json:"gte,omitempty"`
 	Matches any `json:"matches,omitempty"`
-	And     any `json:"and,omitempty"`
-	Or      any `json:"or,omitempty"`
 }
 
 // Examples:
@@ -92,51 +90,6 @@ func GetExpression(filter any) string {
 	expression := format(filterJson)
 
 	return expression
-	// var expressions []string
-	// for i := 0; i < filterValue.Len(); i++ {
-	// 	f := filterValue.Index(i).Interface()
-	// 	expressions = append(expressions, getExpression(f))
-	// }
-
-	// return strings.Join(expressions, " ")
-}
-
-func getExpression(filter any) string {
-
-	hasLogicOperator := false
-	var expressions []string
-	filterWalkFn := func(field reflect.StructField, value reflect.Value) error {
-
-		if value.IsNil() {
-			return nil
-		}
-
-		switch val := value.Interface().(type) {
-		case *Operator:
-			if val.And != nil {
-				hasLogicOperator = true
-				expressions = append(expressions, fmt.Sprintf("&& (%s)", GetExpression(val.And)))
-				return nil
-			}
-			if val.Or != nil {
-				hasLogicOperator = true
-				expressions = append(expressions, fmt.Sprintf("|| (%s)", GetExpression(val.Or)))
-				return nil
-			}
-			operatorExpression := OperatorExpression(val)
-			fieldName := jsonNameForReflectField(field)
-			expressions = append(expressions, fmt.Sprintf("(%s %s)", fieldName, operatorExpression))
-		}
-
-		return nil
-	}
-	structs.Walk(filter, filterWalkFn)
-
-	var separator = " "
-	if !hasLogicOperator {
-		separator = " && "
-	}
-	return strings.Join(expressions, separator)
 }
 
 // Example:
@@ -155,7 +108,8 @@ func GetValues(filter, input any) map[string]any {
 	values := map[string]any{}
 	for i := 0; i < filterValue.Len(); i++ {
 		f := filterValue.Index(i).Interface()
-		maps.Copy(values, getValues(f, input))
+		v := getValues(f, input)
+		maps.Copy(values, v)
 	}
 
 	return values
@@ -176,7 +130,7 @@ func getValues(filter, input any) map[string]any {
 			if !ok {
 				panic(fmt.Errorf("filter contains a field that is not in the input: %s", filterField.Name))
 			}
-			inputFieldName := jsonNameForStructsField(inputField)
+			inputFieldName := inputField.TagRoot("json")
 			inputFieldValue := inputField.Value()
 			inputFieldReflectValue := reflect.ValueOf(inputFieldValue)
 			if inputFieldReflectValue.CanConvert(stringType) {
@@ -203,24 +157,4 @@ func format(expression string) string {
 	expression = strings.Trim(expression, " ")
 
 	return expression
-}
-
-func jsonNameForReflectField(field reflect.StructField) string {
-	jsonTag, ok := field.Tag.Lookup("json")
-
-	if !ok {
-		panic(fmt.Errorf("missing json tag on field: %s", field.Name))
-	}
-
-	return strings.Split(jsonTag, ",")[0]
-}
-
-func jsonNameForStructsField(field *structs.Field) string {
-
-	jsonTag := field.Tag("json")
-	if jsonTag == "" {
-		panic(fmt.Errorf("missing json tag on field: %s", field.Name()))
-	}
-
-	return strings.Split(jsonTag, ",")[0]
 }

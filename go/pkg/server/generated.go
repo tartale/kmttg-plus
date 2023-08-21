@@ -444,8 +444,8 @@ input FilterOperator @goModel(model: "github.com/tartale/kmttg-plus/go/pkg/filte
   lte: Any
   gte: Any
   matches: Any
-  and: Any
-  or: Any
+  # and: Any
+  # or: Any
 }
 
 enum SortDirection {
@@ -4019,7 +4019,7 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"eq", "ne", "lt", "gt", "lte", "gte", "matches", "and", "or"}
+	fieldsInOrder := [...]string{"eq", "ne", "lt", "gt", "lte", "gte", "matches"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -4089,24 +4089,6 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 				return it, err
 			}
 			it.Matches = data
-		case "and":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("and"))
-			data, err := ec.unmarshalOAny2interface(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.And = data
-		case "or":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("or"))
-			data, err := ec.unmarshalOAny2interface(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Or = data
 		}
 	}
 
