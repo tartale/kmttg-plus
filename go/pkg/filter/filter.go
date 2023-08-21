@@ -12,69 +12,20 @@ import (
 )
 
 var (
-	whitespace        = regexp.MustCompile(`\s+`)
-	quotedFields      = regexp.MustCompile(`"(\w+)":`)
-	doubleLeftParens  = regexp.MustCompile(`\( \(`)
-	doubleRightParens = regexp.MustCompile(`\) \)`)
-	replacer          = strings.NewReplacer(
-		`eq`, ` == `,
-		`ne`, ` != `,
-		`lte`, ` <= `,
-		`gte`, ` >= `,
-		`lt`, ` < `,
-		`gt`, ` > `,
-		`matches`, ` =~ `,
-		`,{or`, ` ) || ( `,
-		`,{and`, ` ) && ( `,
-		`,`, ` ) && ( `,
-		`[`, `(`,
-		`]`, `)`,
-		`{`, ` `,
-		`}`, ` `,
-	)
-	stringType = reflect.TypeOf("")
+	quotedFields = regexp.MustCompile(`"(\w+)":`)
+	typeOfString = reflect.TypeOf("")
 )
 
 type Operator struct {
 	Eq      any `json:"eq,omitempty"`
 	Ne      any `json:"ne,omitempty"`
-	Lt      any `json:"lt,omitempty"`
-	Gt      any `json:"gt,omitempty"`
 	Lte     any `json:"lte,omitempty"`
 	Gte     any `json:"gte,omitempty"`
+	Lt      any `json:"lt,omitempty"`
+	Gt      any `json:"gt,omitempty"`
 	Matches any `json:"matches,omitempty"`
 }
 
-// Examples:
-//
-//	operator:   {eq: "foo"}
-//	expression: == "foo"
-func OperatorExpression(operator *Operator) (expression string) {
-
-	operatorJsonBytes, err := json.Marshal(operator)
-	if err != nil {
-		panic(fmt.Errorf("unexpected error when marshaling operator: %w", err))
-	}
-	expression = format(string(operatorJsonBytes))
-
-	return
-}
-
-// Examples:
-//
-//			filter:     {kind: {eq: "SERIES"}}
-//		  expression: (kind == "SERIES")
-//
-//			filter:     [kind: {eq: "SERIES"}, title: {eq: "Back to the Future"}]
-//		  expression: (kind == "SERIES") && (title == "Back to the Future")
-//		                    ^^ when multiple fields are given without a logical operator,
-//	                         the default logical operator is "and"
-//
-//			filter:     [kind: {eq: "SERIES"}, or: {kind: {eq: "EPISODE"}]
-//		  expression: (kind == "SERIES") || (kind == "EPISODE")
-//
-//			filter:     [kind: {eq: "SERIES"}, or: [kind: {eq: "MOVIE"}, and: {title: {eq: "Back to the Future"}}]]
-//		  expression: (kind == "SERIES") || ((kind == "MOVIE") && (title == "Back to the Future"))
 func GetExpression(filter any) string {
 
 	filterValue := reflect.ValueOf(filter)
@@ -133,8 +84,8 @@ func getValues(filter, input any) map[string]any {
 			inputFieldName := inputField.TagRoot("json")
 			inputFieldValue := inputField.Value()
 			inputFieldReflectValue := reflect.ValueOf(inputFieldValue)
-			if inputFieldReflectValue.CanConvert(stringType) {
-				inputFieldValue = inputFieldReflectValue.Convert(stringType).Interface()
+			if inputFieldReflectValue.CanConvert(typeOfString) {
+				inputFieldValue = inputFieldReflectValue.Convert(typeOfString).Interface()
 			}
 			values[inputFieldName] = inputFieldValue
 		}
@@ -147,14 +98,50 @@ func getValues(filter, input any) map[string]any {
 	return values
 }
 
+func removeQuotesOnFields(s string) string {
+
+	return quotedFields.ReplaceAllString(s, "$1")
+}
+
+func replaceComparisonOperators(s string) string {
+
+	s = regexp.MustCompile(`{eq(.*?)}`).ReplaceAllString(s, " == $1 ")
+	s = regexp.MustCompile(`{ne(.*?)}`).ReplaceAllString(s, " != $1 ")
+	s = regexp.MustCompile(`{lte(.*?)}`).ReplaceAllString(s, " <= $1 ")
+	s = regexp.MustCompile(`{gte(.*?)}`).ReplaceAllString(s, " >= $1 ")
+	s = regexp.MustCompile(`{lt(.*?)}`).ReplaceAllString(s, " < $1 ")
+	s = regexp.MustCompile(`{gt(.*?)}`).ReplaceAllString(s, " > $1 ")
+	s = regexp.MustCompile(`{matches(.*?)}`).ReplaceAllString(s, " =~ $1 ")
+
+	return s
+}
+
+func replaceBrackets(s string) string {
+
+	return strings.NewReplacer(
+		`[`, `(`,
+		`]`, `)`,
+		`{`, `(`,
+		`}`, `)`,
+	).Replace(s)
+}
+
+func replaceLogicOperators(s string) string {
+
+	return strings.NewReplacer(
+		`,(or`, ` || (`,
+		`,(and`, ` && (`,
+		`,`, ` && `,
+	).Replace(s)
+
+}
+
 func format(expression string) string {
 
-	expression = quotedFields.ReplaceAllString(expression, "$1")
-	expression = replacer.Replace(expression)
-	expression = whitespace.ReplaceAllString(expression, " ")
-	expression = doubleLeftParens.ReplaceAllString(expression, "(")
-	expression = doubleRightParens.ReplaceAllString(expression, ")")
-	expression = strings.Trim(expression, " ")
+	expression = removeQuotesOnFields(expression)
+	expression = replaceComparisonOperators(expression)
+	expression = replaceBrackets(expression)
+	expression = replaceLogicOperators(expression)
 
 	return expression
 }
