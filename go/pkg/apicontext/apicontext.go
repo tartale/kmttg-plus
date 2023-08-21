@@ -4,20 +4,20 @@ import (
 	"context"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/tartale/kmttg-plus/go/pkg/model"
 )
 
 type ContextKey string
 
 const (
-	OffsetKey ContextKey = "offset"
-	LimitKey  ContextKey = "limit"
-	FilterKey ContextKey = "filter"
+	OffsetKey     ContextKey = "offset"
+	LimitKey      ContextKey = "limit"
+	TivoFilterKey ContextKey = "tivoFilter"
+	ShowFilterKey ContextKey = "showFilter"
 
 	DefaultOffset = 0
 	DefaultLimit  = 25
 )
-
-type FilterFn func(any) bool
 
 type APIContext struct {
 	context.Context
@@ -37,12 +37,15 @@ func (a APIContext) WithLimit(limit int) APIContext {
 	return Wrap(context.WithValue(a, LimitKey, limit))
 }
 
-func (a APIContext) WithFilter(filter any) APIContext {
-	return Wrap(context.WithValue(a, FilterKey, filter))
+func (a APIContext) WithTivoFilterFn(filter model.TivoFilterFn) APIContext {
+	return Wrap(context.WithValue(a, TivoFilterKey, filter))
 }
 
 func (a APIContext) GqlValue(path string, key ContextKey) any {
 
+	if !graphql.HasOperationContext(a) {
+		return nil
+	}
 	fctx := graphql.GetFieldContext(a)
 	octx := graphql.GetOperationContext(a)
 	if fctx == nil || octx == nil {
@@ -87,10 +90,20 @@ func Limit(ctx context.Context) int {
 	return DefaultLimit
 }
 
-func Filter(ctx context.Context) any {
-	val := ctx.Value(FilterKey)
+func TivoFilterFn(ctx context.Context) model.TivoFilterFn {
+	val := ctx.Value(TivoFilterKey)
 	if val != nil {
-		return val
+		return val.(model.TivoFilterFn)
+	}
+	return nil
+}
+
+func ShowFilterFn(ctx context.Context) model.ShowFilterFn {
+	val := Wrap(ctx).GqlValue("tivos.shows", "filter")
+	if val != nil {
+		showFilters := val.([]*model.ShowFilter)
+		showFilterFn := model.NewShowFilterFn(showFilters)
+		return showFilterFn
 	}
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
+	"github.com/tartale/kmttg-plus/go/pkg/shows"
 	"go.uber.org/zap"
 )
 
@@ -54,7 +55,7 @@ func (t *TivoClient) GetShows(ctx context.Context) ([]model.Show, error) {
 		}
 		ctx = apicontext.Wrap(ctx).WithOffset(nextOffset)
 	}
-	result = model.MergeEpisodes(result)
+	result = shows.MergeEpisodes(result)
 
 	return result, nil
 }
@@ -105,7 +106,7 @@ func (t *TivoClient) getShowDetails(ctx context.Context, recordingFolderItem mes
 		return nil, err
 	}
 
-	show, err := model.NewShow(recordingDetails, &collectionDetails[0])
+	show, err := shows.New(recordingDetails, &collectionDetails[0])
 	if err != nil {
 		return nil, err
 	}

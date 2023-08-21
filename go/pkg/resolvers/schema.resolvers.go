@@ -15,8 +15,8 @@ import (
 
 // Tivos is the resolver for the tivos field.
 func (r *queryResolver) Tivos(ctx context.Context, filter []*model.TivoFilter) ([]*model.Tivo, error) {
-	tivoFilter := tivos.NewTivoFilter(filter)
-	ctx = apicontext.Wrap(ctx).WithFilter(tivoFilter)
+	tivoFilterFn := model.NewTivoFilterFn(filter)
+	ctx = apicontext.Wrap(ctx).WithTivoFilterFn(tivoFilterFn)
 	tivoList := tivos.List(ctx)
 
 	return tivoList, nil

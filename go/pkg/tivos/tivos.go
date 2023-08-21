@@ -7,52 +7,28 @@ import (
 	"sort"
 	"time"
 
-	"github.com/PaesslerAG/gval"
 	"github.com/puzpuzpuz/xsync"
 	"github.com/tartale/go/pkg/errorx"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
-	"github.com/tartale/kmttg-plus/go/pkg/filter"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"go.uber.org/zap"
-)
-
-const (
-	retryCount = 3
 )
 
 var (
 	tivoMap = xsync.NewMapOf[*model.Tivo]()
 )
 
-type TivoFilterFn = func(t *model.Tivo) bool
-
-func NewTivoFilter(f []*model.TivoFilter) TivoFilterFn {
-
-	return func(t *model.Tivo) bool {
-
-		expression := filter.GetExpression(f)
-		values := filter.GetValues(f, t)
-		eval, err := gval.Evaluate(expression, values)
-		if err != nil {
-			logz.Logger.Warn("error attempting to filter tivos", zap.Error(err))
-			return true
-		}
-
-		return eval.(bool)
-	}
-}
-
 func RunBackgroundLoader() {
-	loadTicker := time.NewTicker(5 * time.Minute)
+	loadTicker := time.NewTicker(10 * time.Second)
 
 	for range loadTicker.C {
 		err := LoadAll()
 		if err != nil {
 			logz.Logger.Warn("error loading shows", zap.Error(err))
-			loadTicker.Reset(1 * time.Minute)
+			loadTicker.Reset(30 * time.Second)
 		} else {
 			loadTicker.Reset(5 * time.Minute)
 		}
@@ -78,7 +54,7 @@ func Load(tvo *model.Tivo) error {
 		return err
 	}
 
-	shows, err := getShows(context.Background(), tivoClient)
+	shows, err := LoadShows(context.Background(), tivoClient)
 	if err != nil {
 		return err
 	}
@@ -93,13 +69,24 @@ func Load(tvo *model.Tivo) error {
 func List(ctx context.Context) []*model.Tivo {
 
 	var list []*model.Tivo
-	filterFn := apicontext.Filter(ctx)
+	tivoFilterFn := apicontext.TivoFilterFn(ctx)
+	showFilterFn := apicontext.ShowFilterFn(ctx)
 
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
-		if filterFn == nil || filterFn.(TivoFilterFn)(val) {
-			list = append(list, val)
+		if tivoFilterFn == nil || tivoFilterFn(val) {
+			tivo := *val
+			list = append(list, &tivo)
+
+			tivo.Shows = []model.Show{}
+			for _, show := range val.Shows {
+				if showFilterFn == nil || showFilterFn(show) {
+					tivo.Shows = append(tivo.Shows, show)
+				}
+			}
+
 			return true
 		}
+
 		return true
 	})
 
@@ -110,7 +97,11 @@ func List(ctx context.Context) []*model.Tivo {
 	return list
 }
 
-func getShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show, error) {
+func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show, error) {
+
+	const (
+		retryCount = 3
+	)
 
 	var (
 		shows   []model.Show
