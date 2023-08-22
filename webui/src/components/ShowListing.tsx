@@ -16,15 +16,17 @@ export type ShowSortField = 'kind' | 'title' | 'recordedOn';
 const GET_RECORDINGS = gql`
  query getRecordings($offset: Int, $limit: Int) {
   tivos {
-    recordings(offset: $offset, limit: $limit) {
+    name
+    shows(offset: $offset, limit: $limit) {
+      id
       kind
-      recordingID
       title
+      description
       recordedOn
       ... on Series {
         episodes {
+          id
           kind
-          recordingID
           episodeTitle
           seasonNumber
           episodeNumber
@@ -75,7 +77,7 @@ function ShowListingComponent(props: any) {
         <ShowHeader />
         <TableBody>
           {shows.map((show, index) => (
-            <ShowRow key={show.recordingID} show={show} />
+            <ShowRow key={show.id} show={show} />
           ))}
           {isLoadingMore && (
             <TableRow ref={lastRowRef} key="lastRowRef">
@@ -107,7 +109,7 @@ export default function ShowListing(props: any) {
     return <div>Error!</div>;
   }
 
-  const showListing: Show[] = data.tivos[0].recordings;
+  const showListing: Show[] = data.tivos[0].shows;
 
   const loadMoreData = () => {
     setIsLoadingMore(true);

@@ -56,7 +56,7 @@ function EpisodeRows(props: any) {
     <React.Fragment>
       {(show as Series).episodes?.map((episode) => (
         <ShowRow
-          key={episode.recordingID}
+          key={episode.id}
           show={{ ...show, ...episode }} />
       ))}
     </React.Fragment>

@@ -13,6 +13,7 @@ import (
 
 type Show interface {
 	IsShow()
+	GetID() string
 	GetKind() ShowKind
 	GetTitle() string
 	GetRecordedOn() time.Time
@@ -20,9 +21,9 @@ type Show interface {
 }
 
 type Episode struct {
+	ID                 string    `json:"id"`
+	SeriesID           string    `json:"seriesId"`
 	Kind               ShowKind  `json:"kind"`
-	RecordingID        string    `json:"recordingId"`
-	CollectionID       string    `json:"collectionId"`
 	Title              string    `json:"title"`
 	RecordedOn         time.Time `json:"recordedOn"`
 	Description        string    `json:"description"`
@@ -34,6 +35,7 @@ type Episode struct {
 }
 
 func (Episode) IsShow()                       {}
+func (this Episode) GetID() string            { return this.ID }
 func (this Episode) GetKind() ShowKind        { return this.Kind }
 func (this Episode) GetTitle() string         { return this.Title }
 func (this Episode) GetRecordedOn() time.Time { return this.RecordedOn }
@@ -52,8 +54,8 @@ type EpisodeFilter struct {
 }
 
 type Movie struct {
+	ID          string    `json:"id"`
 	Kind        ShowKind  `json:"kind"`
-	RecordingID string    `json:"recordingId"`
 	Title       string    `json:"title"`
 	RecordedOn  time.Time `json:"recordedOn"`
 	Description string    `json:"description"`
@@ -61,6 +63,7 @@ type Movie struct {
 }
 
 func (Movie) IsShow()                       {}
+func (this Movie) GetID() string            { return this.ID }
 func (this Movie) GetKind() ShowKind        { return this.Kind }
 func (this Movie) GetTitle() string         { return this.Title }
 func (this Movie) GetRecordedOn() time.Time { return this.RecordedOn }
@@ -75,15 +78,16 @@ type MovieFilter struct {
 }
 
 type Series struct {
-	Kind         ShowKind   `json:"kind"`
-	CollectionID string     `json:"collectionId"`
-	Title        string     `json:"title"`
-	RecordedOn   time.Time  `json:"recordedOn"`
-	Description  string     `json:"description"`
-	Episodes     []*Episode `json:"episodes"`
+	ID          string     `json:"id"`
+	Kind        ShowKind   `json:"kind"`
+	Title       string     `json:"title"`
+	RecordedOn  time.Time  `json:"recordedOn"`
+	Description string     `json:"description"`
+	Episodes    []*Episode `json:"episodes"`
 }
 
 func (Series) IsShow()                       {}
+func (this Series) GetID() string            { return this.ID }
 func (this Series) GetKind() ShowKind        { return this.Kind }
 func (this Series) GetTitle() string         { return this.Title }
 func (this Series) GetRecordedOn() time.Time { return this.RecordedOn }

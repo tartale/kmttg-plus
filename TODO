@@ -3,9 +3,9 @@
 [x] beacon
 [x] get tivos
 [x] get recordings
+[x] cache recording data
 [] show metadata
 [] multiple tivos
-[] cache recording data
 [] sorting
   [] by name
   [] by recording date
@@ -13,7 +13,7 @@
   [] by show
   [] by series
 [] filtering
-  [] title/description
+  [x] title/description
   [] watched
 [] configuration via UI
 [] jobs

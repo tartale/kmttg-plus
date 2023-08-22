@@ -30,8 +30,8 @@ func NewMovie(recordingDetails *message.RecordingItem) (*model.Movie, error) {
 	}
 
 	return &model.Movie{
+		ID:          recordingDetails.RecordingID,
 		Kind:        model.ShowKindMovie,
-		RecordingID: recordingDetails.RecordingID,
 		Title:       recordingDetails.Title,
 		RecordedOn:  recordingDetails.StartTime.Time,
 		Description: recordingDetails.Description,
@@ -45,11 +45,11 @@ func NewSeries(recordingDetails *message.RecordingItem, collectionDetails *messa
 	}
 
 	return &model.Series{
-		Kind:         model.ShowKindEpisode,
-		CollectionID: recordingDetails.CollectionID,
-		Title:        recordingDetails.Title,
-		RecordedOn:   recordingDetails.StartTime.Time,
-		Description:  collectionDetails.Description,
+		ID:          recordingDetails.CollectionID,
+		Kind:        model.ShowKindEpisode,
+		Title:       recordingDetails.Title,
+		RecordedOn:  recordingDetails.StartTime.Time,
+		Description: collectionDetails.Description,
 	}, nil
 }
 
@@ -63,9 +63,9 @@ func NewEpisode(recordingDetails *message.RecordingItem, collectionDetails *mess
 		episodeNumber = recordingDetails.EpisodeNum[0]
 	}
 	return &model.Episode{
+		ID:                 recordingDetails.RecordingID,
+		SeriesID:           recordingDetails.CollectionID,
 		Kind:               model.ShowKindEpisode,
-		RecordingID:        recordingDetails.RecordingID,
-		CollectionID:       collectionDetails.CollectionID,
 		Title:              recordingDetails.Title,
 		RecordedOn:         recordingDetails.StartTime.Time,
 		Description:        collectionDetails.Description,
@@ -92,12 +92,12 @@ func MergeEpisodes(shows []model.Show) []model.Show {
 				}
 			} else {
 				combinedShowsMap[episode.Title] = &model.Series{
-					Kind:         model.ShowKindSeries,
-					CollectionID: episode.CollectionID,
-					Title:        episode.Title,
-					RecordedOn:   episode.RecordedOn,
-					Description:  episode.Description,
-					Episodes:     []*model.Episode{episode},
+					ID:          episode.SeriesID,
+					Kind:        model.ShowKindSeries,
+					Title:       episode.Title,
+					RecordedOn:  episode.RecordedOn,
+					Description: episode.Description,
+					Episodes:    []*model.Episode{episode},
 				}
 			}
 		} else if show.GetKind() == model.ShowKindMovie {

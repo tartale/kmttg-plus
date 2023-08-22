@@ -48,7 +48,7 @@ type RecordingSearchResponseBody struct {
 
 type RecordingItem struct {
 	BodyID          string         `json:"bodyId,omitempty"`
-	RecordingID     string         `json:"recordingID,omitempty"`
+	RecordingID     string         `json:"recordingId,omitempty"`
 	CollectionID    string         `json:"collectionId,omitempty"`
 	CollectionType  CollectionType `json:"collectionType,omitempty"`
 	Description     string         `json:"description,omitempty"`

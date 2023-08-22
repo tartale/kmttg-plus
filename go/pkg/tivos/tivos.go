@@ -72,8 +72,6 @@ func List(ctx context.Context) []*model.Tivo {
 	var list []*model.Tivo
 	tivoFilterFn := apicontext.TivoFilterFn(ctx)
 	showFilterFn := apicontext.ShowFilterFn(ctx)
-	offsetCountdown := apicontext.ShowOffset(ctx)
-	limitCountdown := apicontext.ShowLimit(ctx)
 
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
 		if tivoFilterFn != nil && !tivoFilterFn(val) {
@@ -83,6 +81,8 @@ func List(ctx context.Context) []*model.Tivo {
 		list = append(list, &tivo)
 
 		tivo.Shows = []model.Show{}
+		offsetCountdown := apicontext.ShowOffset(ctx)
+		limitCountdown := apicontext.ShowLimit(ctx)
 		for _, show := range val.Shows {
 			if limitCountdown == 0 {
 				break

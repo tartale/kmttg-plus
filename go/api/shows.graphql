@@ -5,6 +5,7 @@ enum ShowKind {
 }
 
 interface Show {
+  id: ID!
   kind: ShowKind!
   title: String!
   recordedOn: Time!
@@ -13,8 +14,8 @@ interface Show {
 
 # Movies are any show that is a single program, which includes both cinema and one-off specials.
 type Movie implements Show {
+  id: ID!
   kind: ShowKind!
-  recordingId: String! 
   title: String!
   recordedOn: Time!
   description: String!
@@ -24,8 +25,8 @@ type Movie implements Show {
 
 # A series is any show with multiple seasons/episodes.
 type Series implements Show {
+  id: ID!
   kind: ShowKind!
-  collectionId: String!
   title: String!
   recordedOn: Time!
   description: String!
@@ -34,9 +35,9 @@ type Series implements Show {
 }
 
 type Episode implements Show {
+  id: ID!
+  seriesId: ID!
   kind: ShowKind!
-  recordingId: String!
-  collectionId: String!
   title: String!
   recordedOn: Time!
   description: String!
