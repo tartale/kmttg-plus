@@ -41,8 +41,8 @@ func (t *TivoClient) GetShows(ctx context.Context) ([]model.Show, error) {
 
 	var result []model.Show
 	ctx = apicontext.Wrap(ctx).
-		WithOffset(0).
-		WithLimit(maxLimitValue)
+		WithShowOffset(0).
+		WithShowLimit(maxLimitValue)
 
 	for {
 		shows, nextOffset, err := t.getShowsPage(ctx)
@@ -53,7 +53,7 @@ func (t *TivoClient) GetShows(ctx context.Context) ([]model.Show, error) {
 		if nextOffset < 0 {
 			break
 		}
-		ctx = apicontext.Wrap(ctx).WithOffset(nextOffset)
+		ctx = apicontext.Wrap(ctx).WithShowOffset(nextOffset)
 	}
 	result = shows.MergeEpisodes(result)
 
@@ -86,10 +86,10 @@ func (t *TivoClient) getShowsPage(ctx context.Context) (shows []model.Show, next
 		shows = append(shows, show)
 	}
 	showCount := len(shows)
-	if showCount < apicontext.Limit(ctx) {
+	if showCount < apicontext.ShowLimit(ctx) {
 		nextOffset = -1
 	} else {
-		nextOffset = apicontext.Offset(ctx) + showCount
+		nextOffset = apicontext.ShowOffset(ctx) + showCount
 	}
 
 	return

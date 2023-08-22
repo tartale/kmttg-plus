@@ -13,6 +13,9 @@ func NewTivoFilterFn(f []*TivoFilter) TivoFilterFn {
 
 	return func(t *Tivo) bool {
 
+		if len(f) == 0 {
+			return true
+		}
 		expression := filter.GetExpression(f)
 		values := filter.GetValues(f, t)
 		eval, err := gval.Evaluate(expression, values)
@@ -31,6 +34,9 @@ func NewShowFilterFn(sf []*ShowFilter) ShowFilterFn {
 
 	return func(s Show) bool {
 
+		if len(sf) == 0 {
+			return true
+		}
 		expression := filter.GetExpression(sf)
 		values := filter.GetValues(sf, s)
 		eval, err := gval.Evaluate(expression, values)

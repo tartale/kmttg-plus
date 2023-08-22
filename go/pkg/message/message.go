@@ -79,8 +79,8 @@ func (t *TivoMessage) WithGetShowsRequest(ctx context.Context, bodyID string) *T
 	body := &RecordingFolderItemSearchRequestBody{
 		Type:    TypeRecordingFolderItemSearch,
 		BodyID:  bodyID,
-		Offset:  primitive.Ref(apicontext.Offset(ctx)),
-		Count:   primitive.Ref(apicontext.Limit(ctx)),
+		Offset:  primitive.Ref(apicontext.ShowOffset(ctx)),
+		Count:   primitive.Ref(apicontext.ShowLimit(ctx)),
 		Flatten: primitive.Ref(true),
 	}
 	t.Body = body
@@ -99,8 +99,8 @@ func (t *TivoMessage) WithGetRecordingListRequest(ctx context.Context, bodyID st
 	body := &RecordingFolderItemSearchRequestBody{
 		Type:    TypeRecordingFolderItemSearch,
 		BodyID:  bodyID,
-		Offset:  primitive.Ref(apicontext.Offset(ctx)),
-		Count:   primitive.Ref(apicontext.Limit(ctx)),
+		Offset:  primitive.Ref(apicontext.ShowOffset(ctx)),
+		Count:   primitive.Ref(apicontext.ShowLimit(ctx)),
 		Flatten: primitive.Ref(true),
 	}
 	t.Body = body
@@ -155,8 +155,8 @@ func (t *TivoMessage) WithGetEpisodesRequest(ctx context.Context, bodyID string)
 	body := &RecordingFolderItemSearchRequestBody{
 		Type:    TypeRecordingFolderItemSearch,
 		BodyID:  bodyID,
-		Offset:  primitive.Ref(apicontext.Offset(ctx)),
-		Count:   primitive.Ref(apicontext.Limit(ctx)),
+		Offset:  primitive.Ref(apicontext.ShowOffset(ctx)),
+		Count:   primitive.Ref(apicontext.ShowLimit(ctx)),
 		Flatten: primitive.Ref(true),
 	}
 	t.Body = body

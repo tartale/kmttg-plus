@@ -10,10 +10,10 @@ import (
 type ContextKey string
 
 const (
-	OffsetKey     ContextKey = "offset"
-	LimitKey      ContextKey = "limit"
 	TivoFilterKey ContextKey = "tivoFilter"
 	ShowFilterKey ContextKey = "showFilter"
+	ShowOffsetKey ContextKey = "showOffset"
+	ShowLimitKey  ContextKey = "showLimit"
 
 	DefaultOffset = 0
 	DefaultLimit  = 25
@@ -29,12 +29,12 @@ func Wrap(ctx context.Context) APIContext {
 	}
 }
 
-func (a APIContext) WithOffset(offset int) APIContext {
-	return Wrap(context.WithValue(a, OffsetKey, offset))
+func (a APIContext) WithShowOffset(offset int) APIContext {
+	return Wrap(context.WithValue(a, ShowOffsetKey, offset))
 }
 
-func (a APIContext) WithLimit(limit int) APIContext {
-	return Wrap(context.WithValue(a, LimitKey, limit))
+func (a APIContext) WithShowLimit(limit int) APIContext {
+	return Wrap(context.WithValue(a, ShowLimitKey, limit))
 }
 
 func (a APIContext) WithTivoFilterFn(filter model.TivoFilterFn) APIContext {
@@ -74,19 +74,31 @@ func (a APIContext) GqlValue(path string, key ContextKey) any {
 	return nil
 }
 
-func Offset(ctx context.Context) int {
-	val := ctx.Value(OffsetKey)
+func ShowOffset(ctx context.Context) int {
+	val := ctx.Value(ShowOffsetKey)
 	if val != nil {
 		return val.(int)
 	}
+	val = Wrap(ctx).GqlValue("tivos.shows", "offset")
+	if val != nil {
+		v := val.(*int)
+		return *v
+	}
+
 	return DefaultOffset
 }
 
-func Limit(ctx context.Context) int {
-	val := ctx.Value(LimitKey)
+func ShowLimit(ctx context.Context) int {
+	val := ctx.Value(ShowLimitKey)
 	if val != nil {
 		return val.(int)
 	}
+	val = Wrap(ctx).GqlValue("tivos.shows", "limit")
+	if val != nil {
+		v := val.(*int)
+		return *v
+	}
+
 	return DefaultLimit
 }
 
