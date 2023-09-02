@@ -14,6 +14,7 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
+	"github.com/tartale/kmttg-plus/go/pkg/shows"
 	"go.uber.org/zap"
 )
 
@@ -94,7 +95,7 @@ func List(ctx context.Context) []*model.Tivo {
 			if showFilterFn != nil && !showFilterFn(show) {
 				continue
 			}
-			tivo.Shows = append(tivo.Shows, show)
+			tivo.Shows = append(tivo.Shows, shows.Cast(show))
 			limitCountdown--
 		}
 
