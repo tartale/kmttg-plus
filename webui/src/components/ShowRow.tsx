@@ -91,12 +91,13 @@ function DescriptionCell(props: any) {
 
   switch (show.kind) {
     case ShowKind.Movie:
+    case ShowKind.Series:
       return (
         <TableCell {...props} style={{ whiteSpace: 'normal' }}>{show.description}</TableCell>
       );
     case ShowKind.Episode:
       return (
-        <TableCell {...props} style={{ whiteSpace: 'normal' }}>{show.episodeDescription}</TableCell>
+        <TableCell {...props} style={{ whiteSpace: 'normal', paddingLeft: "3rem", paddingRight: "10rem" }}>{show.episodeDescription}</TableCell>
       );
     default:
       return (<TableCell {...props} style={{ whiteSpace: 'normal' }} />);

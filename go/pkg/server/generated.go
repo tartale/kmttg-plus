@@ -14,7 +14,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/tartale/kmttg-plus/go/pkg/filter"
+	"github.com/tartale/go/pkg/filter"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -62,6 +62,7 @@ type ComplexityRoot struct {
 	Movie struct {
 		Description func(childComplexity int) int
 		ID          func(childComplexity int) int
+		ImageURL    func(childComplexity int, width *int, height *int) int
 		Kind        func(childComplexity int) int
 		MovieYear   func(childComplexity int) int
 		RecordedOn  func(childComplexity int) int
@@ -76,6 +77,7 @@ type ComplexityRoot struct {
 		Description func(childComplexity int) int
 		Episodes    func(childComplexity int, filter []*model.EpisodeFilter, offset *int, limit *int) int
 		ID          func(childComplexity int) int
+		ImageURL    func(childComplexity int, width *int, height *int) int
 		Kind        func(childComplexity int) int
 		RecordedOn  func(childComplexity int) int
 		Title       func(childComplexity int) int
@@ -199,6 +201,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Movie.ID(childComplexity), true
 
+	case "Movie.imageURL":
+		if e.complexity.Movie.ImageURL == nil {
+			break
+		}
+
+		args, err := ec.field_Movie_imageURL_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Movie.ImageURL(childComplexity, args["width"].(*int), args["height"].(*int)), true
+
 	case "Movie.kind":
 		if e.complexity.Movie.Kind == nil {
 			break
@@ -264,6 +278,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Series.ID(childComplexity), true
+
+	case "Series.imageURL":
+		if e.complexity.Series.ImageURL == nil {
+			break
+		}
+
+		args, err := ec.field_Series_imageURL_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Series.ImageURL(childComplexity, args["width"].(*int), args["height"].(*int)), true
 
 	case "Series.kind":
 		if e.complexity.Series.Kind == nil {
@@ -436,7 +462,7 @@ directive @goField(
   name: String
 ) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
 
-input FilterOperator @goModel(model: "github.com/tartale/kmttg-plus/go/pkg/filter.Operator") {
+input FilterOperator @goModel(model: "github.com/tartale/go/pkg/filter.Operator") {
   eq: Any
   ne: Any
   lt: Any
@@ -444,8 +470,6 @@ input FilterOperator @goModel(model: "github.com/tartale/kmttg-plus/go/pkg/filte
   lte: Any
   gte: Any
   matches: Any
-  # and: Any
-  # or: Any
 }
 
 enum SortDirection {
@@ -491,6 +515,7 @@ type Movie implements Show {
   title: String!
   recordedOn: Time!
   description: String!
+  imageURL(width: Int, height: Int): String!
 
   movieYear: Int!
 }
@@ -502,18 +527,19 @@ type Series implements Show {
   title: String!
   recordedOn: Time!
   description: String!
+  imageURL(width: Int, height: Int): String!
 
   episodes(filter: [EpisodeFilter], offset: Int = 0, limit: Int = 25): [Episode!]!
 }
 
 type Episode implements Show {
   id: ID!
-  seriesId: ID!
   kind: ShowKind!
   title: String!
   recordedOn: Time!
   description: String!
 
+  seriesId: ID!
   originalAirDate: Date!
   seasonNumber: Int!
   episodeNumber: Int!
@@ -580,6 +606,30 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Movie_imageURL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["width"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("width"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["width"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["height"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["height"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -640,6 +690,30 @@ func (ec *executionContext) field_Series_episodes_args(ctx context.Context, rawA
 		}
 	}
 	args["limit"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Series_imageURL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["width"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("width"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["width"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["height"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["height"] = arg1
 	return args, nil
 }
 
@@ -746,50 +820,6 @@ func (ec *executionContext) _Episode_id(ctx context.Context, field graphql.Colle
 }
 
 func (ec *executionContext) fieldContext_Episode_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Episode",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Episode_seriesId(ctx context.Context, field graphql.CollectedField, obj *model.Episode) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Episode_seriesId(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SeriesID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Episode_seriesId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Episode",
 		Field:      field,
@@ -973,6 +1003,50 @@ func (ec *executionContext) fieldContext_Episode_description(ctx context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Episode_seriesId(ctx context.Context, field graphql.CollectedField, obj *model.Episode) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Episode_seriesId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SeriesID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Episode_seriesId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Episode",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1414,6 +1488,61 @@ func (ec *executionContext) fieldContext_Movie_description(ctx context.Context, 
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Movie_imageURL(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Movie_imageURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImageURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Movie_imageURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Movie",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Movie_imageURL_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1876,6 +2005,61 @@ func (ec *executionContext) fieldContext_Series_description(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Series_imageURL(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Series_imageURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImageURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Series_imageURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Series",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Series_imageURL_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Series_episodes(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Series_episodes(ctx, field)
 	if err != nil {
@@ -1917,8 +2101,6 @@ func (ec *executionContext) fieldContext_Series_episodes(ctx context.Context, fi
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Episode_id(ctx, field)
-			case "seriesId":
-				return ec.fieldContext_Episode_seriesId(ctx, field)
 			case "kind":
 				return ec.fieldContext_Episode_kind(ctx, field)
 			case "title":
@@ -1927,6 +2109,8 @@ func (ec *executionContext) fieldContext_Series_episodes(ctx context.Context, fi
 				return ec.fieldContext_Episode_recordedOn(ctx, field)
 			case "description":
 				return ec.fieldContext_Episode_description(ctx, field)
+			case "seriesId":
+				return ec.fieldContext_Episode_seriesId(ctx, field)
 			case "originalAirDate":
 				return ec.fieldContext_Episode_originalAirDate(ctx, field)
 			case "seasonNumber":
@@ -3930,7 +4114,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3939,7 +4123,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3948,7 +4132,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3957,7 +4141,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3966,7 +4150,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originalAirDate"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3975,7 +4159,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("seasonNumber"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3984,7 +4168,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeNumber"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3993,7 +4177,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeTitle"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4002,7 +4186,7 @@ func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeDescription"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4114,7 +4298,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4123,7 +4307,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4132,7 +4316,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4141,7 +4325,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4150,7 +4334,7 @@ func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj i
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("movieYear"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4179,7 +4363,7 @@ func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4188,7 +4372,7 @@ func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4197,7 +4381,7 @@ func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4206,7 +4390,7 @@ func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4235,7 +4419,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4244,7 +4428,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4253,7 +4437,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4262,7 +4446,7 @@ func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4376,7 +4560,7 @@ func (ec *executionContext) unmarshalInputTivoFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4441,11 +4625,6 @@ func (ec *executionContext) _Episode(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "seriesId":
-			out.Values[i] = ec._Episode_seriesId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "kind":
 			out.Values[i] = ec._Episode_kind(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4463,6 +4642,11 @@ func (ec *executionContext) _Episode(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "description":
 			out.Values[i] = ec._Episode_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "seriesId":
+			out.Values[i] = ec._Episode_seriesId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4547,6 +4731,11 @@ func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "description":
 			out.Values[i] = ec._Movie_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "imageURL":
+			out.Values[i] = ec._Movie_imageURL(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4683,6 +4872,11 @@ func (ec *executionContext) _Series(ctx context.Context, sel ast.SelectionSet, o
 			}
 		case "description":
 			out.Values[i] = ec._Series_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "imageURL":
+			out.Values[i] = ec._Series_imageURL(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -5675,7 +5869,7 @@ func (ec *executionContext) unmarshalOEpisodeFilter2ᚖgithubᚗcomᚋtartaleᚋ
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋfilterᚐOperator(ctx context.Context, v interface{}) (*filter.Operator, error) {
+func (ec *executionContext) unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx context.Context, v interface{}) (*filter.Operator, error) {
 	if v == nil {
 		return nil, nil
 	}

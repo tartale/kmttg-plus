@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tartale/kmttg-plus/go/pkg/filter"
+	"github.com/tartale/go/pkg/filter"
 )
 
 type Show interface {
@@ -22,11 +22,11 @@ type Show interface {
 
 type Episode struct {
 	ID                 string    `json:"id"`
-	SeriesID           string    `json:"seriesId"`
 	Kind               ShowKind  `json:"kind"`
 	Title              string    `json:"title"`
 	RecordedOn         time.Time `json:"recordedOn"`
 	Description        string    `json:"description"`
+	SeriesID           string    `json:"seriesId"`
 	OriginalAirDate    string    `json:"originalAirDate"`
 	SeasonNumber       int       `json:"seasonNumber"`
 	EpisodeNumber      int       `json:"episodeNumber"`
@@ -59,6 +59,7 @@ type Movie struct {
 	Title       string    `json:"title"`
 	RecordedOn  time.Time `json:"recordedOn"`
 	Description string    `json:"description"`
+	ImageURL    string    `json:"imageURL"`
 	MovieYear   int       `json:"movieYear"`
 }
 
@@ -83,6 +84,7 @@ type Series struct {
 	Title       string     `json:"title"`
 	RecordedOn  time.Time  `json:"recordedOn"`
 	Description string     `json:"description"`
+	ImageURL    string     `json:"imageURL"`
 	Episodes    []*Episode `json:"episodes"`
 }
 

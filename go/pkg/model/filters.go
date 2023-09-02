@@ -2,7 +2,7 @@ package model
 
 import (
 	"github.com/PaesslerAG/gval"
-	"github.com/tartale/kmttg-plus/go/pkg/filter"
+	"github.com/tartale/go/pkg/filter"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"go.uber.org/zap"
 )
