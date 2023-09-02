@@ -13,10 +13,10 @@ func New(recordingDetails *message.RecordingItem, collectionDetails *message.Col
 
 	switch recordingDetails.CollectionType {
 	case message.CollectionTypeSeries:
-		return NewEpisode(recordingDetails, collectionDetails)
+		return newEpisode(recordingDetails, collectionDetails)
 
 	case message.CollectionTypeMovie, message.CollectionTypeSpecial:
-		return NewMovie(recordingDetails)
+		return newMovie(recordingDetails)
 
 	default:
 		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingDetails.CollectionType)))
@@ -24,36 +24,45 @@ func New(recordingDetails *message.RecordingItem, collectionDetails *message.Col
 
 }
 
-func NewMovie(recordingDetails *message.RecordingItem) (*model.Movie, error) {
+type movie struct {
+	*model.Movie
+	recordingDetails *message.RecordingItem
+}
+
+func newMovie(recordingDetails *message.RecordingItem) (*movie, error) {
 	if recordingDetails.CollectionType != message.CollectionTypeMovie && recordingDetails.CollectionType != message.CollectionTypeSpecial {
 		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingDetails.CollectionType)))
 	}
 
-	return &model.Movie{
-		ID:          recordingDetails.RecordingID,
-		Kind:        model.ShowKindMovie,
-		Title:       recordingDetails.Title,
-		RecordedOn:  recordingDetails.StartTime.Time,
-		Description: recordingDetails.Description,
-		MovieYear:   recordingDetails.MovieYear,
+	return &movie{
+		Movie: &model.Movie{
+			ID:          recordingDetails.RecordingID,
+			Kind:        model.ShowKindMovie,
+			Title:       recordingDetails.Title,
+			RecordedOn:  recordingDetails.StartTime.Time,
+			Description: recordingDetails.Description,
+			MovieYear:   recordingDetails.MovieYear,
+		},
+		recordingDetails: recordingDetails,
 	}, nil
+
+	// return &model.Movie{
+	// 	ID:          recordingDetails.RecordingID,
+	// 	Kind:        model.ShowKindMovie,
+	// 	Title:       recordingDetails.Title,
+	// 	RecordedOn:  recordingDetails.StartTime.Time,
+	// 	Description: recordingDetails.Description,
+	// 	MovieYear:   recordingDetails.MovieYear,
+	// }, nil
 }
 
-func NewSeries(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (*model.Series, error) {
-	if recordingDetails.CollectionType != message.CollectionTypeSeries {
-		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingDetails.CollectionType)))
-	}
-
-	return &model.Series{
-		ID:          recordingDetails.CollectionID,
-		Kind:        model.ShowKindEpisode,
-		Title:       recordingDetails.Title,
-		RecordedOn:  recordingDetails.StartTime.Time,
-		Description: collectionDetails.Description,
-	}, nil
+type episode struct {
+	*model.Series
+	recordingDetails  *message.RecordingItem
+	collectionDetails *message.CollectionItem
 }
 
-func NewEpisode(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (*model.Episode, error) {
+func newEpisode(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (*model.Episode, error) {
 	if recordingDetails.CollectionType != message.CollectionTypeSeries {
 		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingDetails.CollectionType)))
 	}
