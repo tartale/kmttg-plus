@@ -13,7 +13,7 @@ require (
 	github.com/rs/cors v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
-	github.com/tartale/go v0.0.0-20230902214414-7c9fe810d77f
+	github.com/tartale/go v0.0.0-20230904004123-1485a2dde114
 	github.com/vektah/gqlparser/v2 v2.5.8
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.12.0

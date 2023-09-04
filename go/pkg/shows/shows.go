@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/tartale/go/pkg/mathx"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 )
 
 func New(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (model.Show, error) {
@@ -18,7 +20,7 @@ func New(recordingDetails *message.RecordingItem, collectionDetails *message.Col
 		return newEpisode(recordingDetails, collectionDetails)
 
 	case message.CollectionTypeMovie, message.CollectionTypeSpecial:
-		return newMovie(recordingDetails)
+		return newMovie(recordingDetails, collectionDetails)
 
 	default:
 		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingDetails.CollectionType)))
@@ -26,7 +28,37 @@ func New(recordingDetails *message.RecordingItem, collectionDetails *message.Col
 
 }
 
-func Cast(show model.Show) model.Show {
+func WithImageURL(show model.Show, width, height int) model.Show {
+
+	if width == 0 || height == 0 {
+		return show
+	}
+
+	var result model.Show
+
+	switch show.GetKind() {
+	case model.ShowKindMovie:
+		movie := *(show.(*movie))
+		images := movie.collectionDetails.Images
+		bestImage := findBestImage(images, width, height)
+		movie.ImageURL = bestImage.ImageURL
+		result = &movie
+
+	case model.ShowKindSeries:
+		series := *(show.(*series))
+		images := series.collectionDetails.Images
+		bestImage := findBestImage(images, width, height)
+		series.ImageURL = bestImage.ImageURL
+		result = &series
+
+	case model.ShowKindEpisode:
+		return show
+	}
+
+	return result
+}
+
+func AsAPIType(show model.Show) model.Show {
 	switch show.GetKind() {
 	case model.ShowKindMovie:
 		return show.(*movie).Movie
@@ -35,7 +67,7 @@ func Cast(show model.Show) model.Show {
 	case model.ShowKindEpisode:
 		return show.(*episode).Episode
 	}
-	logz.Logger.Warn("unable to cast show to underlying type", zap.Any("kind", show.GetKind()))
+	logz.Logger.Warn("unable to cast show to API type", zap.Any("kind", show.GetKind()), zap.String("showTitle", show.GetTitle()))
 
 	return show
 }
@@ -75,10 +107,11 @@ func MergeEpisodes(shows []model.Show) []model.Show {
 
 type movie struct {
 	*model.Movie
-	recordingDetails *message.RecordingItem
+	recordingDetails  *message.RecordingItem
+	collectionDetails *message.CollectionItem
 }
 
-func newMovie(recordingDetails *message.RecordingItem) (*movie, error) {
+func newMovie(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (*movie, error) {
 	if recordingDetails.CollectionType != message.CollectionTypeMovie && recordingDetails.CollectionType != message.CollectionTypeSpecial {
 		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingDetails.CollectionType)))
 	}
@@ -92,7 +125,8 @@ func newMovie(recordingDetails *message.RecordingItem) (*movie, error) {
 			Description: recordingDetails.Description,
 			MovieYear:   recordingDetails.MovieYear,
 		},
-		recordingDetails: recordingDetails,
+		recordingDetails:  recordingDetails,
+		collectionDetails: collectionDetails,
 	}, nil
 }
 
@@ -151,4 +185,16 @@ func newEpisode(recordingDetails *message.RecordingItem, collectionDetails *mess
 		recordingDetails:  recordingDetails,
 		collectionDetails: collectionDetails,
 	}, nil
+}
+
+func findBestImage(images []message.CollectionImage, width, height int) message.CollectionImage {
+
+	slices.SortFunc(images, func(a, b message.CollectionImage) int {
+		differenceA := mathx.Abs(a.Height-height) + mathx.Abs(a.Width-width)
+		differenceB := mathx.Abs(b.Height-height) + mathx.Abs(b.Width-width)
+
+		return differenceA - differenceB
+	})
+
+	return images[0]
 }
