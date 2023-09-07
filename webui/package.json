@@ -35,11 +35,10 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "relay-compiler --validate && react-scripts build",
+    "build": "react-scripts build",
     "deploy": "rm -rf ../go/dist/webui && cp -Rf build/. ../go/dist/webui",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "relay": "relay-compiler",
     "graphql-codegen": "graphql-codegen --config codegen.ts",
     "watch-codegen": "graphql-codegen --config codegen.ts --watch 'src/services/**/*.graphql'"
   },

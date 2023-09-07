@@ -10,20 +10,21 @@ import (
 	"github.com/tartale/go/pkg/generics"
 	"github.com/tartale/go/pkg/gqlgen"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
+	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"go.uber.org/zap"
 )
 
-var ErrInvalidArgument = func(argName, expectedType string) error {
-	return fmt.Errorf("invalid argument '%s'; expected type: %s", argName, expectedType)
-}
-
 func NewFilters(ctx context.Context) ([]*model.ShowFilter, error) {
 
 	val, err := gqlgen.GetArgValueE[[]*model.ShowFilter](ctx, apicontext.ShowFiltersKey)
 	if err != nil && errors.Is(err, generics.ErrInvalidType) {
-		return nil, ErrInvalidArgument(apicontext.ShowFiltersKey.Name, "[ShowFilter]")
+		return nil, fmt.Errorf("%w '%s'; expected type: %s", errorz.ErrInvalidArgument,
+			apicontext.ShowFiltersKey.Name, "[ShowFilter]")
+	}
+	if err != nil && errors.Is(err, gqlgen.ErrNotFound) {
+		return nil, nil
 	}
 	if err != nil {
 		return nil, err

@@ -31,7 +31,7 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 		return err
 	}
 	if authResponseBody.Status != message.StatusTypeSuccess {
-		return errorz.ErrNotAuthenticated(authResponseBody.Message)
+		return fmt.Errorf("%w: %s", errorz.ErrAuthenticationFailed, authResponseBody.Message)
 	}
 
 	return nil
@@ -76,7 +76,7 @@ func (t *TivoClient) getShowsPage(ctx context.Context) (shows []model.Show, next
 	}
 	if responseBody.Type != message.TypeRecordingFolderItemList {
 		logz.Logger.Warn("tivo error response", zap.Any("request", request), zap.Any("response", responseBody))
-		return nil, 0, errorz.ErrResponse(fmt.Sprintf("unexpected response type: %s", responseBody.Type))
+		return nil, 0, fmt.Errorf("%w: unexpected response type: %s", errorz.ErrResponse, responseBody.Type)
 	}
 	for _, recording := range responseBody.RecordingFolderItem {
 		show, err := t.getShowDetails(ctx, recording)
@@ -130,11 +130,11 @@ func (t *TivoClient) getRecordingDetails(ctx context.Context, recordingFolderIte
 	}
 	if responseBody.Type != message.TypeRecordingList {
 		logz.Logger.Error("tivo error response", zap.Any("responseBody", responseBody))
-		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected response type: %s", responseBody.Type))
+		return nil, fmt.Errorf("%w: unexpected response type: %s", errorz.ErrResponse, responseBody.Type)
 	}
 	recordingCount := len(responseBody.Recording)
 	if recordingCount != 1 {
-		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected number of recordings in response: %d", recordingCount))
+		return nil, fmt.Errorf("%w: unexpected number of recordings in response: %d", errorz.ErrResponse, recordingCount)
 	}
 	recording := responseBody.Recording[0]
 	recording.RecordingID = recordingFolderItem.ChildRecordingID
@@ -159,11 +159,11 @@ func (t *TivoClient) getCollectionDetails(ctx context.Context, collectionIDs []s
 	}
 	if responseBody.Type != message.TypeCollectionList {
 		logz.Logger.Error("tivo error response", zap.Any("responseBody", responseBody))
-		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected response type: %s", responseBody.Type))
+		return nil, fmt.Errorf("%w: unexpected response type: %s", errorz.ErrResponse, responseBody.Type)
 	}
 	collectionCount := len(responseBody.Collection)
 	if collectionCount != len(collectionIDs) {
-		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected number of collection items in response: %d", collectionCount))
+		return nil, fmt.Errorf("%w: unexpected number of collection items in response: %d", errorz.ErrResponse, collectionCount)
 	}
 
 	return responseBody.Collection, nil

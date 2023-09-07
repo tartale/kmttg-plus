@@ -23,7 +23,8 @@ func New(recordingDetails *message.RecordingItem, collectionDetails *message.Col
 		return newMovie(recordingDetails, collectionDetails)
 
 	default:
-		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingDetails.CollectionType)))
+		return nil, fmt.Errorf("%w: unexpected collection type: %s",
+			errorz.ErrResponse, recordingDetails.CollectionType)
 	}
 
 }
@@ -67,7 +68,8 @@ func AsAPIType(show model.Show) model.Show {
 	case model.ShowKindEpisode:
 		return show.(*episode).Episode
 	}
-	logz.Logger.Warn("unable to cast show to API type", zap.Any("kind", show.GetKind()), zap.String("showTitle", show.GetTitle()))
+	logz.Logger.Warn("unable to cast show to API type",
+		zap.Any("kind", show.GetKind()), zap.String("showTitle", show.GetTitle()))
 
 	return show
 }
@@ -113,7 +115,8 @@ type movie struct {
 
 func newMovie(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (*movie, error) {
 	if recordingDetails.CollectionType != message.CollectionTypeMovie && recordingDetails.CollectionType != message.CollectionTypeSpecial {
-		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingDetails.CollectionType)))
+		return nil, fmt.Errorf("%w: unexpected collection type: %s",
+			errorz.ErrResponse, recordingDetails.CollectionType)
 	}
 
 	return &movie{
@@ -160,7 +163,8 @@ type episode struct {
 
 func newEpisode(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (*episode, error) {
 	if recordingDetails.CollectionType != message.CollectionTypeSeries {
-		return nil, errorz.ErrResponse(fmt.Sprintf("unexpected collection type: %s", string(recordingDetails.CollectionType)))
+		return nil, fmt.Errorf("%w: unexpected collection type: %s",
+			errorz.ErrResponse, recordingDetails.CollectionType)
 	}
 
 	var episodeNumber int

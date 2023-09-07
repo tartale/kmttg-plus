@@ -58,10 +58,17 @@ export type Movie = Show & {
   __typename?: 'Movie';
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+  imageURL: Scalars['String']['output'];
   kind: ShowKind;
   movieYear: Scalars['Int']['output'];
   recordedOn: Scalars['Time']['output'];
   title: Scalars['String']['output'];
+};
+
+
+export type MovieImageUrlArgs = {
+  height?: InputMaybe<Scalars['Int']['input']>;
+  width?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type MovieFilter = {
@@ -79,7 +86,7 @@ export type Query = {
 
 
 export type QueryTivosArgs = {
-  filter?: InputMaybe<Array<InputMaybe<TivoFilter>>>;
+  filters?: InputMaybe<Array<InputMaybe<TivoFilter>>>;
 };
 
 export type Series = Show & {
@@ -87,6 +94,7 @@ export type Series = Show & {
   description: Scalars['String']['output'];
   episodes: Array<Episode>;
   id: Scalars['ID']['output'];
+  imageURL: Scalars['String']['output'];
   kind: ShowKind;
   recordedOn: Scalars['Time']['output'];
   title: Scalars['String']['output'];
@@ -97,6 +105,12 @@ export type SeriesEpisodesArgs = {
   filter?: InputMaybe<Array<InputMaybe<EpisodeFilter>>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type SeriesImageUrlArgs = {
+  height?: InputMaybe<Scalars['Int']['input']>;
+  width?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type SeriesFilter = {
@@ -153,7 +167,7 @@ export type Tivo = {
 
 
 export type TivoShowsArgs = {
-  filter?: InputMaybe<Array<InputMaybe<ShowFilter>>>;
+  filters?: InputMaybe<Array<InputMaybe<ShowFilter>>>;
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 };

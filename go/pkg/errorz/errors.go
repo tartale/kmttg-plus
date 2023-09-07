@@ -2,22 +2,10 @@ package errorz
 
 import (
 	"errors"
-	"fmt"
 )
 
-func ErrNotAuthenticated(message string) error {
-
-	return fmt.Errorf("authentication failed: %s", message)
-}
-
-func ErrResponse(message string) error {
-
-	return fmt.Errorf("error in tivo response: %s", message)
-}
-
+var ErrAuthenticationFailed = errors.New("authentication failed")
 var ErrReconnected error = errors.New("connection was restarted")
-
-func ErrBadRequest(message string) error {
-
-	return fmt.Errorf("bad request: %s", message)
-}
+var ErrResponse = errors.New("response error")
+var ErrInvalidArgument = errors.New("invalid argument")
+var ErrBadRequest = errors.New("bad request")
