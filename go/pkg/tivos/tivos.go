@@ -74,8 +74,8 @@ func List(ctx context.Context) []*model.Tivo {
 	tivoFilterFn := apicontext.TivoFilterFn(ctx)
 	showFilterFn := apicontext.ShowFilterFn(ctx)
 
-	imageURLWidth := apicontext.ImageURLWidth(ctx)
-	imageURLHeight := apicontext.ImageURLHeight(ctx)
+	imageURLWidth := apicontext.ShowImageURLWidth(ctx)
+	imageURLHeight := apicontext.ShowImageURLHeight(ctx)
 
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
 		if tivoFilterFn != nil && !tivoFilterFn(val) {

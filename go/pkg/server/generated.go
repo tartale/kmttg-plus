@@ -70,7 +70,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Tivos func(childComplexity int, filter []*model.TivoFilter) int
+		Tivos func(childComplexity int, filters []*model.TivoFilter) int
 	}
 
 	Series struct {
@@ -86,13 +86,13 @@ type ComplexityRoot struct {
 	Tivo struct {
 		Address func(childComplexity int) int
 		Name    func(childComplexity int) int
-		Shows   func(childComplexity int, filter []*model.ShowFilter, offset *int, limit *int) int
+		Shows   func(childComplexity int, filters []*model.ShowFilter, offset *int, limit *int) int
 		Tsn     func(childComplexity int) int
 	}
 }
 
 type QueryResolver interface {
-	Tivos(ctx context.Context, filter []*model.TivoFilter) ([]*model.Tivo, error)
+	Tivos(ctx context.Context, filters []*model.TivoFilter) ([]*model.Tivo, error)
 }
 
 type executableSchema struct {
@@ -251,7 +251,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Tivos(childComplexity, args["filter"].([]*model.TivoFilter)), true
+		return e.complexity.Query.Tivos(childComplexity, args["filters"].([]*model.TivoFilter)), true
 
 	case "Series.description":
 		if e.complexity.Series.Description == nil {
@@ -336,7 +336,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Tivo.Shows(childComplexity, args["filter"].([]*model.ShowFilter), args["offset"].(*int), args["limit"].(*int)), true
+		return e.complexity.Tivo.Shows(childComplexity, args["filters"].([]*model.ShowFilter), args["offset"].(*int), args["limit"].(*int)), true
 
 	case "Tivo.tsn":
 		if e.complexity.Tivo.Tsn == nil {
@@ -487,7 +487,7 @@ input Sorter {
 }
 `, BuiltIn: false},
 	{Name: "../../api/schema.graphql", Input: `type Query {
-  tivos(filter: [TivoFilter]): [Tivo!]!
+  tivos(filters: [TivoFilter]): [Tivo!]!
 }
 
 schema {
@@ -592,7 +592,7 @@ type Tivo {
   # The serial number of the Tivo. This value is obtained via the ZeroConfig beacon.
   tsn: String!
   # Get a list of series and movies.
-  shows(filter: [ShowFilter], offset: Int = 0, limit: Int = 25): [Show]
+  shows(filters: [ShowFilter], offset: Int = 0, limit: Int = 25): [Show]
 }
 
 input TivoFilter {
@@ -649,14 +649,14 @@ func (ec *executionContext) field_Query_tivos_args(ctx context.Context, rawArgs 
 	var err error
 	args := map[string]interface{}{}
 	var arg0 []*model.TivoFilter
-	if tmp, ok := rawArgs["filter"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+	if tmp, ok := rawArgs["filters"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filters"))
 		arg0, err = ec.unmarshalOTivoFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivoFilter(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["filter"] = arg0
+	args["filters"] = arg0
 	return args, nil
 }
 
@@ -721,14 +721,14 @@ func (ec *executionContext) field_Tivo_shows_args(ctx context.Context, rawArgs m
 	var err error
 	args := map[string]interface{}{}
 	var arg0 []*model.ShowFilter
-	if tmp, ok := rawArgs["filter"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+	if tmp, ok := rawArgs["filters"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filters"))
 		arg0, err = ec.unmarshalOShowFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["filter"] = arg0
+	args["filters"] = arg0
 	var arg1 *int
 	if tmp, ok := rawArgs["offset"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
@@ -1605,7 +1605,7 @@ func (ec *executionContext) _Query_tivos(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Tivos(rctx, fc.Args["filter"].([]*model.TivoFilter))
+		return ec.resolvers.Query().Tivos(rctx, fc.Args["filters"].([]*model.TivoFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
