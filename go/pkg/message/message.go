@@ -8,7 +8,7 @@ import (
 	"io"
 
 	"github.com/tartale/go/pkg/jsontime"
-	"github.com/tartale/go/pkg/primitive"
+	"github.com/tartale/go/pkg/primitives"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 )
@@ -79,9 +79,9 @@ func (t *TivoMessage) WithGetShowsRequest(ctx context.Context, bodyID string) *T
 	body := &RecordingFolderItemSearchRequestBody{
 		Type:    TypeRecordingFolderItemSearch,
 		BodyID:  bodyID,
-		Offset:  primitive.Ref(apicontext.ShowOffset(ctx)),
-		Count:   primitive.Ref(apicontext.ShowLimit(ctx)),
-		Flatten: primitive.Ref(true),
+		Offset:  primitives.Ref(apicontext.ShowOffset(ctx)),
+		Count:   primitives.Ref(apicontext.ShowLimit(ctx)),
+		Flatten: primitives.Ref(true),
 	}
 	t.Body = body
 
@@ -99,9 +99,9 @@ func (t *TivoMessage) WithGetRecordingListRequest(ctx context.Context, bodyID st
 	body := &RecordingFolderItemSearchRequestBody{
 		Type:    TypeRecordingFolderItemSearch,
 		BodyID:  bodyID,
-		Offset:  primitive.Ref(apicontext.ShowOffset(ctx)),
-		Count:   primitive.Ref(apicontext.ShowLimit(ctx)),
-		Flatten: primitive.Ref(true),
+		Offset:  primitives.Ref(apicontext.ShowOffset(ctx)),
+		Count:   primitives.Ref(apicontext.ShowLimit(ctx)),
+		Flatten: primitives.Ref(true),
 	}
 	t.Body = body
 
@@ -155,9 +155,9 @@ func (t *TivoMessage) WithGetEpisodesRequest(ctx context.Context, bodyID string)
 	body := &RecordingFolderItemSearchRequestBody{
 		Type:    TypeRecordingFolderItemSearch,
 		BodyID:  bodyID,
-		Offset:  primitive.Ref(apicontext.ShowOffset(ctx)),
-		Count:   primitive.Ref(apicontext.ShowLimit(ctx)),
-		Flatten: primitive.Ref(true),
+		Offset:  primitives.Ref(apicontext.ShowOffset(ctx)),
+		Count:   primitives.Ref(apicontext.ShowLimit(ctx)),
+		Flatten: primitives.Ref(true),
 	}
 	t.Body = body
 

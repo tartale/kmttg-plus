@@ -3,29 +3,20 @@ package logz
 import (
 	"fmt"
 
+	gologz "github.com/tartale/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 type loggerx struct {
-	*zap.Logger
+	*zap.SugaredLogger
 }
 
 func (l loggerx) Printf(msg string, args ...interface{}) {
-	if l.Logger.Level() >= zap.InfoLevel {
-		l.Logger.Info(fmt.Sprintf(msg, args...))
+	if l.SugaredLogger.Level() >= zap.InfoLevel {
+		l.SugaredLogger.Info(fmt.Sprintf(msg, args...))
 	}
-}
-
-func (l loggerx) Debugf(msg string, args ...interface{}) {
-	if l.IsDebug() {
-		l.Logger.Debug(fmt.Sprintf(msg, args...))
-	}
-}
-
-func (l loggerx) IsDebug() bool {
-	return l.Logger.Level() >= zap.DebugLevel
 }
 
 type nopLogger struct {
@@ -62,8 +53,16 @@ func InitLoggers() error {
 	}
 
 	Logger = sLogger
-	LoggerX.Logger = Logger
+	LoggerX.SugaredLogger = Logger.Sugar()
 	NopLogger.Logger = zap.NewNop()
+
+	return nil
+}
+
+func InitThirdPartyLoggers() error {
+
+	gologz.SetLoggerForName("github.com/tartale/go/pkg/jsontime", NopLogger)
+	gologz.SetLoggerForName("github.com/tartale/go/pkg/generics", LoggerX)
 
 	return nil
 }
