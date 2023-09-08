@@ -3,6 +3,9 @@ import { Show, ShowKind, Series, Episode, Movie } from "../services/generated/gr
 export const getImageFileForShow = (show: Show, open: boolean): string => {
   switch (show.kind) {
     case ShowKind.Series: {
+      if ((show as Series).imageURL) {
+        return (show as Series).imageURL
+      }
       if (open) {
         return "./images/folder-open.png";
       } else {
@@ -13,6 +16,9 @@ export const getImageFileForShow = (show: Show, open: boolean): string => {
       return "./images/television.png";
     }
     case ShowKind.Movie: {
+      if ((show as Movie).imageURL) {
+        return (show as Movie).imageURL
+      }
       return "./images/movie.png";
     }
     default: {

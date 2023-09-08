@@ -11,18 +11,24 @@ import (
 const (
 	DefaultOffset = 0
 	DefaultLimit  = 25
-	DefaultHeight = 0
-	DefaultWidth  = 0
+	DefaultHeight = 50
+	DefaultWidth  = 50
 )
 
 var (
-	TivoFiltersKey        = gqlgen.ArgKey{Path: "tivos", Name: "filters"}
-	ShowFiltersKey        = gqlgen.ArgKey{Path: "tivos.shows", Name: "filters"}
-	ShowOffsetKey         = gqlgen.ArgKey{Path: "tivos.shows", Name: "offset"}
-	ShowLimitKey          = gqlgen.ArgKey{Path: "tivos.shows", Name: "limit"}
-	ShowImageURLHeightKey = gqlgen.ArgKey{Path: "tivos.shows.imageURL", Name: "height"}
-	ShowImageURLWidthKey  = gqlgen.ArgKey{Path: "tivos.shows.imageURL", Name: "width"}
+	TivoFiltersKey         = gqlgen.ArgKey{Path: "tivos", Name: "filters"}
+	ShowFiltersKey         = gqlgen.ArgKey{Path: "tivos.shows", Name: "filters"}
+	ShowOffsetKey          = gqlgen.ArgKey{Path: "tivos.shows", Name: "offset"}
+	ShowLimitKey           = gqlgen.ArgKey{Path: "tivos.shows", Name: "limit"}
+	ShowImageDimensionsKey = gqlgen.ArgKey{Path: "tivos.shows", Name: "imageDimensions"}
+	ShowImageURLHeightKey  = gqlgen.ArgKey{Path: "tivos.shows.imageURL", Name: "height"}
+	ShowImageURLWidthKey   = gqlgen.ArgKey{Path: "tivos.shows.imageURL", Name: "width"}
 )
+
+type ImageDimensions struct {
+	Height int
+	Width  int
+}
 
 type APIContext struct {
 	context.Context
@@ -48,6 +54,10 @@ func (a APIContext) WithTivoFilterFn(fn model.TivoFilterFn) APIContext {
 
 func (a APIContext) WithShowFilterFn(fn model.ShowFilterFn) APIContext {
 	return Wrap(context.WithValue(a, ShowFiltersKey, fn))
+}
+
+func (a APIContext) WithShowImageDimensions(d *ImageDimensions) APIContext {
+	return Wrap(context.WithValue(a, ShowImageDimensionsKey, d))
 }
 
 func ShowOffset(ctx context.Context) int {
@@ -88,18 +98,6 @@ func ShowFilterFn(ctx context.Context) model.ShowFilterFn {
 	return nil
 }
 
-func ShowImageURLHeight(ctx context.Context) int {
-	if val := gqlgen.GetArgValue[int](ctx, ShowImageURLHeightKey); val != nil {
-		return *val
-	}
-
-	return DefaultHeight
-}
-
-func ShowImageURLWidth(ctx context.Context) int {
-	if val := gqlgen.GetArgValue[int](ctx, ShowImageURLWidthKey); val != nil {
-		return *val
-	}
-
-	return DefaultWidth
+func ShowImageDimensions(ctx context.Context) *ImageDimensions {
+	return contexts.Value[ImageDimensions](ctx, ShowImageDimensionsKey)
 }

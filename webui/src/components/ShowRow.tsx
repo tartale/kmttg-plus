@@ -68,8 +68,8 @@ function IconCell(props: any) {
   const imageFile: string = getImageFileForShow(show, open);
 
   const style = indent
-    ? { paddingLeft: "2rem", width: "3rem", height: "3rem" }
-    : { width: "3rem", height: "3rem" };
+    ? { paddingLeft: "2rem", width: "3rem" }
+    : { width: "3rem" };
 
   return (
     <TableCell {...remainingProps}>

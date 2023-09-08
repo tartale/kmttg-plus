@@ -2,9 +2,11 @@ package shows
 
 import (
 	"fmt"
+	"net/http"
 	"sort"
 
 	"github.com/tartale/go/pkg/mathx"
+	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
@@ -29,9 +31,9 @@ func New(recordingDetails *message.RecordingItem, collectionDetails *message.Col
 
 }
 
-func WithImageURL(show model.Show, width, height int) model.Show {
+func WithImageURL(show model.Show, targetDimensions *apicontext.ImageDimensions) model.Show {
 
-	if width == 0 || height == 0 {
+	if targetDimensions == nil {
 		return show
 	}
 
@@ -40,16 +42,12 @@ func WithImageURL(show model.Show, width, height int) model.Show {
 	switch show.GetKind() {
 	case model.ShowKindMovie:
 		movie := *(show.(*movie))
-		images := movie.collectionDetails.Images
-		bestImage := findBestImage(images, width, height)
-		movie.ImageURL = bestImage.ImageURL
+		movie.ImageURL = findBestImageURL(movie.collectionDetails.Images, targetDimensions)
 		result = &movie
 
 	case model.ShowKindSeries:
 		series := *(show.(*series))
-		images := series.collectionDetails.Images
-		bestImage := findBestImage(images, width, height)
-		series.ImageURL = bestImage.ImageURL
+		series.ImageURL = findBestImageURL(series.collectionDetails.Images, targetDimensions)
 		result = &series
 
 	case model.ShowKindEpisode:
@@ -191,14 +189,35 @@ func newEpisode(recordingDetails *message.RecordingItem, collectionDetails *mess
 	}, nil
 }
 
-func findBestImage(images []message.CollectionImage, width, height int) message.CollectionImage {
+func imageIsInvalid(image message.CollectionImage) bool {
 
+	resp, err := http.Get(image.ImageURL)
+	if err != nil {
+		return true
+	}
+	if resp.StatusCode == http.StatusOK {
+		return false
+	}
+
+	return true
+}
+
+func findBestImageURL(images []message.CollectionImage, target *apicontext.ImageDimensions) string {
+
+	if len(images) == 0 || target == nil {
+		return ""
+	}
 	slices.SortFunc(images, func(a, b message.CollectionImage) int {
-		differenceA := mathx.Abs(a.Height-height) + mathx.Abs(a.Width-width)
-		differenceB := mathx.Abs(b.Height-height) + mathx.Abs(b.Width-width)
+		differenceA := mathx.Abs(a.Height-target.Height) + mathx.Abs(a.Width-target.Width)
+		differenceB := mathx.Abs(b.Height-target.Height) + mathx.Abs(b.Width-target.Width)
 
 		return differenceA - differenceB
 	})
+	for _, image := range images {
+		if !imageIsInvalid(image) {
+			return image.ImageURL
+		}
+	}
 
-	return images[0]
+	return ""
 }

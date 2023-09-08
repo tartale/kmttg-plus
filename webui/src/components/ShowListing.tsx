@@ -23,6 +23,9 @@ const GET_RECORDINGS = gql`
       title
       description
       recordedOn
+      ... on Movie {
+        imageURL(height: 512, width: 512)
+      }
       ... on Series {
         episodes {
           id
@@ -32,6 +35,7 @@ const GET_RECORDINGS = gql`
           episodeNumber
           episodeDescription
         }
+        imageURL(height: 512, width: 512)
       }
     }
   }

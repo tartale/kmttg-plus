@@ -26,6 +26,12 @@ func (r *queryResolver) Tivos(ctx context.Context, filters []*model.TivoFilter) 
 	showFilterFn := shows.NewFilterFn(showFilters)
 	ctx = apicontext.Wrap(ctx).WithShowFilterFn(showFilterFn)
 
+	showImageDimensions, err := shows.GetImageDimensions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ctx = apicontext.Wrap(ctx).WithShowImageDimensions(showImageDimensions)
+
 	return tivos.List(ctx), nil
 }
 

@@ -68,14 +68,43 @@ func Load(tivo *model.Tivo) error {
 	return nil
 }
 
+func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show, error) {
+
+	const (
+		retryCount = 3
+	)
+
+	var (
+		shows   []model.Show
+		success bool
+		err     error
+	)
+
+	for retries := 0; retries < retryCount; retries++ {
+		shows, err = tivoClient.GetShows(ctx)
+		if errors.Is(err, errorz.ErrReconnected) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to get shows: %w", err)
+		}
+
+		success = true
+		break
+	}
+	if !success {
+		return nil, fmt.Errorf("failed to get shows; number of retries exceeded: %w", err)
+	}
+
+	return shows, nil
+}
+
 func List(ctx context.Context) []*model.Tivo {
 
 	var list []*model.Tivo
 	tivoFilterFn := apicontext.TivoFilterFn(ctx)
 	showFilterFn := apicontext.ShowFilterFn(ctx)
-
-	imageURLWidth := apicontext.ShowImageURLWidth(ctx)
-	imageURLHeight := apicontext.ShowImageURLHeight(ctx)
+	imageDimensions := apicontext.ShowImageDimensions(ctx)
 
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
 		if tivoFilterFn != nil && !tivoFilterFn(val) {
@@ -98,7 +127,7 @@ func List(ctx context.Context) []*model.Tivo {
 			if showFilterFn != nil && !showFilterFn(show) {
 				continue
 			}
-			show = shows.WithImageURL(show, imageURLWidth, imageURLHeight)
+			show = shows.WithImageURL(show, imageDimensions)
 			tivo.Shows = append(tivo.Shows, shows.AsAPIType(show))
 			limitCountdown--
 		}
@@ -111,34 +140,4 @@ func List(ctx context.Context) []*model.Tivo {
 	})
 
 	return list
-}
-
-func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show, error) {
-
-	const (
-		retryCount = 3
-	)
-
-	var (
-		shows   []model.Show
-		success bool
-		err     error
-	)
-
-	for retries := 0; retries < retryCount; retries++ {
-		shows, err = tivoClient.GetShows(ctx)
-		if errors.Is(err, errorz.ErrReconnected) {
-			continue
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to get shows: %w", err)
-		}
-		success = true
-		break
-	}
-	if !success {
-		return nil, fmt.Errorf("failed to get shows; number of retries exceeded: %w", err)
-	}
-
-	return shows, nil
 }
