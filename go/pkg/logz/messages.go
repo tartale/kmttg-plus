@@ -9,7 +9,7 @@ import (
 	"path"
 	"runtime"
 
-	"go.uber.org/zap"
+	"github.com/tartale/kmttg-plus/go/pkg/config"
 )
 
 type FullMarshaler interface {
@@ -19,7 +19,7 @@ type FullMarshaler interface {
 
 func InitDebugDir() error {
 
-	if Logger.Level() == zap.DebugLevel {
+	if config.Values.LogMessages {
 		debugDir := MustGetDebugDir()
 		os.RemoveAll(debugDir)
 		err := os.MkdirAll(debugDir, os.FileMode(0755))
@@ -85,7 +85,7 @@ func MustCreateDebugFile(filename string) *os.File {
 }
 
 func Debug(m FullMarshaler, filename string) {
-	if Logger.Level() >= zap.DebugLevel {
+	if config.Values.LogMessages {
 		textFile := MustCreateDebugFile(filename + ".txt")
 		defer textFile.Close()
 

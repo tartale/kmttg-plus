@@ -35,6 +35,7 @@ func CertificatePath() (string, error) {
 
 type values struct {
 	LogLevel       string        `mapstructure:"KMTTG_LOG_LEVEL"`
+	LogMessages    bool          `mapstructure:"KMTTG_LOG_MESSAGES"`
 	MediaAccessKey string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY"`
 	Timeout        time.Duration `mapstructure:"KMTTG_TIMEOUT"`
 	WebUIDir       string        `mapstructure:"KMTTG_WEBUI_DIR"`

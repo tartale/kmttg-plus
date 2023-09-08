@@ -46,6 +46,12 @@ func InitConfig(cfgFile string) {
 		}
 		viper.SetDefault("KMTTG_LOG_LEVEL", "INFO")
 
+		err = viper.BindEnv("KMTTG_LOG_MESSAGES")
+		if err != nil {
+			panic(fmt.Errorf("failed to bind environment variable: %w", err))
+		}
+		viper.SetDefault("KMTTG_LOG_MESSAGES", false)
+
 		err = viper.BindEnv("KMTTG_TIMEOUT")
 		if err != nil {
 			panic(fmt.Errorf("failed to bind environment variable: %w", err))
