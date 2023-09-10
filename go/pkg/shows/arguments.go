@@ -18,12 +18,12 @@ import (
 
 func NewFilters(ctx context.Context) ([]*model.ShowFilter, error) {
 
-	val, err := gqlgen.GetArgValueE[[]*model.ShowFilter](ctx, apicontext.ShowFiltersKey)
-	if err != nil && errors.Is(err, generics.ErrInvalidType) {
+	val, err := gqlgen.GetArgValue[[]*model.ShowFilter](ctx, apicontext.ShowFiltersKey)
+	if err != nil && errors.Is(err, generics.ErrNotCasted) {
 		return nil, fmt.Errorf("%w '%s'; expected type: %s", errorz.ErrInvalidArgument,
 			apicontext.ShowFiltersKey.Name, "[ShowFilter]")
 	}
-	if err != nil && errors.Is(err, gqlgen.ErrNotFound) {
+	if err != nil && errors.Is(err, errorz.ErrNotFound) {
 		return nil, nil
 	}
 	if err != nil {
@@ -81,7 +81,7 @@ func GetImageDimensions(ctx context.Context) (*apicontext.ImageDimensions, error
 
 func getDimension(ctx context.Context, key gqlgen.ArgKey) (*int, error) {
 
-	value, err := gqlgen.GetArgValueE[int](ctx, key)
+	value, err := gqlgen.GetArgValue[int](ctx, key)
 	if errors.Is(err, gqlgen.ErrArgumentNotFound) {
 		return nil, fmt.Errorf("%w: must provide both image height and width", errorz.ErrBadRequest)
 	}

@@ -1,0 +1,42 @@
+
+enum JobAction {
+  DOWNLOAD
+  DECRYPT
+  COMSKIP
+  ENCODE
+}
+
+input Job {
+  id: ID!
+  action: JobAction!
+  showID: ID!
+}
+
+interface IJobSubtask {
+  id: ID!
+  action: JobAction!
+}
+
+type JobSubtask implements IJobSubtask {
+  id: ID!
+  action: JobAction!
+  showID: ID!
+  progress: JobSubtaskProgress!
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETE
+  FAILED
+}
+
+type JobSubtaskProgress {
+  status: JobStatus!
+  progress: Int!
+}
+
+type JobProgress {
+  jobID: ID!
+  progress: Int!
+}

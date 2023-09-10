@@ -1,7 +1,13 @@
 type Query {
   tivos(filters: [TivoFilter]): [Tivo!]!
+  jobs: [JobProgress!]!
+}
+
+type Mutation {
+  startJob(job: Job!): JobProgress!
 }
 
 schema {
   query: Query
+  mutation: Mutation
 }

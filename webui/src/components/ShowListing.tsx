@@ -25,6 +25,7 @@ const GET_RECORDINGS = gql`
       recordedOn
       ... on Movie {
         imageURL(height: 512, width: 512)
+        movieYear
       }
       ... on Series {
         episodes {

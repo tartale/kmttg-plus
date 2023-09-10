@@ -16,10 +16,13 @@
   [x] title/description
   [] watched
 [] configuration via UI
+[] tools
+  [] tivodecode
 [] jobs
   [] download
   [] decrypt
   [] encode
+  [] play
 [] remove ads
   [] auto
   [] manual

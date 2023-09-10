@@ -19,7 +19,7 @@ type Movie implements Show {
   title: String!
   recordedOn: Time!
   description: String!
-  imageURL(width: Int, height: Int): String!
+  imageURL(width: Int!, height: Int!): String!
 
   movieYear: Int!
 }
@@ -31,7 +31,7 @@ type Series implements Show {
   title: String!
   recordedOn: Time!
   description: String!
-  imageURL(width: Int, height: Int): String!
+  imageURL(width: Int!, height: Int!): String!
 
   episodes(filter: [EpisodeFilter], offset: Int = 0, limit: Int = 25): [Episode!]!
 }

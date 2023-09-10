@@ -11,6 +11,12 @@ import (
 	"github.com/tartale/go/pkg/filter"
 )
 
+type IJobSubtask interface {
+	IsIJobSubtask()
+	GetID() string
+	GetAction() JobAction
+}
+
 type Show interface {
 	IsShow()
 	GetID() string
@@ -51,6 +57,33 @@ type EpisodeFilter struct {
 	EpisodeNumber      *filter.Operator `json:"episodeNumber,omitempty"`
 	EpisodeTitle       *filter.Operator `json:"episodeTitle,omitempty"`
 	EpisodeDescription *filter.Operator `json:"episodeDescription,omitempty"`
+}
+
+type Job struct {
+	ID     string    `json:"id"`
+	Action JobAction `json:"action"`
+	ShowID string    `json:"showID"`
+}
+
+type JobProgress struct {
+	JobID    string `json:"jobID"`
+	Progress int    `json:"progress"`
+}
+
+type JobSubtask struct {
+	ID       string              `json:"id"`
+	Action   JobAction           `json:"action"`
+	ShowID   string              `json:"showID"`
+	Progress *JobSubtaskProgress `json:"progress"`
+}
+
+func (JobSubtask) IsIJobSubtask()            {}
+func (this JobSubtask) GetID() string        { return this.ID }
+func (this JobSubtask) GetAction() JobAction { return this.Action }
+
+type JobSubtaskProgress struct {
+	Status   JobStatus `json:"status"`
+	Progress int       `json:"progress"`
 }
 
 type Movie struct {
@@ -129,6 +162,96 @@ type Tivo struct {
 
 type TivoFilter struct {
 	Name *filter.Operator `json:"name,omitempty"`
+}
+
+type JobAction string
+
+const (
+	JobActionDownload JobAction = "DOWNLOAD"
+	JobActionDecrypt  JobAction = "DECRYPT"
+	JobActionComskip  JobAction = "COMSKIP"
+	JobActionEncode   JobAction = "ENCODE"
+)
+
+var AllJobAction = []JobAction{
+	JobActionDownload,
+	JobActionDecrypt,
+	JobActionComskip,
+	JobActionEncode,
+}
+
+func (e JobAction) IsValid() bool {
+	switch e {
+	case JobActionDownload, JobActionDecrypt, JobActionComskip, JobActionEncode:
+		return true
+	}
+	return false
+}
+
+func (e JobAction) String() string {
+	return string(e)
+}
+
+func (e *JobAction) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = JobAction(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid JobAction", str)
+	}
+	return nil
+}
+
+func (e JobAction) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type JobStatus string
+
+const (
+	JobStatusQueued   JobStatus = "QUEUED"
+	JobStatusRunning  JobStatus = "RUNNING"
+	JobStatusComplete JobStatus = "COMPLETE"
+	JobStatusFailed   JobStatus = "FAILED"
+)
+
+var AllJobStatus = []JobStatus{
+	JobStatusQueued,
+	JobStatusRunning,
+	JobStatusComplete,
+	JobStatusFailed,
+}
+
+func (e JobStatus) IsValid() bool {
+	switch e {
+	case JobStatusQueued, JobStatusRunning, JobStatusComplete, JobStatusFailed:
+		return true
+	}
+	return false
+}
+
+func (e JobStatus) String() string {
+	return string(e)
+}
+
+func (e *JobStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = JobStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid JobStatus", str)
+	}
+	return nil
+}
+
+func (e JobStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 type ShowKind string

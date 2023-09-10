@@ -3,11 +3,12 @@ package config
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"sync"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tartale/go/pkg/structs"
 )
 
 // This sync primitive allows configuration to be initialized exactly once
@@ -35,35 +36,10 @@ func InitConfig(cfgFile string) {
 			viper.SetConfigName(".kmttg")
 		}
 
-		err := viper.BindEnv("KMTTG_MEDIA_ACCESS_KEY")
+		err := Values.BindEnv()
 		if err != nil {
-			panic(fmt.Errorf("failed to bind environment variable: %w", err))
+			panic(err)
 		}
-
-		err = viper.BindEnv("KMTTG_LOG_LEVEL")
-		if err != nil {
-			panic(fmt.Errorf("failed to bind environment variable: %w", err))
-		}
-		viper.SetDefault("KMTTG_LOG_LEVEL", "INFO")
-
-		err = viper.BindEnv("KMTTG_LOG_MESSAGES")
-		if err != nil {
-			panic(fmt.Errorf("failed to bind environment variable: %w", err))
-		}
-		viper.SetDefault("KMTTG_LOG_MESSAGES", false)
-
-		err = viper.BindEnv("KMTTG_TIMEOUT")
-		if err != nil {
-			panic(fmt.Errorf("failed to bind environment variable: %w", err))
-		}
-		viper.SetDefault("KMTTG_TIMEOUT", 10*time.Second)
-
-		err = viper.BindEnv("KMTTG_WEBUI_DIR")
-		if err != nil {
-			panic(fmt.Errorf("failed to bind environment variable: %w", err))
-		}
-		viper.SetDefault("KMTTG_WEBUI_DIR", "")
-
 		viper.AutomaticEnv() // read in environment variables that match
 
 		// If a config file is found, read it in.
@@ -71,10 +47,45 @@ func InitConfig(cfgFile string) {
 			fmt.Fprintln(os.Stdout, "using config file:", viper.ConfigFileUsed())
 		}
 
+		err = Values.SetDefaults()
+		if err != nil {
+			panic(err)
+		}
+
 		err = viper.Unmarshal(&Values)
 		if err != nil {
 			panic(fmt.Errorf("failed to read in config: %w", err))
 		}
+
+		err = Values.ResolveVariables()
+		if err != nil {
+			panic(err)
+		}
+
+		err = Values.Validate()
+		if err != nil {
+			panic(err)
+		}
+
 		fmt.Fprintln(os.Stdout, "config loaded", Values)
 	})
+}
+
+func (v *values) BindEnv() error {
+
+	err := structs.Walk(&Values, func(sf reflect.StructField, sv reflect.Value) error {
+
+		field := structs.NewField(sf, sv)
+		tag := field.TagRoot("mapstructure")
+		if tag != "" {
+			err := viper.BindEnv(tag)
+			if err != nil {
+				return fmt.Errorf("failed to bind environment variable: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	return err
 }

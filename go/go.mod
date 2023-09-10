@@ -7,13 +7,14 @@ require (
 	github.com/PaesslerAG/gval v1.2.2
 	github.com/gorilla/mux v1.8.0
 	github.com/grandcat/zeroconf v1.0.0
+	github.com/mcuadros/go-defaults v1.2.0
 	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
 	github.com/puzpuzpuz/xsync v1.5.2
 	github.com/rs/cors v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
-	github.com/tartale/go v0.0.0-20230908033946-e9718492a8bb
+	github.com/tartale/go v0.0.0-20230910080621-ca4cf243d500
 	github.com/vektah/gqlparser/v2 v2.5.8
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.12.0

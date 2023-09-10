@@ -32,7 +32,7 @@ export const getTitleExtension = (show: Show): string => {
   switch (show.kind) {
     case ShowKind.Movie:
       const movie = (show as Movie);
-      titleExtension = `(${movie.movieYear})`
+      titleExtension = movie.movieYear? `(${movie.movieYear})` : ``
       break
     case ShowKind.Series:
       const series = (show as Series);
@@ -43,7 +43,7 @@ export const getTitleExtension = (show: Show): string => {
       const episode = (show as Episode);
       const seasonLabel = episode.seasonNumber ? `S${episode.seasonNumber.toString().padStart(2, '0')}` : ""
       const episodeLabel = episode.episodeNumber ? `E${episode.episodeNumber.toString().padStart(2, '0')}` : ""
-      titleExtension = `[${seasonLabel}${episodeLabel}]`
+      titleExtension = seasonLabel && episodeLabel ? `[${seasonLabel}${episodeLabel}]` : ""
       break
   }
 

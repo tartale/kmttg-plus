@@ -38,6 +38,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -59,17 +60,39 @@ type ComplexityRoot struct {
 		Title              func(childComplexity int) int
 	}
 
+	JobProgress struct {
+		JobID    func(childComplexity int) int
+		Progress func(childComplexity int) int
+	}
+
+	JobSubtask struct {
+		Action   func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Progress func(childComplexity int) int
+		ShowID   func(childComplexity int) int
+	}
+
+	JobSubtaskProgress struct {
+		Progress func(childComplexity int) int
+		Status   func(childComplexity int) int
+	}
+
 	Movie struct {
 		Description func(childComplexity int) int
 		ID          func(childComplexity int) int
-		ImageURL    func(childComplexity int, width *int, height *int) int
+		ImageURL    func(childComplexity int, width int, height int) int
 		Kind        func(childComplexity int) int
 		MovieYear   func(childComplexity int) int
 		RecordedOn  func(childComplexity int) int
 		Title       func(childComplexity int) int
 	}
 
+	Mutation struct {
+		StartJob func(childComplexity int, job model.Job) int
+	}
+
 	Query struct {
+		Jobs  func(childComplexity int) int
 		Tivos func(childComplexity int, filters []*model.TivoFilter) int
 	}
 
@@ -77,7 +100,7 @@ type ComplexityRoot struct {
 		Description func(childComplexity int) int
 		Episodes    func(childComplexity int, filter []*model.EpisodeFilter, offset *int, limit *int) int
 		ID          func(childComplexity int) int
-		ImageURL    func(childComplexity int, width *int, height *int) int
+		ImageURL    func(childComplexity int, width int, height int) int
 		Kind        func(childComplexity int) int
 		RecordedOn  func(childComplexity int) int
 		Title       func(childComplexity int) int
@@ -91,8 +114,12 @@ type ComplexityRoot struct {
 	}
 }
 
+type MutationResolver interface {
+	StartJob(ctx context.Context, job model.Job) (*model.JobProgress, error)
+}
 type QueryResolver interface {
 	Tivos(ctx context.Context, filters []*model.TivoFilter) ([]*model.Tivo, error)
+	Jobs(ctx context.Context) ([]*model.JobProgress, error)
 }
 
 type executableSchema struct {
@@ -187,6 +214,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Episode.Title(childComplexity), true
 
+	case "JobProgress.jobID":
+		if e.complexity.JobProgress.JobID == nil {
+			break
+		}
+
+		return e.complexity.JobProgress.JobID(childComplexity), true
+
+	case "JobProgress.progress":
+		if e.complexity.JobProgress.Progress == nil {
+			break
+		}
+
+		return e.complexity.JobProgress.Progress(childComplexity), true
+
+	case "JobSubtask.action":
+		if e.complexity.JobSubtask.Action == nil {
+			break
+		}
+
+		return e.complexity.JobSubtask.Action(childComplexity), true
+
+	case "JobSubtask.id":
+		if e.complexity.JobSubtask.ID == nil {
+			break
+		}
+
+		return e.complexity.JobSubtask.ID(childComplexity), true
+
+	case "JobSubtask.progress":
+		if e.complexity.JobSubtask.Progress == nil {
+			break
+		}
+
+		return e.complexity.JobSubtask.Progress(childComplexity), true
+
+	case "JobSubtask.showID":
+		if e.complexity.JobSubtask.ShowID == nil {
+			break
+		}
+
+		return e.complexity.JobSubtask.ShowID(childComplexity), true
+
+	case "JobSubtaskProgress.progress":
+		if e.complexity.JobSubtaskProgress.Progress == nil {
+			break
+		}
+
+		return e.complexity.JobSubtaskProgress.Progress(childComplexity), true
+
+	case "JobSubtaskProgress.status":
+		if e.complexity.JobSubtaskProgress.Status == nil {
+			break
+		}
+
+		return e.complexity.JobSubtaskProgress.Status(childComplexity), true
+
 	case "Movie.description":
 		if e.complexity.Movie.Description == nil {
 			break
@@ -211,7 +294,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Movie.ImageURL(childComplexity, args["width"].(*int), args["height"].(*int)), true
+		return e.complexity.Movie.ImageURL(childComplexity, args["width"].(int), args["height"].(int)), true
 
 	case "Movie.kind":
 		if e.complexity.Movie.Kind == nil {
@@ -240,6 +323,25 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Movie.Title(childComplexity), true
+
+	case "Mutation.startJob":
+		if e.complexity.Mutation.StartJob == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_startJob_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.StartJob(childComplexity, args["job"].(model.Job)), true
+
+	case "Query.jobs":
+		if e.complexity.Query.Jobs == nil {
+			break
+		}
+
+		return e.complexity.Query.Jobs(childComplexity), true
 
 	case "Query.tivos":
 		if e.complexity.Query.Tivos == nil {
@@ -289,7 +391,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Series.ImageURL(childComplexity, args["width"].(*int), args["height"].(*int)), true
+		return e.complexity.Series.ImageURL(childComplexity, args["width"].(int), args["height"].(int)), true
 
 	case "Series.kind":
 		if e.complexity.Series.Kind == nil {
@@ -355,6 +457,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputEpisodeFilter,
 		ec.unmarshalInputFilterOperator,
+		ec.unmarshalInputJob,
 		ec.unmarshalInputMovieFilter,
 		ec.unmarshalInputSeriesFilter,
 		ec.unmarshalInputShowFilter,
@@ -394,6 +497,21 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			}
 
 			return &response
+		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
+			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
 		}
 
 	default:
@@ -486,12 +604,61 @@ input Sorter {
   fields: [SortBy!]!
 }
 `, BuiltIn: false},
+	{Name: "../../api/jobs.graphql", Input: `
+enum JobAction {
+  DOWNLOAD
+  DECRYPT
+  COMSKIP
+  ENCODE
+}
+
+input Job {
+  id: ID!
+  action: JobAction!
+  showID: ID!
+}
+
+interface IJobSubtask {
+  id: ID!
+  action: JobAction!
+}
+
+type JobSubtask implements IJobSubtask {
+  id: ID!
+  action: JobAction!
+  showID: ID!
+  progress: JobSubtaskProgress!
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETE
+  FAILED
+}
+
+type JobSubtaskProgress {
+  status: JobStatus!
+  progress: Int!
+}
+
+type JobProgress {
+  jobID: ID!
+  progress: Int!
+}
+`, BuiltIn: false},
 	{Name: "../../api/schema.graphql", Input: `type Query {
   tivos(filters: [TivoFilter]): [Tivo!]!
+  jobs: [JobProgress!]!
+}
+
+type Mutation {
+  startJob(job: Job!): JobProgress!
 }
 
 schema {
   query: Query
+  mutation: Mutation
 }
 `, BuiltIn: false},
 	{Name: "../../api/shows.graphql", Input: `enum ShowKind {
@@ -515,7 +682,7 @@ type Movie implements Show {
   title: String!
   recordedOn: Time!
   description: String!
-  imageURL(width: Int, height: Int): String!
+  imageURL(width: Int!, height: Int!): String!
 
   movieYear: Int!
 }
@@ -527,7 +694,7 @@ type Series implements Show {
   title: String!
   recordedOn: Time!
   description: String!
-  imageURL(width: Int, height: Int): String!
+  imageURL(width: Int!, height: Int!): String!
 
   episodes(filter: [EpisodeFilter], offset: Int = 0, limit: Int = 25): [Episode!]!
 }
@@ -609,24 +776,39 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Movie_imageURL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
+	var arg0 int
 	if tmp, ok := rawArgs["width"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("width"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["width"] = arg0
-	var arg1 *int
+	var arg1 int
 	if tmp, ok := rawArgs["height"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["height"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_startJob_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.Job
+	if tmp, ok := rawArgs["job"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("job"))
+		arg0, err = ec.unmarshalNJob2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJob(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["job"] = arg0
 	return args, nil
 }
 
@@ -696,19 +878,19 @@ func (ec *executionContext) field_Series_episodes_args(ctx context.Context, rawA
 func (ec *executionContext) field_Series_imageURL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
+	var arg0 int
 	if tmp, ok := rawArgs["width"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("width"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["width"] = arg0
-	var arg1 *int
+	var arg1 int
 	if tmp, ok := rawArgs["height"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1272,6 +1454,364 @@ func (ec *executionContext) fieldContext_Episode_episodeDescription(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _JobProgress_jobID(ctx context.Context, field graphql.CollectedField, obj *model.JobProgress) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobProgress_jobID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.JobID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobProgress_jobID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobProgress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobProgress_progress(ctx context.Context, field graphql.CollectedField, obj *model.JobProgress) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobProgress_progress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Progress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobProgress_progress(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobProgress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtask_id(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtask) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtask_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtask_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtask",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtask_action(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtask) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtask_action(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Action, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.JobAction)
+	fc.Result = res
+	return ec.marshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtask_action(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtask",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JobAction does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtask_showID(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtask) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtask_showID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShowID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtask_showID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtask",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtask_progress(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtask) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtask_progress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Progress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.JobSubtaskProgress)
+	fc.Result = res
+	return ec.marshalNJobSubtaskProgress2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobSubtaskProgress(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtask_progress(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtask",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "status":
+				return ec.fieldContext_JobSubtaskProgress_status(ctx, field)
+			case "progress":
+				return ec.fieldContext_JobSubtaskProgress_progress(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type JobSubtaskProgress", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtaskProgress_status(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtaskProgress) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtaskProgress_status(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.JobStatus)
+	fc.Result = res
+	return ec.marshalNJobStatus2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtaskProgress_status(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtaskProgress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JobStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtaskProgress_progress(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtaskProgress) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtaskProgress_progress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Progress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtaskProgress_progress(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtaskProgress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Movie_id(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Movie_id(ctx, field)
 	if err != nil {
@@ -1591,6 +2131,67 @@ func (ec *executionContext) fieldContext_Movie_movieYear(ctx context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_startJob(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_startJob(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().StartJob(rctx, fc.Args["job"].(model.Job))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.JobProgress)
+	fc.Result = res
+	return ec.marshalNJobProgress2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobProgress(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_startJob(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "jobID":
+				return ec.fieldContext_JobProgress_jobID(ctx, field)
+			case "progress":
+				return ec.fieldContext_JobProgress_progress(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type JobProgress", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_startJob_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_tivos(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_tivos(ctx, field)
 	if err != nil {
@@ -1652,6 +2253,56 @@ func (ec *executionContext) fieldContext_Query_tivos(ctx context.Context, field 
 	if fc.Args, err = ec.field_Query_tivos_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_jobs(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_jobs(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Jobs(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.JobProgress)
+	fc.Result = res
+	return ec.marshalNJobProgress2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobProgressᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_jobs(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "jobID":
+				return ec.fieldContext_JobProgress_jobID(ctx, field)
+			case "progress":
+				return ec.fieldContext_JobProgress_progress(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type JobProgress", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -4280,6 +4931,53 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputJob(ctx context.Context, obj interface{}) (model.Job, error) {
+	var it model.Job
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "action", "showID"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "action":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("action"))
+			data, err := ec.unmarshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Action = data
+		case "showID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showID"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowID = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj interface{}) (model.MovieFilter, error) {
 	var it model.MovieFilter
 	asMap := map[string]interface{}{}
@@ -4575,6 +5273,22 @@ func (ec *executionContext) unmarshalInputTivoFilter(ctx context.Context, obj in
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _IJobSubtask(ctx context.Context, sel ast.SelectionSet, obj model.IJobSubtask) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.JobSubtask:
+		return ec._JobSubtask(ctx, sel, &obj)
+	case *model.JobSubtask:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._JobSubtask(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _Show(ctx context.Context, sel ast.SelectionSet, obj model.Show) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -4698,6 +5412,148 @@ func (ec *executionContext) _Episode(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
+var jobProgressImplementors = []string{"JobProgress"}
+
+func (ec *executionContext) _JobProgress(ctx context.Context, sel ast.SelectionSet, obj *model.JobProgress) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, jobProgressImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JobProgress")
+		case "jobID":
+			out.Values[i] = ec._JobProgress_jobID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "progress":
+			out.Values[i] = ec._JobProgress_progress(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var jobSubtaskImplementors = []string{"JobSubtask", "IJobSubtask"}
+
+func (ec *executionContext) _JobSubtask(ctx context.Context, sel ast.SelectionSet, obj *model.JobSubtask) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, jobSubtaskImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JobSubtask")
+		case "id":
+			out.Values[i] = ec._JobSubtask_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "action":
+			out.Values[i] = ec._JobSubtask_action(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "showID":
+			out.Values[i] = ec._JobSubtask_showID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "progress":
+			out.Values[i] = ec._JobSubtask_progress(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var jobSubtaskProgressImplementors = []string{"JobSubtaskProgress"}
+
+func (ec *executionContext) _JobSubtaskProgress(ctx context.Context, sel ast.SelectionSet, obj *model.JobSubtaskProgress) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, jobSubtaskProgressImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JobSubtaskProgress")
+		case "status":
+			out.Values[i] = ec._JobSubtaskProgress_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "progress":
+			out.Values[i] = ec._JobSubtaskProgress_progress(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var movieImplementors = []string{"Movie", "Show"}
 
 func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, obj *model.Movie) graphql.Marshaler {
@@ -4767,6 +5623,55 @@ func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, ob
 	return out
 }
 
+var mutationImplementors = []string{"Mutation"}
+
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
+			Object: field.Name,
+			Field:  field,
+		})
+
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "startJob":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_startJob(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -4796,6 +5701,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_tivos(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "jobs":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_jobs(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -5418,6 +6345,99 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNJob2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJob(ctx context.Context, v interface{}) (model.Job, error) {
+	res, err := ec.unmarshalInputJob(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx context.Context, v interface{}) (model.JobAction, error) {
+	var res model.JobAction
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx context.Context, sel ast.SelectionSet, v model.JobAction) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNJobProgress2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobProgress(ctx context.Context, sel ast.SelectionSet, v model.JobProgress) graphql.Marshaler {
+	return ec._JobProgress(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNJobProgress2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobProgressᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.JobProgress) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNJobProgress2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobProgress(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNJobProgress2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobProgress(ctx context.Context, sel ast.SelectionSet, v *model.JobProgress) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._JobProgress(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNJobStatus2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobStatus(ctx context.Context, v interface{}) (model.JobStatus, error) {
+	var res model.JobStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNJobStatus2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobStatus(ctx context.Context, sel ast.SelectionSet, v model.JobStatus) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNJobSubtaskProgress2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobSubtaskProgress(ctx context.Context, sel ast.SelectionSet, v *model.JobSubtaskProgress) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._JobSubtaskProgress(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNShowKind2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx context.Context, v interface{}) (model.ShowKind, error) {
