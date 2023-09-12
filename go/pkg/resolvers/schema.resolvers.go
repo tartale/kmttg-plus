@@ -6,9 +6,9 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
+	"github.com/tartale/kmttg-plus/go/pkg/jobs"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
 	"github.com/tartale/kmttg-plus/go/pkg/shows"
@@ -16,12 +16,16 @@ import (
 )
 
 // StartJob is the resolver for the startJob field.
-func (r *mutationResolver) StartJob(ctx context.Context, job model.Job) (*model.JobProgress, error) {
-	panic(fmt.Errorf("not implemented: StartJob - startJob"))
+func (r *mutationResolver) StartJob(ctx context.Context, job model.Job) (*model.JobStatus, error) {
+
+	newJob := jobs.NewJob(&job)
+	jobStatus, err := jobs.StartJob(newJob)
+	return jobStatus, err
 }
 
 // Tivos is the resolver for the tivos field.
 func (r *queryResolver) Tivos(ctx context.Context, filters []*model.TivoFilter) ([]*model.Tivo, error) {
+
 	tivoFilterFn := tivos.NewFilterFn(filters)
 	ctx = apicontext.Wrap(ctx).WithTivoFilterFn(tivoFilterFn)
 
@@ -42,8 +46,9 @@ func (r *queryResolver) Tivos(ctx context.Context, filters []*model.TivoFilter) 
 }
 
 // Jobs is the resolver for the jobs field.
-func (r *queryResolver) Jobs(ctx context.Context) ([]*model.JobProgress, error) {
-	panic(fmt.Errorf("not implemented: Jobs - jobs"))
+func (r *queryResolver) Jobs(ctx context.Context, filters []*model.JobFilter) ([]*model.JobStatus, error) {
+
+	return jobs.List(ctx, filters)
 }
 
 // Mutation returns server.MutationResolver implementation.

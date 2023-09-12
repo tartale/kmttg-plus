@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/mcuadros/go-defaults"
 	"github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/go/pkg/stringz"
@@ -39,17 +40,15 @@ func CertificatePath() (string, error) {
 	return certificatePath, nil
 }
 
-type RequiredExePath string
-type RequiredDir string
-
 type values struct {
-	LogLevel       string          `mapstructure:"KMTTG_LOG_LEVEL" default:"INFO"`
-	LogMessages    bool            `mapstructure:"KMTTG_LOG_MESSAGES" default:"false"`
-	MediaAccessKey string          `mapstructure:"KMTTG_MEDIA_ACCESS_KEY" default:""`
-	Timeout        time.Duration   `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
-	WebUIDir       string          `mapstructure:"KMTTG_WEBUI_DIR" default:""`
-	OutputDir      RequiredDir     `mapstructure:"KMTTG_OUTPUT_DIR" default:"${PWD}/output"`
-	TivoDecodePath RequiredExePath `mapstructure:"KMTTG_TIVODECODE_PATH" default:"${PWD}/tools/tivodecode/tivodecode"`
+	LogLevel           string        `mapstructure:"KMTTG_LOG_LEVEL" default:"INFO"`
+	LogMessages        bool          `mapstructure:"KMTTG_LOG_MESSAGES" default:"false"`
+	MediaAccessKey     string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY" default:""`
+	Timeout            time.Duration `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
+	MaxBackgroundTasks int           `mapstructure:"KMTTG_MAX_BACKGROUND_TASKS" default:"1"`
+	WebUIDir           string        `mapstructure:"KMTTG_WEBUI_DIR" default:""`
+	OutputDir          string        `mapstructure:"KMTTG_OUTPUT_DIR" default:"${PWD}/output" validate:"dir"`
+	TivoDecodePath     string        `mapstructure:"KMTTG_TIVODECODE_PATH" default:"${PWD}/tools/tivodecode/tivodecode" validate:"file"`
 }
 
 func (v *values) SetDefaults() error {
@@ -83,25 +82,6 @@ func (v *values) ResolveVariables() error {
 
 func (v *values) Validate() error {
 
-	err := structs.Walk(&Values, func(sf reflect.StructField, sv reflect.Value) error {
-
-		switch val := sv.Interface().(type) {
-		case RequiredDir:
-			dir := string(val)
-			err := os.MkdirAll(dir, os.FileMode(0755))
-			if err != nil {
-				return fmt.Errorf("error while trying to create directory: %w", err)
-			}
-
-		case RequiredExePath:
-			path := string(val)
-			if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-				return fmt.Errorf("error validating file exists: %w", err)
-			}
-		}
-
-		return nil
-	})
-
-	return err
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	return validate.Struct(Values)
 }

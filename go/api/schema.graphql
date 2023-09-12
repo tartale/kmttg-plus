@@ -1,10 +1,10 @@
 type Query {
   tivos(filters: [TivoFilter]): [Tivo!]!
-  jobs: [JobProgress!]!
+  jobs(filters: [JobFilter]): [JobStatus!]!
 }
 
 type Mutation {
-  startJob(job: Job!): JobProgress!
+  startJob(job: Job!): JobStatus!
 }
 
 schema {

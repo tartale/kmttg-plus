@@ -22,7 +22,7 @@ var (
 	tivoMap = xsync.NewMapOf[*model.Tivo]()
 )
 
-func RunBackgroundLoader() {
+func RunBackgroundLoader(ctx context.Context) {
 	loadTicker := time.NewTicker(10 * time.Second)
 
 	for range loadTicker.C {

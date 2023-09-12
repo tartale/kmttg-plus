@@ -11,12 +11,6 @@ import (
 	"github.com/tartale/go/pkg/filter"
 )
 
-type IJobSubtask interface {
-	IsIJobSubtask()
-	GetID() string
-	GetAction() JobAction
-}
-
 type Show interface {
 	IsShow()
 	GetID() string
@@ -60,29 +54,35 @@ type EpisodeFilter struct {
 }
 
 type Job struct {
-	ID     string    `json:"id"`
+	ID     *string   `json:"id,omitempty"`
 	Action JobAction `json:"action"`
 	ShowID string    `json:"showID"`
 }
 
-type JobProgress struct {
-	JobID    string `json:"jobID"`
-	Progress int    `json:"progress"`
+type JobFilter struct {
+	ID *filter.Operator `json:"id,omitempty"`
+}
+
+type JobStatus struct {
+	JobID    string              `json:"jobID"`
+	Action   JobAction           `json:"action"`
+	ShowID   string              `json:"showID"`
+	State    JobState            `json:"state"`
+	Progress int                 `json:"progress"`
+	Subtasks []*JobSubtaskStatus `json:"subtasks"`
 }
 
 type JobSubtask struct {
-	ID       string              `json:"id"`
-	Action   JobAction           `json:"action"`
-	ShowID   string              `json:"showID"`
-	Progress *JobSubtaskProgress `json:"progress"`
+	ID     string            `json:"id"`
+	Action JobAction         `json:"action"`
+	ShowID string            `json:"showID"`
+	Status *JobSubtaskStatus `json:"status"`
 }
 
-func (JobSubtask) IsIJobSubtask()            {}
-func (this JobSubtask) GetID() string        { return this.ID }
-func (this JobSubtask) GetAction() JobAction { return this.Action }
-
-type JobSubtaskProgress struct {
-	Status   JobStatus `json:"status"`
+type JobSubtaskStatus struct {
+	Action   JobAction `json:"action"`
+	ShowID   string    `json:"showID"`
+	State    JobState  `json:"state"`
 	Progress int       `json:"progress"`
 }
 
@@ -209,48 +209,48 @@ func (e JobAction) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
-type JobStatus string
+type JobState string
 
 const (
-	JobStatusQueued   JobStatus = "QUEUED"
-	JobStatusRunning  JobStatus = "RUNNING"
-	JobStatusComplete JobStatus = "COMPLETE"
-	JobStatusFailed   JobStatus = "FAILED"
+	JobStateQueued   JobState = "QUEUED"
+	JobStateRunning  JobState = "RUNNING"
+	JobStateComplete JobState = "COMPLETE"
+	JobStateFailed   JobState = "FAILED"
 )
 
-var AllJobStatus = []JobStatus{
-	JobStatusQueued,
-	JobStatusRunning,
-	JobStatusComplete,
-	JobStatusFailed,
+var AllJobState = []JobState{
+	JobStateQueued,
+	JobStateRunning,
+	JobStateComplete,
+	JobStateFailed,
 }
 
-func (e JobStatus) IsValid() bool {
+func (e JobState) IsValid() bool {
 	switch e {
-	case JobStatusQueued, JobStatusRunning, JobStatusComplete, JobStatusFailed:
+	case JobStateQueued, JobStateRunning, JobStateComplete, JobStateFailed:
 		return true
 	}
 	return false
 }
 
-func (e JobStatus) String() string {
+func (e JobState) String() string {
 	return string(e)
 }
 
-func (e *JobStatus) UnmarshalGQL(v interface{}) error {
+func (e *JobState) UnmarshalGQL(v interface{}) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = JobStatus(str)
+	*e = JobState(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid JobStatus", str)
+		return fmt.Errorf("%s is not a valid JobState", str)
 	}
 	return nil
 }
 
-func (e JobStatus) MarshalGQL(w io.Writer) {
+func (e JobState) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

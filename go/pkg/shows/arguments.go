@@ -23,7 +23,7 @@ func NewFilters(ctx context.Context) ([]*model.ShowFilter, error) {
 		return nil, fmt.Errorf("%w '%s'; expected type: %s", errorz.ErrInvalidArgument,
 			apicontext.ShowFiltersKey.Name, "[ShowFilter]")
 	}
-	if err != nil && errors.Is(err, errorz.ErrNotFound) {
+	if err != nil && errors.Is(err, gqlgen.ErrArgumentNotFound) {
 		return nil, nil
 	}
 	if err != nil {

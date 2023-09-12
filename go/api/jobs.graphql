@@ -7,36 +7,41 @@ enum JobAction {
 }
 
 input Job {
-  id: ID!
+  id: ID
   action: JobAction!
   showID: ID!
 }
 
-interface IJobSubtask {
-  id: ID!
-  action: JobAction!
-}
-
-type JobSubtask implements IJobSubtask {
+type JobSubtask {
   id: ID!
   action: JobAction!
   showID: ID!
-  progress: JobSubtaskProgress!
+  status: JobSubtaskStatus!
 }
 
-enum JobStatus {
+enum JobState {
   QUEUED
   RUNNING
   COMPLETE
   FAILED
 }
 
-type JobSubtaskProgress {
-  status: JobStatus!
+type JobSubtaskStatus {
+  action: JobAction!
+  showID: ID!
+  state: JobState!
   progress: Int!
 }
 
-type JobProgress {
+type JobStatus {
   jobID: ID!
+  action: JobAction!
+  showID: ID!
+  state: JobState!
   progress: Int!
+  subtasks: [JobSubtaskStatus!]!
+}
+
+input JobFilter {
+  id: FilterOperator
 }
