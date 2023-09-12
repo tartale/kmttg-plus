@@ -17,7 +17,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
-	github.com/tartale/go v0.0.0-20230910080621-ca4cf243d500
+	github.com/tartale/go v0.0.0-20230912174316-7a60a3fa2a21
 	github.com/vektah/gqlparser/v2 v2.5.8
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.13.0
