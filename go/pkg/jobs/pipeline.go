@@ -76,17 +76,21 @@ func (p *Pipeline) Run(ctx context.Context) error {
 
 func (p Pipeline) Status() *model.JobStatus {
 
-	jobStatus := &model.JobStatus{
-		JobID:  p.jobID,
-		Action: p.action,
-		ShowID: p.showID,
-	}
 	numSubtasks := len(p.subtasks)
+	jobStatus := &model.JobStatus{
+		JobID:    p.jobID,
+		Action:   p.action,
+		ShowID:   p.showID,
+		Subtasks: []*model.JobSubtaskStatus{},
+	}
+	for _, subtask := range p.subtasks {
+		jobStatus.Subtasks = append(jobStatus.Subtasks, subtask.Status)
+	}
+
 	finishedSubtasks := 0
 	done := false
 	for _, subtask := range p.subtasks {
 
-		jobStatus.Subtasks = append(jobStatus.Subtasks, subtask.Status)
 		switch subtask.Status.State {
 
 		case model.JobStateQueued:
@@ -95,13 +99,17 @@ func (p Pipeline) Status() *model.JobStatus {
 
 		case model.JobStateRunning:
 			jobStatus.State = model.JobStateRunning
-			jobStatus.Progress += subtask.Status.Progress / numSubtasks * 100
+			jobStatus.Progress += subtask.Status.Progress / numSubtasks
 			done = true
 
 		case model.JobStateComplete:
 			finishedSubtasks++
-			jobStatus.Progress = finishedSubtasks / numSubtasks * 100
-			done = false
+			progress := int(float32(finishedSubtasks) / float32(numSubtasks) * 100)
+			jobStatus.Progress = progress
+			if progress == 100 {
+				jobStatus.State = model.JobStateComplete
+				done = true
+			}
 
 		case model.JobStateFailed:
 			jobStatus.State = model.JobStateFailed

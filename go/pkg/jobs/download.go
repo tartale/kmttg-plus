@@ -8,6 +8,7 @@ import (
 
 	"github.com/tartale/go/pkg/filez"
 	"github.com/tartale/go/pkg/retry"
+	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"go.uber.org/zap"
 )
@@ -30,7 +31,7 @@ func Download(ctx context.Context, subtask *Subtask) error {
 	retry.Eventually(func() error {
 		subtask.Status.Progress += 10
 
-		return nil
+		return errorz.ErrBadRequest
 	}, 10*time.Second, 1*time.Second)
 	logz.Logger.Debug("finished downloading show", zap.String("showID", subtask.ShowID))
 	subtask.Complete(ctx)
