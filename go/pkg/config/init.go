@@ -62,11 +62,6 @@ func InitConfig(cfgFile string) {
 			panic(err)
 		}
 
-		err = Values.Validate()
-		if err != nil {
-			panic(err)
-		}
-
 		fmt.Fprintln(os.Stdout, "config loaded", Values)
 	})
 }

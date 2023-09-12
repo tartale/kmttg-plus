@@ -25,18 +25,25 @@ type Pipeline struct {
 func NewPipeline(job *model.Job) *Pipeline {
 
 	pipeline := Pipeline{
-		jobID: *job.ID,
+		jobID:    *job.ID,
+		action:   job.Action,
+		showID:   job.ShowID,
+		subtasks: []*Subtask{},
 	}
 
+	// the list of job actions is in order of dependency.
+	// add all the actions needed up until the requested
+	// action; for example, if the job is to "decrypt X",
+	// then the subtasks are "download X, decrypt X".
 	for _, action := range model.AllJobAction {
 
 		if action == job.Action {
-			subtask := NewSubtask(job)
+			subtask := NewSubtask(action, job.ShowID)
 			pipeline.subtasks = append(pipeline.subtasks, subtask)
 			break
 		}
 
-		subtask := NewSubtask(job)
+		subtask := NewSubtask(action, job.ShowID)
 		pipeline.subtasks = append(pipeline.subtasks, subtask)
 	}
 
