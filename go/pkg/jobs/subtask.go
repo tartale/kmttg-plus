@@ -39,13 +39,16 @@ func NewSubtask(action model.JobAction, showID string) *Subtask {
 	}
 }
 
-func (st *Subtask) Activate(ctx context.Context) (activated bool) {
+func (st *Subtask) Activate(ctx context.Context) (taskWasActivated bool) {
 
-	_, loaded := activeSubtasks.LoadOrCompute(st.ID, func() *Subtask {
-		st.Status.State = model.JobStateRunning
+	existingSubtask, loaded := activeSubtasks.LoadOrStore(st.ID, st)
+	if !loaded {
 		st.ctx = ctx
-		return st
-	})
+		st.Status.State = model.JobStateRunning
+	} else {
+		st.ctx = existingSubtask.ctx
+		st.Status = existingSubtask.Status
+	}
 
 	return !loaded
 }
@@ -63,27 +66,17 @@ func (st *Subtask) Run(ctx context.Context) error {
 	defer func() { cancel(err) }()
 
 	switch st.Action {
-
 	case model.JobActionDownload:
 		err = Download(ctx, st)
-
 	default:
 		err = fmt.Errorf("%w: invalid action '%s'", errorz.ErrInvalidArgument, st.Action)
-		st.Fail(ctx)
+	}
+
+	if err != nil {
+		st.Status.State = model.JobStateFailed
+	} else {
+		st.Status.State = model.JobStateComplete
 	}
 
 	return err
-}
-
-func (st *Subtask) Complete(ctx context.Context) {
-
-	st.Status.State = model.JobStateComplete
-	st.Status.Progress = 100
-	activeSubtasks.Delete(st.ID)
-}
-
-func (st *Subtask) Fail(ctx context.Context) {
-
-	st.Status.State = model.JobStateFailed
-	activeSubtasks.Delete(st.ID)
 }

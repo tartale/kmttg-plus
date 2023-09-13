@@ -19,7 +19,8 @@ import (
 func (r *mutationResolver) StartJob(ctx context.Context, job model.Job) (*model.JobStatus, error) {
 
 	newJob := jobs.NewJob(&job)
-	jobStatus, err := jobs.StartJob(newJob)
+	jobStatus, err := jobs.StartJob(ctx, newJob)
+
 	return jobStatus, err
 }
 

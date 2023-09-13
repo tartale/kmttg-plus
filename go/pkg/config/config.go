@@ -45,7 +45,7 @@ type values struct {
 	LogMessages        bool          `mapstructure:"KMTTG_LOG_MESSAGES" default:"false"`
 	MediaAccessKey     string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY" default:""`
 	Timeout            time.Duration `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
-	MaxBackgroundTasks int           `mapstructure:"KMTTG_MAX_BACKGROUND_TASKS" default:"1"`
+	MaxBackgroundTasks int           `mapstructure:"KMTTG_MAX_BACKGROUND_TASKS" default:"8"`
 	WebUIDir           string        `mapstructure:"KMTTG_WEBUI_DIR" default:""`
 	OutputDir          string        `mapstructure:"KMTTG_OUTPUT_DIR" default:"${PWD}/output" validate:"dir"`
 	TivoDecodePath     string        `mapstructure:"KMTTG_TIVODECODE_PATH" default:"${PWD}/tools/tivodecode/tivodecode" validate:"file"`

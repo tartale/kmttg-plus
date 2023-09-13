@@ -17,24 +17,27 @@ func Download(ctx context.Context, subtask *Subtask) error {
 
 	downloadDir := subtask.OutputDir()
 	if filez.IsDir(downloadDir) {
-		subtask.Complete(ctx)
+		subtask.Status.Progress = 100
 		return nil
 	}
 	tmpDir := subtask.Tmpdir()
 	err := os.MkdirAll(tmpDir, os.FileMode(0755))
 	if err != nil {
-		subtask.Fail(ctx)
 		return fmt.Errorf("%w: unable to create directory '%s'", err, tmpDir)
 	}
 
 	logz.Logger.Debug("started downloading show", zap.String("showID", subtask.ShowID))
 	retry.Eventually(func() error {
 		subtask.Status.Progress += 10
-
 		return errorz.ErrBadRequest
 	}, 10*time.Second, 1*time.Second)
+	subtask.Status.Progress = 100
 	logz.Logger.Debug("finished downloading show", zap.String("showID", subtask.ShowID))
-	subtask.Complete(ctx)
+
+	err = os.MkdirAll(downloadDir, os.FileMode(0755))
+	if err != nil {
+		return fmt.Errorf("%w: unable to create directory '%s'", err, downloadDir)
+	}
 
 	return nil
 }

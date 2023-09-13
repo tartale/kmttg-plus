@@ -62,19 +62,17 @@ func (p *Pipeline) Start() error {
 	return nil
 }
 
-func (p *Pipeline) Run(ctx context.Context) error {
+func (p *Pipeline) Run(ctx context.Context) {
 
 	for _, subtask := range p.subtasks {
 		err := subtask.Run(ctx)
 		if err != nil {
-			return err
+			return
 		}
 	}
-
-	return nil
 }
 
-func (p Pipeline) Status() *model.JobStatus {
+func (p *Pipeline) Status() *model.JobStatus {
 
 	numSubtasks := len(p.subtasks)
 	jobStatus := &model.JobStatus{

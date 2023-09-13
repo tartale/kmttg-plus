@@ -28,7 +28,7 @@ func NewJob(job *model.Job) *Job {
 	}
 }
 
-func StartJob(job *Job) (*model.JobStatus, error) {
+func StartJob(ctx context.Context, job *Job) (*model.JobStatus, error) {
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	err := validate.Var(job.ShowID, "filepath")
@@ -36,11 +36,11 @@ func StartJob(job *Job) (*model.JobStatus, error) {
 		return nil, err
 	}
 
-	jobs.Store(*job.ID, job)
 	err = job.pipeline.Start()
 	if err != nil {
 		return nil, err
 	}
+	jobs.Store(*job.ID, job)
 
 	return job.pipeline.Status(), nil
 }
