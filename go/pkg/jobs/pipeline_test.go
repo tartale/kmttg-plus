@@ -10,19 +10,15 @@ import (
 )
 
 func TestNewPipeline(t *testing.T) {
-	testJob := &model.Job{
-		ID:     primitives.Ref("12345"),
-		Action: model.JobActionDownload,
-		ShowID: "foo",
-	}
 
-	p := NewPipeline(testJob)
+	testJob, testShow := NewTestData()
+	p := NewPipeline(testJob, testShow)
 	assert.Equal(t, "12345", p.jobID)
 	assert.Len(t, p.subtasks, 1)
 	assert.Equal(t, model.JobActionDownload, p.subtasks[0].Action)
 
 	testJob.Action = model.JobActionEncode
-	p = NewPipeline(testJob)
+	p = NewPipeline(testJob, testShow)
 
 	assert.Len(t, p.subtasks, len(model.AllJobAction))
 	assert.Equal(t, model.JobActionDownload, p.subtasks[0].Action)
@@ -31,12 +27,8 @@ func TestNewPipeline(t *testing.T) {
 
 func TestStartPipeline(t *testing.T) {
 
-	testJob := &model.Job{
-		ID:     primitives.Ref("12345"),
-		Action: model.JobActionDownload,
-		ShowID: "foo",
-	}
-	p := NewPipeline(testJob)
+	testJob, testShow := NewTestData()
+	p := NewPipeline(testJob, testShow)
 	err := p.Start()
 	assert.Nil(t, err)
 	assert.Len(t, pipelineQueue, 1)
@@ -47,19 +39,15 @@ func TestStartPipeline(t *testing.T) {
 
 func TestStartPipeline_MaxInProgress(t *testing.T) {
 
+	testJob, testShow := NewTestData()
 	pipelineQueue = make(chan *Pipeline, 1)
-	testJob := &model.Job{
-		ID:     primitives.Ref("12345"),
-		Action: model.JobActionDownload,
-		ShowID: "foo",
-	}
-	p := NewPipeline(testJob)
+	p := NewPipeline(testJob, testShow)
 	err := p.Start()
 	assert.Nil(t, err)
 	assert.Len(t, pipelineQueue, 1)
 
 	testJob.ID = primitives.Ref("67890")
-	p = NewPipeline(testJob)
+	p = NewPipeline(testJob, testShow)
 	err = p.Start()
 	assert.ErrorIs(t, err, ErrTooManyTasks)
 	assert.Len(t, pipelineQueue, 1)
@@ -79,13 +67,8 @@ func TestRunPipeline(t *testing.T) {
 
 func TestPipelineStatus_SingleSubtask(t *testing.T) {
 
-	testJob := &model.Job{
-		ID:     primitives.Ref("12345"),
-		Action: model.JobActionDownload,
-		ShowID: "foo",
-	}
-	p := NewPipeline(testJob)
-
+	testJob, testShow := NewTestData()
+	p := NewPipeline(testJob, testShow)
 	status := p.Status()
 
 	assert.Len(t, status.Subtasks, 1)
@@ -102,18 +85,14 @@ func TestPipelineStatus_SingleSubtask(t *testing.T) {
 	assert.Equal(t, 50, status.Progress)
 }
 
-func TestPipelineStatus_MultipleSubtask(t *testing.T) {
+func TestPipelineStatus_MultipleSubtasks(t *testing.T) {
 
+	testJob, testShow := NewTestData()
 	testAction := model.JobActionDecrypt
-	testJob := &model.Job{
-		ID:     primitives.Ref("12345"),
-		Action: testAction,
-		ShowID: "foo",
-	}
 	testActionNumber := slices.Index(model.AllJobAction, testAction)
+	testJob.Action = testAction
 	assert.GreaterOrEqual(t, testActionNumber, 0)
-	p := NewPipeline(testJob)
-
+	p := NewPipeline(testJob, testShow)
 	status := p.Status()
 
 	assert.Len(t, status.Subtasks, testActionNumber+1)

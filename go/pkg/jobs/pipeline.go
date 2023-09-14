@@ -18,16 +18,16 @@ var (
 type Pipeline struct {
 	jobID    string
 	action   model.JobAction
-	showID   string
+	show     model.Show
 	subtasks []*Subtask
 }
 
-func NewPipeline(job *model.Job) *Pipeline {
+func NewPipeline(job *model.Job, show model.Show) *Pipeline {
 
 	pipeline := Pipeline{
 		jobID:    *job.ID,
 		action:   job.Action,
-		showID:   job.ShowID,
+		show:     show,
 		subtasks: []*Subtask{},
 	}
 
@@ -38,12 +38,12 @@ func NewPipeline(job *model.Job) *Pipeline {
 	for _, action := range model.AllJobAction {
 
 		if action == job.Action {
-			subtask := NewSubtask(action, job.ShowID)
+			subtask := NewSubtask(action, show)
 			pipeline.subtasks = append(pipeline.subtasks, subtask)
 			break
 		}
 
-		subtask := NewSubtask(action, job.ShowID)
+		subtask := NewSubtask(action, show)
 		pipeline.subtasks = append(pipeline.subtasks, subtask)
 	}
 
@@ -78,7 +78,7 @@ func (p *Pipeline) Status() *model.JobStatus {
 	jobStatus := &model.JobStatus{
 		JobID:    p.jobID,
 		Action:   p.action,
-		ShowID:   p.showID,
+		ShowID:   p.show.GetID(),
 		Subtasks: []*model.JobSubtaskStatus{},
 	}
 	for _, subtask := range p.subtasks {

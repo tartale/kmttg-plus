@@ -11,18 +11,22 @@ import (
 
 func TestActivateSubtask(t *testing.T) {
 
-	testSubtask := NewSubtask("no-op", "foo")
+	_, testShow := NewTestData()
+	testSubtask := NewSubtask("no-op", testShow)
 	ctx := context.Background()
-	activated := testSubtask.Activate(ctx)
-	assert.True(t, activated)
+	taskWasStarted := testSubtask.activate(ctx)
+	assert.True(t, taskWasStarted)
+	assert.Panics(t, func() { testSubtask.activate(ctx) })
 
-	activated = testSubtask.Activate(ctx)
-	assert.False(t, activated)
+	testSubtask2 := NewSubtask("no-op", testShow)
+	taskWasStarted = testSubtask2.activate(ctx)
+	assert.False(t, taskWasStarted)
 }
 
 func TestRunSubtask(t *testing.T) {
 
-	testSubtask := NewSubtask("no-op", "bar")
+	_, testShow := NewTestData()
+	testSubtask := NewSubtask("no-op", testShow)
 	ctx := context.Background()
 	err := testSubtask.Run(ctx)
 

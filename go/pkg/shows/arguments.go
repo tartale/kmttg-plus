@@ -6,11 +6,11 @@ import (
 	"fmt"
 
 	"github.com/PaesslerAG/gval"
+	"github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/go/pkg/filter"
 	"github.com/tartale/go/pkg/generics"
 	"github.com/tartale/go/pkg/gqlgen"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
-	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"go.uber.org/zap"
@@ -23,7 +23,7 @@ func NewFilters(ctx context.Context) ([]*model.ShowFilter, error) {
 		return nil, fmt.Errorf("%w '%s'; expected type: %s", errorz.ErrInvalidArgument,
 			apicontext.ShowFiltersKey.Name, "[ShowFilter]")
 	}
-	if err != nil && errors.Is(err, gqlgen.ErrArgumentNotFound) {
+	if err != nil && errors.Is(err, errorz.ErrNotFound) {
 		return nil, nil
 	}
 	if err != nil {

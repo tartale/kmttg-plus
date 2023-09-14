@@ -48,7 +48,7 @@ func GetDebugDir() (string, error) {
 		}
 		break
 	}
-	debugDir := path.Join(rootDir, "debug")
+	debugDir := path.Join(rootDir, "go", "debug")
 
 	return debugDir, nil
 }

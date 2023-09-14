@@ -3,14 +3,13 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
-	"time"
 
 	"github.com/tartale/go/pkg/filez"
-	"github.com/tartale/go/pkg/retry"
-	"github.com/tartale/kmttg-plus/go/pkg/errorz"
-	"github.com/tartale/kmttg-plus/go/pkg/logz"
-	"go.uber.org/zap"
+	"github.com/tartale/kmttg-plus/go/pkg/config"
+	"github.com/tartale/kmttg-plus/go/pkg/model"
+	"github.com/tartale/kmttg-plus/go/pkg/shows"
 )
 
 func Download(ctx context.Context, subtask *Subtask) error {
@@ -25,14 +24,12 @@ func Download(ctx context.Context, subtask *Subtask) error {
 	if err != nil {
 		return fmt.Errorf("%w: unable to create directory '%s'", err, tmpDir)
 	}
-
-	logz.Logger.Debug("started downloading show", zap.String("showID", subtask.ShowID))
-	retry.Eventually(func() error {
-		subtask.Status.Progress += 10
-		return errorz.ErrBadRequest
-	}, 10*time.Second, 1*time.Second)
+	dlURL, err := getDownloadURL(subtask.show)
+	if err != nil {
+		return fmt.Errorf("%w: unable get download URL '%s'", err, downloadDir)
+	}
+	fmt.Println(dlURL)
 	subtask.Status.Progress = 100
-	logz.Logger.Debug("finished downloading show", zap.String("showID", subtask.ShowID))
 
 	err = os.MkdirAll(downloadDir, os.FileMode(0755))
 	if err != nil {
@@ -40,6 +37,26 @@ func Download(ctx context.Context, subtask *Subtask) error {
 	}
 
 	return nil
+}
+
+func getDownloadURL(show model.Show) (*url.URL, error) {
+
+	showDetails := shows.GetDetails(show)
+	showTitle := url.PathEscape(show.GetTitle())
+	showIDNumber := shows.ParseIDNumber(showDetails.ObjectaID)
+	downloadBaseURL := fmt.Sprintf("http://tivo:%s@%s/download/%s.Tivo",
+		config.Values.MediaAccessKey, showDetails.Tivo.Address, showTitle)
+	downloadURL, err := url.Parse(downloadBaseURL)
+	if err != nil {
+		return nil, err
+	}
+	downloadURL.RawQuery = url.Values{
+		"Container": {"NowPlaying"},
+		"Format":    {"video/x-tivo-mpeg-ts"},
+		"id":        {showIDNumber},
+	}.Encode()
+
+	return downloadURL, nil
 }
 
 /*

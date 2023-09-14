@@ -8,6 +8,7 @@ import (
 	"github.com/puzpuzpuz/xsync"
 	"github.com/tartale/go/pkg/primitives"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
+	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
 var (
@@ -19,13 +20,18 @@ type Job struct {
 	pipeline *Pipeline
 }
 
-func NewJob(job *model.Job) *Job {
+func NewJob(job *model.Job) (*Job, error) {
+
+	show, err := tivos.GetShowForID(job.ShowID)
+	if err != nil {
+		return nil, err
+	}
 
 	job.ID = primitives.Ref(uuid.NewString())
 	return &Job{
 		Job:      job,
-		pipeline: NewPipeline(job),
-	}
+		pipeline: NewPipeline(job, show),
+	}, nil
 }
 
 func StartJob(ctx context.Context, job *Job) (*model.JobStatus, error) {

@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
 	"os"
@@ -68,9 +69,13 @@ func NewTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	keyLog, err := os.Create(path.Join(logz.MustGetDebugDir(), "keys.log"))
-	if err != nil {
-		return nil, err
+	var KeyLogWriter io.Writer
+	if config.Values.LogMessages {
+		keyLog, err := os.Create(path.Join(logz.MustGetDebugDir(), "keys.log"))
+		if err != nil {
+			return nil, err
+		}
+		KeyLogWriter = keyLog
 	}
 
 	return &tls.Config{
@@ -83,7 +88,7 @@ func NewTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 		ClientCAs:          certPool,
 		InsecureSkipVerify: true,
 		Renegotiation:      tls.RenegotiateFreelyAsClient,
-		KeyLogWriter:       keyLog,
+		KeyLogWriter:       KeyLogWriter,
 	}, nil
 }
 

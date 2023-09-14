@@ -12,6 +12,8 @@ const (
 	TypeRecordingList             Type = "recordingList"
 	TypeCollectionSearch          Type = "collectionSearch"
 	TypeCollectionList            Type = "collectionList"
+	TypeIdSearch                  Type = "idSearch"
+	TypeIdSet                     Type = "idSet"
 	TypeError                     Type = "error"
 )
 
@@ -50,3 +52,11 @@ const (
 	LevelOfDetailMedium LevelOfDetail = "medium"
 	LevelOfDetailHigh   LevelOfDetail = "high"
 )
+
+type IdNamespace string
+
+const (
+	IdNamespaceMFS IdNamespace = "mfs"
+)
+
+type IdType string

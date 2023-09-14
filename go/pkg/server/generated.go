@@ -71,13 +71,13 @@ type ComplexityRoot struct {
 
 	JobSubtask struct {
 		Action func(childComplexity int) int
-		ID     func(childComplexity int) int
 		ShowID func(childComplexity int) int
 		Status func(childComplexity int) int
 	}
 
 	JobSubtaskStatus struct {
 		Action   func(childComplexity int) int
+		Error    func(childComplexity int) int
 		Progress func(childComplexity int) int
 		ShowID   func(childComplexity int) int
 		State    func(childComplexity int) int
@@ -269,13 +269,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.JobSubtask.Action(childComplexity), true
 
-	case "JobSubtask.id":
-		if e.complexity.JobSubtask.ID == nil {
-			break
-		}
-
-		return e.complexity.JobSubtask.ID(childComplexity), true
-
 	case "JobSubtask.showID":
 		if e.complexity.JobSubtask.ShowID == nil {
 			break
@@ -296,6 +289,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.JobSubtaskStatus.Action(childComplexity), true
+
+	case "JobSubtaskStatus.error":
+		if e.complexity.JobSubtaskStatus.Error == nil {
+			break
+		}
+
+		return e.complexity.JobSubtaskStatus.Error(childComplexity), true
 
 	case "JobSubtaskStatus.progress":
 		if e.complexity.JobSubtaskStatus.Progress == nil {
@@ -669,13 +669,12 @@ enum JobAction {
 input Job {
   id: ID
   action: JobAction!
-  showID: ID!
+  showID: String!
 }
 
 type JobSubtask {
-  id: ID!
   action: JobAction!
-  showID: ID!
+  showID: String!
   status: JobSubtaskStatus!
 }
 
@@ -688,22 +687,26 @@ enum JobState {
 
 type JobSubtaskStatus {
   action: JobAction!
-  showID: ID!
+  showID: String!
   state: JobState!
   progress: Int!
+  error: String
 }
 
 type JobStatus {
   jobID: ID!
   action: JobAction!
-  showID: ID!
+  showID: String!
   state: JobState!
   progress: Int!
   subtasks: [JobSubtaskStatus!]!
 }
 
 input JobFilter {
-  id: FilterOperator
+  jobID: FilterOperator
+  action: FilterOperator
+  showID: FilterOperator
+  state: FilterOperator
 }
 `, BuiltIn: false},
 	{Name: "../../api/schema.graphql", Input: `type Query {
@@ -1644,7 +1647,7 @@ func (ec *executionContext) _JobStatus_showID(ctx context.Context, field graphql
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_JobStatus_showID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1654,7 +1657,7 @@ func (ec *executionContext) fieldContext_JobStatus_showID(ctx context.Context, f
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1795,52 +1798,10 @@ func (ec *executionContext) fieldContext_JobStatus_subtasks(ctx context.Context,
 				return ec.fieldContext_JobSubtaskStatus_state(ctx, field)
 			case "progress":
 				return ec.fieldContext_JobSubtaskStatus_progress(ctx, field)
+			case "error":
+				return ec.fieldContext_JobSubtaskStatus_error(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type JobSubtaskStatus", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _JobSubtask_id(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtask) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_JobSubtask_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_JobSubtask_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "JobSubtask",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1918,7 +1879,7 @@ func (ec *executionContext) _JobSubtask_showID(ctx context.Context, field graphq
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_JobSubtask_showID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1928,7 +1889,7 @@ func (ec *executionContext) fieldContext_JobSubtask_showID(ctx context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1981,6 +1942,8 @@ func (ec *executionContext) fieldContext_JobSubtask_status(ctx context.Context, 
 				return ec.fieldContext_JobSubtaskStatus_state(ctx, field)
 			case "progress":
 				return ec.fieldContext_JobSubtaskStatus_progress(ctx, field)
+			case "error":
+				return ec.fieldContext_JobSubtaskStatus_error(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type JobSubtaskStatus", field.Name)
 		},
@@ -2060,7 +2023,7 @@ func (ec *executionContext) _JobSubtaskStatus_showID(ctx context.Context, field 
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_JobSubtaskStatus_showID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2070,7 +2033,7 @@ func (ec *executionContext) fieldContext_JobSubtaskStatus_showID(ctx context.Con
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2159,6 +2122,47 @@ func (ec *executionContext) fieldContext_JobSubtaskStatus_progress(ctx context.C
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtaskStatus_error(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtaskStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtaskStatus_error(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Error, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtaskStatus_error(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtaskStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5346,7 +5350,7 @@ func (ec *executionContext) unmarshalInputJob(ctx context.Context, obj interface
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showID"))
-			data, err := ec.unmarshalNID2string(ctx, v)
+			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5364,22 +5368,49 @@ func (ec *executionContext) unmarshalInputJobFilter(ctx context.Context, obj int
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id"}
+	fieldsInOrder := [...]string{"jobID", "action", "showID", "state"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "id":
+		case "jobID":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("jobID"))
 			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ID = data
+			it.JobID = data
+		case "action":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("action"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Action = data
+		case "showID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showID"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowID = data
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
 		}
 	}
 
@@ -5879,11 +5910,6 @@ func (ec *executionContext) _JobSubtask(ctx context.Context, sel ast.SelectionSe
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("JobSubtask")
-		case "id":
-			out.Values[i] = ec._JobSubtask_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "action":
 			out.Values[i] = ec._JobSubtask_action(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5953,6 +5979,8 @@ func (ec *executionContext) _JobSubtaskStatus(ctx context.Context, sel ast.Selec
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "error":
+			out.Values[i] = ec._JobSubtaskStatus_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

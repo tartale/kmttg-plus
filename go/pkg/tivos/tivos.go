@@ -9,6 +9,7 @@ import (
 
 	"github.com/puzpuzpuz/xsync"
 	"github.com/tartale/go/pkg/errorx"
+	liberrorz "github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
@@ -140,4 +141,28 @@ func List(ctx context.Context) []*model.Tivo {
 	})
 
 	return list
+}
+
+func GetShowForID(recordingID string) (model.Show, error) {
+
+	var result model.Show
+	tivoMap.Range(func(key string, val *model.Tivo) bool {
+
+		for _, show := range val.Shows {
+			details := shows.GetDetails(show)
+			if details.Recording.RecordingID == recordingID {
+				clone := shows.New(val, details.ObjectaID, &details.Recording, &details.Collection)
+				result = clone
+				return false
+			}
+		}
+
+		return true
+	})
+
+	if result == nil {
+		return nil, fmt.Errorf("%w: show ID '%s'", liberrorz.ErrNotFound, recordingID)
+	}
+
+	return result, nil
 }

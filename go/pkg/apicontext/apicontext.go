@@ -64,7 +64,7 @@ func ShowOffset(ctx context.Context) int {
 	if val := contexts.Value[int](ctx, ShowOffsetKey); val != nil {
 		return *val
 	}
-	if val := gqlgen.MustGetArgValue[int](ctx, ShowOffsetKey); val != nil {
+	if val, err := gqlgen.GetArgValue[int](ctx, ShowOffsetKey); err == nil {
 		return *val
 	}
 
@@ -75,7 +75,7 @@ func ShowLimit(ctx context.Context) int {
 	if val := contexts.Value[int](ctx, ShowLimitKey); val != nil {
 		return *val
 	}
-	if val := gqlgen.MustGetArgValue[int](ctx, ShowLimitKey); val != nil {
+	if val, err := gqlgen.GetArgValue[int](ctx, ShowLimitKey); err == nil {
 		return *val
 	}
 

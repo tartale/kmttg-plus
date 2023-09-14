@@ -60,7 +60,10 @@ type Job struct {
 }
 
 type JobFilter struct {
-	ID *filter.Operator `json:"id,omitempty"`
+	JobID  *filter.Operator `json:"jobID,omitempty"`
+	Action *filter.Operator `json:"action,omitempty"`
+	ShowID *filter.Operator `json:"showID,omitempty"`
+	State  *filter.Operator `json:"state,omitempty"`
 }
 
 type JobStatus struct {
@@ -73,7 +76,6 @@ type JobStatus struct {
 }
 
 type JobSubtask struct {
-	ID     string            `json:"id"`
 	Action JobAction         `json:"action"`
 	ShowID string            `json:"showID"`
 	Status *JobSubtaskStatus `json:"status"`
@@ -84,6 +86,7 @@ type JobSubtaskStatus struct {
 	ShowID   string    `json:"showID"`
 	State    JobState  `json:"state"`
 	Progress int       `json:"progress"`
+	Error    *string   `json:"error,omitempty"`
 }
 
 type Movie struct {

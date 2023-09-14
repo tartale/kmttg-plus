@@ -4,31 +4,33 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 
+	liberrorz "github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/go/pkg/mathx"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
-	"github.com/tartale/kmttg-plus/go/pkg/errorz"
-	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
-	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
 
-func New(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (model.Show, error) {
+func New(tivo *model.Tivo, objectID string, recording *message.RecordingItem, collection *message.CollectionItem) model.Show {
 
-	switch recordingDetails.CollectionType {
+	var result model.Show
+	switch recording.CollectionType {
+
 	case message.CollectionTypeSeries:
-		return newEpisode(recordingDetails, collectionDetails)
+		result = newEpisode(tivo, objectID, recording, collection)
 
 	case message.CollectionTypeMovie, message.CollectionTypeSpecial:
-		return newMovie(recordingDetails, collectionDetails)
+		result = newMovie(tivo, objectID, recording, collection)
 
 	default:
-		return nil, fmt.Errorf("%w: unexpected collection type: %s",
-			errorz.ErrResponse, recordingDetails.CollectionType)
+		panic(fmt.Errorf("%w: unexpected collection type for recording '%s': '%v'",
+			liberrorz.ErrFatal, recording.Title, recording.CollectionType))
 	}
 
+	return result
 }
 
 func WithImageURL(show model.Show, targetDimensions *apicontext.ImageDimensions) model.Show {
@@ -42,12 +44,12 @@ func WithImageURL(show model.Show, targetDimensions *apicontext.ImageDimensions)
 	switch show.GetKind() {
 	case model.ShowKindMovie:
 		movie := *(show.(*movie))
-		movie.ImageURL = findBestImageURL(movie.collectionDetails.Images, targetDimensions)
+		movie.ImageURL = findBestImageURL(movie.Details.Collection.Images, targetDimensions)
 		result = &movie
 
 	case model.ShowKindSeries:
 		series := *(show.(*series))
-		series.ImageURL = findBestImageURL(series.collectionDetails.Images, targetDimensions)
+		series.ImageURL = findBestImageURL(series.Details.Collection.Images, targetDimensions)
 		result = &series
 
 	case model.ShowKindEpisode:
@@ -58,18 +60,21 @@ func WithImageURL(show model.Show, targetDimensions *apicontext.ImageDimensions)
 }
 
 func AsAPIType(show model.Show) model.Show {
+
 	switch show.GetKind() {
+
 	case model.ShowKindMovie:
 		return show.(*movie).Movie
+
 	case model.ShowKindSeries:
 		return show.(*series).Series
+
 	case model.ShowKindEpisode:
 		return show.(*episode).Episode
-	}
-	logz.Logger.Warn("unable to cast show to API type",
-		zap.Any("kind", show.GetKind()), zap.String("showTitle", show.GetTitle()))
 
-	return show
+	default:
+		panic(fmt.Errorf("%w: unexpected show kind: %v", liberrorz.ErrFatal, show.GetKind()))
+	}
 }
 
 func MergeEpisodes(shows []model.Show) []model.Show {
@@ -105,36 +110,79 @@ func MergeEpisodes(shows []model.Show) []model.Show {
 	return combinedShows
 }
 
-type movie struct {
-	*model.Movie
-	recordingDetails  *message.RecordingItem
-	collectionDetails *message.CollectionItem
+func ParseIDNumber(id string) string {
+	// example tivo ID: tivo:rc.20479
+	split := strings.Split(id, ".")
+	return split[len(split)-1]
 }
 
-func newMovie(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (*movie, error) {
-	if recordingDetails.CollectionType != message.CollectionTypeMovie && recordingDetails.CollectionType != message.CollectionTypeSpecial {
-		return nil, fmt.Errorf("%w: unexpected collection type: %s",
-			errorz.ErrResponse, recordingDetails.CollectionType)
+type Details struct {
+	Tivo       *model.Tivo
+	ObjectaID  string
+	Recording  message.RecordingItem
+	Collection message.CollectionItem
+}
+
+func GetDetails(show model.Show) Details {
+
+	var details Details
+
+	switch show.GetKind() {
+
+	case model.ShowKindMovie:
+		movie := show.(*movie)
+		details = movie.Details
+
+	case model.ShowKindSeries:
+		series := show.(*series)
+		details = series.Details
+
+	case model.ShowKindEpisode:
+		episode := show.(*episode)
+		details = episode.Details
+
+	default:
+		panic(fmt.Errorf("%w: unexpected show kind: %v", liberrorz.ErrFatal, show.GetKind()))
+	}
+
+	return details
+}
+
+type movie struct {
+	*model.Movie
+	Details Details
+}
+
+func newMovie(tivo *model.Tivo, objectID string, recording *message.RecordingItem, collection *message.CollectionItem) *movie {
+
+	if recording.CollectionType != message.CollectionTypeMovie &&
+		recording.CollectionType != message.CollectionTypeSpecial {
+
+		panic(fmt.Errorf("%w: unexpected collection type for recording '%s': '%v'",
+			liberrorz.ErrFatal, recording.Title, recording.CollectionType))
 	}
 
 	return &movie{
 		Movie: &model.Movie{
-			ID:          recordingDetails.RecordingID,
+			ID:          recording.RecordingID,
 			Kind:        model.ShowKindMovie,
-			Title:       recordingDetails.Title,
-			RecordedOn:  recordingDetails.StartTime.Time,
-			Description: recordingDetails.Description,
-			MovieYear:   recordingDetails.MovieYear,
+			Title:       recording.Title,
+			RecordedOn:  recording.StartTime.Time,
+			Description: recording.Description,
+			MovieYear:   recording.MovieYear,
 		},
-		recordingDetails:  recordingDetails,
-		collectionDetails: collectionDetails,
-	}, nil
+		Details: Details{
+			Tivo:       tivo,
+			ObjectaID:  objectID,
+			Recording:  *recording,
+			Collection: *collection,
+		},
+	}
 }
 
 type series struct {
 	*model.Series
-	recordingDetails  *message.RecordingItem
-	collectionDetails *message.CollectionItem
+	Details Details
 }
 
 func newSeries(episode *episode) *series {
@@ -148,45 +196,48 @@ func newSeries(episode *episode) *series {
 			Description: episode.Description,
 			Episodes:    []*model.Episode{episode.Episode},
 		},
-		recordingDetails:  episode.recordingDetails,
-		collectionDetails: episode.collectionDetails,
+		Details: episode.Details,
 	}
 }
 
 type episode struct {
 	*model.Episode
-	recordingDetails  *message.RecordingItem
-	collectionDetails *message.CollectionItem
+	Details Details
 }
 
-func newEpisode(recordingDetails *message.RecordingItem, collectionDetails *message.CollectionItem) (*episode, error) {
-	if recordingDetails.CollectionType != message.CollectionTypeSeries {
-		return nil, fmt.Errorf("%w: unexpected collection type: %s",
-			errorz.ErrResponse, recordingDetails.CollectionType)
+func newEpisode(tivo *model.Tivo, objectID string, recording *message.RecordingItem, collection *message.CollectionItem) *episode {
+
+	if recording.CollectionType != message.CollectionTypeSeries {
+		panic(fmt.Errorf("%w: unexpected collection type for recording '%s': '%v'",
+			liberrorz.ErrFatal, recording.Title, recording.CollectionType))
 	}
 
 	var episodeNumber int
-	if len(recordingDetails.EpisodeNum) > 0 {
-		episodeNumber = recordingDetails.EpisodeNum[0]
+	if len(recording.EpisodeNum) > 0 {
+		episodeNumber = recording.EpisodeNum[0]
 	}
 
 	return &episode{
 		Episode: &model.Episode{
-			ID:                 recordingDetails.RecordingID,
-			SeriesID:           recordingDetails.CollectionID,
+			ID:                 recording.RecordingID,
+			SeriesID:           recording.CollectionID,
 			Kind:               model.ShowKindEpisode,
-			Title:              recordingDetails.Title,
-			RecordedOn:         recordingDetails.StartTime.Time,
-			Description:        collectionDetails.Description,
-			OriginalAirDate:    recordingDetails.OriginalAirDate,
-			SeasonNumber:       recordingDetails.SeasonNumber,
+			Title:              recording.Title,
+			RecordedOn:         recording.StartTime.Time,
+			Description:        collection.Description,
+			OriginalAirDate:    recording.OriginalAirDate,
+			SeasonNumber:       recording.SeasonNumber,
 			EpisodeNumber:      episodeNumber,
-			EpisodeTitle:       recordingDetails.Subtitle,
-			EpisodeDescription: recordingDetails.Description,
+			EpisodeTitle:       recording.Subtitle,
+			EpisodeDescription: recording.Description,
 		},
-		recordingDetails:  recordingDetails,
-		collectionDetails: collectionDetails,
-	}, nil
+		Details: Details{
+			Tivo:       tivo,
+			ObjectaID:  objectID,
+			Recording:  *recording,
+			Collection: *collection,
+		},
+	}
 }
 
 func imageIsInvalid(image message.CollectionImage) bool {

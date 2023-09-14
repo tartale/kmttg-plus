@@ -164,6 +164,25 @@ func (t *TivoMessage) WithGetEpisodesRequest(ctx context.Context, bodyID string)
 	return t
 }
 
+func (t *TivoMessage) WithIdSearchRequest(ctx context.Context, bodyID, searchID string) *TivoMessage {
+
+	t = t.WithStandardHeaders()
+	t.Headers.Set("Type", "request")
+	t.Headers.Set("RequestType", string(TypeIdSearch))
+	t.Headers.Set("ResponseCount", string(ResponseCountSingle))
+	t.Headers.Set("BodyId", bodyID)
+
+	body := &IdSearchRequestBody{
+		Type:      TypeIdSearch,
+		BodyID:    bodyID,
+		Namespace: IdNamespaceMFS,
+		ObjectID:  searchID,
+	}
+	t.Body = body
+
+	return t
+}
+
 func (t *TivoMessage) WithSessionID(sessionID string) *TivoMessage {
 	t.Headers.Set("X-ApplicationSessionId", sessionID)
 
