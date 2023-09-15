@@ -3,11 +3,13 @@ package shows
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"sort"
 	"strings"
 
 	liberrorz "github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/go/pkg/mathx"
+	"github.com/tartale/go/pkg/stringz"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
@@ -118,34 +120,52 @@ func ParseIDNumber(id string) string {
 
 type Details struct {
 	Tivo       *model.Tivo
-	ObjectaID  string
+	ObjectID   string
 	Recording  message.RecordingItem
 	Collection message.CollectionItem
 }
 
-func GetDetails(show model.Show) Details {
+func GetDetails(show model.Show) *Details {
 
-	var details Details
+	switch s := show.(type) {
+
+	case *movie:
+		return &s.Details
+
+	case *series:
+		return &s.Details
+
+	case *episode:
+		return &s.Details
+
+	default:
+		return nil
+	}
+}
+
+func GetPath(show model.Show) string {
+
+	details := GetDetails(show)
+	if details == nil {
+		return stringz.ToAlphaNumeric(show.GetTitle())
+	}
 
 	switch show.GetKind() {
 
 	case model.ShowKindMovie:
-		movie := show.(*movie)
-		details = movie.Details
+		return stringz.ToAlphaNumeric(details.Recording.Title)
 
 	case model.ShowKindSeries:
-		series := show.(*series)
-		details = series.Details
+		return stringz.ToAlphaNumeric(details.Collection.Title)
 
 	case model.ShowKindEpisode:
-		episode := show.(*episode)
-		details = episode.Details
+		parentDir := stringz.ToAlphaNumeric(details.Collection.Title)
+		subDir := stringz.ToAlphaNumeric(details.Recording.Title)
+		return path.Join(parentDir, subDir)
 
 	default:
-		panic(fmt.Errorf("%w: unexpected show kind: %v", liberrorz.ErrFatal, show.GetKind()))
+		panic(fmt.Errorf("%w: unexpected show kind '%s'", liberrorz.ErrFatal, show.GetKind()))
 	}
-
-	return details
 }
 
 type movie struct {
@@ -173,7 +193,7 @@ func newMovie(tivo *model.Tivo, objectID string, recording *message.RecordingIte
 		},
 		Details: Details{
 			Tivo:       tivo,
-			ObjectaID:  objectID,
+			ObjectID:   objectID,
 			Recording:  *recording,
 			Collection: *collection,
 		},
@@ -233,7 +253,7 @@ func newEpisode(tivo *model.Tivo, objectID string, recording *message.RecordingI
 		},
 		Details: Details{
 			Tivo:       tivo,
-			ObjectaID:  objectID,
+			ObjectID:   objectID,
 			Recording:  *recording,
 			Collection: *collection,
 		},

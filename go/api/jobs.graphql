@@ -1,9 +1,9 @@
 
 enum JobAction {
   DOWNLOAD
-  DECRYPT
-  COMSKIP
+  REMOVE_ADS
   ENCODE
+  PLAY
 }
 
 input Job {

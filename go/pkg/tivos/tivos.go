@@ -51,7 +51,7 @@ func LoadAll() error {
 func Load(tivo *model.Tivo) error {
 
 	logz.Logger.Debug("loading all shows", zap.String("tivoName", tivo.Name))
-	tivoClient, err := client.Get(tivo)
+	tivoClient, err := client.NewRpcClient(tivo)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func GetShowForID(recordingID string) (model.Show, error) {
 		for _, show := range val.Shows {
 			details := shows.GetDetails(show)
 			if details.Recording.RecordingID == recordingID {
-				clone := shows.New(val, details.ObjectaID, &details.Recording, &details.Collection)
+				clone := shows.New(val, details.ObjectID, &details.Recording, &details.Collection)
 				result = clone
 				return false
 			}

@@ -661,9 +661,9 @@ input Sorter {
 	{Name: "../../api/jobs.graphql", Input: `
 enum JobAction {
   DOWNLOAD
-  DECRYPT
-  COMSKIP
+  REMOVE_ADS
   ENCODE
+  PLAY
 }
 
 input Job {

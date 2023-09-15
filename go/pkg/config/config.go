@@ -47,6 +47,7 @@ type values struct {
 	Timeout            time.Duration `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
 	MaxBackgroundTasks int           `mapstructure:"KMTTG_MAX_BACKGROUND_TASKS" default:"8"`
 	WebUIDir           string        `mapstructure:"KMTTG_WEBUI_DIR" default:""`
+	TempDir            string        `mapstructure:"KMTTG_TEMP_DIR" default:"${PWD}/tmp" validate:"dir"`
 	OutputDir          string        `mapstructure:"KMTTG_OUTPUT_DIR" default:"${PWD}/output" validate:"dir"`
 	TivoDecodePath     string        `mapstructure:"KMTTG_TIVODECODE_PATH" default:"${PWD}/tools/tivodecode/tivodecode" validate:"file"`
 }

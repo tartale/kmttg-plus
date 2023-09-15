@@ -12,7 +12,7 @@ func NewTestData() (testJob *model.Job, testShow model.Show) {
 	activeSubtasks = xsync.NewMapOf[*Subtask]()
 	return &model.Job{
 			ID:     primitives.Ref("12345"),
-			Action: model.JobActionDownload,
+			Action: model.AllJobAction[0],
 			ShowID: "foo",
 		},
 		&model.Movie{

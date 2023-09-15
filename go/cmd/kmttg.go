@@ -156,7 +156,7 @@ func runTerminal() {
 
 	// TODO: allow selection of a Tivo
 	tvo := tivos.List(context.Background())[0]
-	tivoClient, err := client.Get(tvo)
+	tivoClient, err := client.NewRpcClient(tvo)
 	if err != nil {
 		fmt.Printf("error: %v", err)
 	}

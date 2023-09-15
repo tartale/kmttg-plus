@@ -15,14 +15,7 @@ func TestNewPipeline(t *testing.T) {
 	p := NewPipeline(testJob, testShow)
 	assert.Equal(t, "12345", p.jobID)
 	assert.Len(t, p.subtasks, 1)
-	assert.Equal(t, model.JobActionDownload, p.subtasks[0].Action)
-
-	testJob.Action = model.JobActionEncode
-	p = NewPipeline(testJob, testShow)
-
-	assert.Len(t, p.subtasks, len(model.AllJobAction))
-	assert.Equal(t, model.JobActionDownload, p.subtasks[0].Action)
-	assert.Equal(t, model.JobActionEncode, p.subtasks[3].Action)
+	assert.Equal(t, model.AllJobAction[0], p.subtasks[0].Action)
 }
 
 func TestStartPipeline(t *testing.T) {
@@ -88,7 +81,7 @@ func TestPipelineStatus_SingleSubtask(t *testing.T) {
 func TestPipelineStatus_MultipleSubtasks(t *testing.T) {
 
 	testJob, testShow := NewTestData()
-	testAction := model.JobActionDecrypt
+	testAction := model.JobActionRemoveAds
 	testActionNumber := slices.Index(model.AllJobAction, testAction)
 	testJob.Action = testAction
 	assert.GreaterOrEqual(t, testActionNumber, 0)

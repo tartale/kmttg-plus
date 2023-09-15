@@ -1,2 +1,5 @@
 go.work
 go.work.sum
+tmp/
+output/
+tools/tivodecode/

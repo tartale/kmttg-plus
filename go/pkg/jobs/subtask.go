@@ -3,13 +3,19 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/puzpuzpuz/xsync"
 	"github.com/tartale/go/pkg/errorz"
+	"github.com/tartale/go/pkg/mathx"
 	"github.com/tartale/go/pkg/primitives"
+	"github.com/tartale/kmttg-plus/go/pkg/config"
+	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
+	"github.com/tartale/kmttg-plus/go/pkg/shows"
+	"go.uber.org/zap"
 )
 
 var activeSubtasks = xsync.NewMapOf[*Subtask]()
@@ -18,6 +24,8 @@ type Subtask struct {
 	*model.JobSubtask
 	id        string
 	show      model.Show
+	tmpdir    string
+	outputdir string
 	activated bool
 	ctx       context.Context
 }
@@ -28,6 +36,9 @@ func MakeSubtaskID(action model.JobAction, showID string) string {
 }
 
 func NewSubtask(action model.JobAction, show model.Show) *Subtask {
+
+	tmpdir := path.Join(config.Values.TempDir, strings.ToLower(string(action)), shows.GetPath(show))
+	outputdir := path.Join(config.Values.OutputDir, strings.ToLower(string(action)), shows.GetPath(show))
 
 	return &Subtask{
 		JobSubtask: &model.JobSubtask{
@@ -40,8 +51,10 @@ func NewSubtask(action model.JobAction, show model.Show) *Subtask {
 				Progress: 0,
 			},
 		},
-		id:   uuid.NewString(),
-		show: show,
+		id:        uuid.NewString(),
+		show:      show,
+		tmpdir:    tmpdir,
+		outputdir: outputdir,
 	}
 }
 
@@ -64,12 +77,15 @@ func (st *Subtask) Run(ctx context.Context) error {
 	defer func() { cancel(err) }()
 	defer activeSubtasks.Delete(st.GetID())
 
+	logz.Logger.Info("starting background task for show", zap.String("task", st.Action.String()), zap.String("title", st.show.GetTitle()))
 	switch st.Action {
 	case model.JobActionDownload:
 		err = Download(ctx, st)
 	default:
 		err = fmt.Errorf("%w: invalid action '%s'", errorz.ErrInvalidArgument, st.Action)
 	}
+	logz.Logger.Info("finished background task for show",
+		zap.String("task", st.Action.String()), zap.String("title", st.show.GetTitle()), zap.Error(err))
 
 	if err != nil {
 		st.Status.State = model.JobStateFailed
@@ -97,4 +113,27 @@ func (st *Subtask) activate(ctx context.Context) (taskWasStarted bool) {
 	st.activated = true
 
 	return !loaded
+}
+
+type ProgressWriter struct {
+	subtask      *Subtask
+	currentBytes int64
+	totalBytes   int64
+}
+
+func NewProgressWriter(subtask *Subtask, totalBytes int64) *ProgressWriter {
+
+	return &ProgressWriter{
+		subtask:    subtask,
+		totalBytes: totalBytes,
+	}
+}
+
+func (p *ProgressWriter) Write(b []byte) (n int, err error) {
+
+	p.currentBytes += int64(len(b))
+	progress := mathx.DivideAndRound(p.currentBytes*100, p.totalBytes)
+	p.subtask.Status.Progress = int(mathx.Min(progress, int64(100)))
+
+	return len(b), nil
 }
