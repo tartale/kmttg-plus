@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 
 	"github.com/tartale/go/pkg/filez"
@@ -14,6 +15,8 @@ import (
 	"github.com/tartale/go/pkg/primitives"
 	"github.com/tartale/go/pkg/stringz"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
+	"github.com/tartale/kmttg-plus/go/pkg/config"
+	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/shows"
 )
@@ -63,6 +66,7 @@ func download(ctx context.Context, subtask *Subtask) error {
 	if err != nil {
 		return fmt.Errorf("%w: unable get download URL", err)
 	}
+	logz.LoggerX.Infof("download URL: %s", downloadURL.String())
 	client, err := client.NewHttpClient(shows.GetDetails(subtask.show).Tivo)
 	if err != nil {
 		return err
@@ -83,16 +87,22 @@ func download(ctx context.Context, subtask *Subtask) error {
 	tmpPath, downloadPath := getDownloadPaths(subtask)
 	tmpFile := filez.MustOpenFile(tmpPath, os.O_CREATE|os.O_WRONLY, 0644)
 	defer tmpFile.Close()
-
 	estimatedLength, err := primitives.ParseTo[int](resp.Header.Get("TiVo-Estimated-Length"))
 	if err != nil {
 		return err
 	}
 	progressWriter := NewProgressWriter(subtask, int64(estimatedLength))
-	_, err = io.Copy(io.MultiWriter(tmpFile, progressWriter), resp.Body)
+	multiWriter := io.MultiWriter(tmpFile, progressWriter)
+
+	decoder := exec.CommandContext(ctx, config.Values.TivoDecodePath, "-m", config.Values.MediaAccessKey, "-")
+	decoder.Stdin = resp.Body
+	decoder.Stdout = multiWriter
+	err = decoder.Run()
 	if err != nil {
 		return err
 	}
+	subtask.Status.Progress = 100
+
 	filez.MustRename(tmpPath, downloadPath)
 
 	return nil

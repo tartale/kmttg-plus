@@ -47,10 +47,7 @@ func InitConfig(cfgFile string) {
 			fmt.Fprintln(os.Stdout, "using config file:", viper.ConfigFileUsed())
 		}
 
-		err = Values.SetDefaults()
-		if err != nil {
-			panic(err)
-		}
+		Values.SetDefaults()
 
 		err = viper.Unmarshal(&Values)
 		if err != nil {

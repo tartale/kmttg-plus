@@ -52,11 +52,8 @@ type values struct {
 	TivoDecodePath     string        `mapstructure:"KMTTG_TIVODECODE_PATH" default:"${PWD}/tools/tivodecode/tivodecode" validate:"file"`
 }
 
-func (v *values) SetDefaults() error {
-
+func (v *values) SetDefaults() {
 	defaults.SetDefaults(v)
-
-	return nil
 }
 
 func (v *values) ResolveVariables() error {
