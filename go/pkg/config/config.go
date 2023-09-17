@@ -50,6 +50,7 @@ type values struct {
 	TempDir            string        `mapstructure:"KMTTG_TEMP_DIR" default:"${PWD}/tmp" validate:"dir"`
 	OutputDir          string        `mapstructure:"KMTTG_OUTPUT_DIR" default:"${PWD}/output" validate:"dir"`
 	TivoDecodePath     string        `mapstructure:"KMTTG_TIVODECODE_PATH" default:"${PWD}/tools/tivodecode/tivodecode" validate:"file"`
+	ComskipPath        string        `mapstructure:"KMTTG_COMSKIP_PATH" default:"${PWD}/tools/comskip/comskip" validate:"file"`
 }
 
 func (v *values) SetDefaults() {

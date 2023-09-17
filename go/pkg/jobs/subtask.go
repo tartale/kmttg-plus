@@ -66,8 +66,8 @@ func (st *Subtask) GetID() string {
 func (st *Subtask) Run(ctx context.Context) error {
 
 	ctx, cancel := context.WithCancelCause(ctx)
-	taskWasStarted := st.activate(ctx)
-	if !taskWasStarted {
+	taskAlreadyStarted := st.activate(ctx)
+	if taskAlreadyStarted {
 		// wait for the already-running task
 		<-st.ctx.Done()
 		return st.ctx.Err()
@@ -77,10 +77,22 @@ func (st *Subtask) Run(ctx context.Context) error {
 	defer func() { cancel(err) }()
 	defer activeSubtasks.Delete(st.GetID())
 
-	logz.Logger.Info("starting background task for show", zap.String("task", st.Action.String()), zap.String("title", st.show.GetTitle()))
+	logz.Logger.Info("starting background task for show",
+		zap.String("task", st.Action.String()), zap.String("title", st.show.GetTitle()))
 	switch st.Action {
+
 	case model.JobActionDownload:
 		err = Download(ctx, st)
+
+	case model.JobActionComskip:
+		err = Comskip(ctx, st)
+
+	case model.JobActionEncode:
+		err = Encode(ctx, st)
+
+	case model.JobActionPlay:
+		err = Play(ctx, st)
+
 	default:
 		err = fmt.Errorf("%w: invalid action '%s'", errorz.ErrInvalidArgument, st.Action)
 	}
@@ -97,13 +109,13 @@ func (st *Subtask) Run(ctx context.Context) error {
 	return err
 }
 
-func (st *Subtask) activate(ctx context.Context) (taskWasStarted bool) {
+func (st *Subtask) activate(ctx context.Context) (taskAlreadyStarted bool) {
 
 	if st.activated {
 		panic(fmt.Errorf("%w: subtask was activated multiple times", errorz.ErrFatal))
 	}
-	existingSubtask, loaded := activeSubtasks.LoadOrStore(st.GetID(), st)
-	if !loaded {
+	existingSubtask, taskAlreadyStarted := activeSubtasks.LoadOrStore(st.GetID(), st)
+	if !taskAlreadyStarted {
 		st.ctx = ctx
 		st.Status.State = model.JobStateRunning
 	} else {
@@ -112,7 +124,7 @@ func (st *Subtask) activate(ctx context.Context) (taskWasStarted bool) {
 	}
 	st.activated = true
 
-	return !loaded
+	return
 }
 
 type ProgressWriter struct {

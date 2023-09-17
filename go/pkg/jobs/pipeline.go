@@ -12,10 +12,10 @@ import (
 var (
 	pipelineQueue   = make(chan *Pipeline, config.Values.MaxBackgroundTasks)
 	jobDependencies = map[model.JobAction][]model.JobAction{
-		model.JobActionDownload:  {},
-		model.JobActionRemoveAds: {model.JobActionDownload},
-		model.JobActionEncode:    {model.JobActionDownload},
-		model.JobActionPlay:      {model.JobActionDownload},
+		model.JobActionDownload: {},
+		model.JobActionComskip:  {model.JobActionDownload},
+		model.JobActionEncode:   {model.JobActionDownload},
+		model.JobActionPlay:     {model.JobActionDownload},
 	}
 
 	ErrTooManyTasks = errors.New("too many tasks; try again later")

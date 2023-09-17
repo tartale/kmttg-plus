@@ -1,7 +1,7 @@
 
 enum JobAction {
   DOWNLOAD
-  REMOVE_ADS
+  COMSKIP
   ENCODE
   PLAY
 }

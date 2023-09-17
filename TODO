@@ -3,29 +3,28 @@
 [x] beacon
 [x] get tivos
 [x] get recordings
-[x] cache recording data
-[] show metadata
-[] multiple tivos
+[x] show metadata
+[x] paging 
 [] sorting
   [] by name
   [] by recording date
-[] paging 
-  [] by show
-  [] by series
 [] filtering
   [x] title/description
   [] watched
-[] configuration via UI
-[] tools
-  [] tivodecode
+[] configuration
 [] jobs
-  [] download
-  [] decrypt
+  [x] download
+  [x] decrypt
   [] encode
   [] play
 [] remove ads
-  [] auto
-  [] manual
-[] playback
+  [] using tivo skip info
+  [] using comskip info
+  [] remove in job
+  [] skip during playback
+[] terminal
+  [x] single tivo
+  [] multiple tivos
 [] file management
 [] cypress tests
+[] persistent cache

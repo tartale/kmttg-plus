@@ -81,7 +81,7 @@ func TestPipelineStatus_SingleSubtask(t *testing.T) {
 func TestPipelineStatus_MultipleSubtasks(t *testing.T) {
 
 	testJob, testShow := NewTestData()
-	testAction := model.JobActionRemoveAds
+	testAction := model.JobActionComskip
 	testActionNumber := slices.Index(model.AllJobAction, testAction)
 	testJob.Action = testAction
 	assert.GreaterOrEqual(t, testActionNumber, 0)

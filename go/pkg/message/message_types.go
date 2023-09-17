@@ -3,18 +3,29 @@ package message
 type Type string
 
 const (
-	TypeRequest                   Type = "request"
-	TypeResponse                  Type = "response"
+	TypeRequest  Type = "request"
+	TypeResponse Type = "response"
+	TypeError    Type = "error"
+
 	TypeBodyAuthenticate          Type = "bodyAuthenticate"
-	TypeRecordingFolderItemSearch Type = "recordingFolderItemSearch"
-	TypeRecordingFolderItemList   Type = "recordingFolderItemList"
-	TypeRecordingSearch           Type = "recordingSearch"
-	TypeRecordingList             Type = "recordingList"
-	TypeCollectionSearch          Type = "collectionSearch"
+	TypeCategorySearch            Type = "categorySearch"
+	TypeChannelSearch             Type = "channelSearch"
+	TypeClipMetadataSearch        Type = "clipMetadataSearch"
+	TypeClipMetadata              Type = "clipMetadata"
+	TypeClipMetadataList          Type = "clipMetadatList"
+	TypeClipSegment               Type = "clipSegment"
+	TypeClipSyncMark              Type = "clipSyncMark"
 	TypeCollectionList            Type = "collectionList"
+	TypeCollectionSearch          Type = "collectionSearch"
+	TypeContentSearch             Type = "contentSearch"
 	TypeIdSearch                  Type = "idSearch"
 	TypeIdSet                     Type = "idSet"
-	TypeError                     Type = "error"
+	TypeOfferSearch               Type = "offerSearch"
+	TypeRecordingFolderItemList   Type = "recordingFolderItemList"
+	TypeRecordingFolderItemSearch Type = "recordingFolderItemSearch"
+	TypeRecordingList             Type = "recordingList"
+	TypeRecordingSearch           Type = "recordingSearch"
+	TypeWhatsOnSearch             Type = "whatsOnSearch"
 )
 
 type StatusType string
@@ -60,3 +71,9 @@ const (
 )
 
 type IdType string
+
+type SegmentType string
+
+const (
+	SegmentTypeAdSkip = "adSkip"
+)

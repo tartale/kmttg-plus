@@ -170,22 +170,22 @@ type TivoFilter struct {
 type JobAction string
 
 const (
-	JobActionDownload  JobAction = "DOWNLOAD"
-	JobActionRemoveAds JobAction = "REMOVE_ADS"
-	JobActionEncode    JobAction = "ENCODE"
-	JobActionPlay      JobAction = "PLAY"
+	JobActionDownload JobAction = "DOWNLOAD"
+	JobActionComskip  JobAction = "COMSKIP"
+	JobActionEncode   JobAction = "ENCODE"
+	JobActionPlay     JobAction = "PLAY"
 )
 
 var AllJobAction = []JobAction{
 	JobActionDownload,
-	JobActionRemoveAds,
+	JobActionComskip,
 	JobActionEncode,
 	JobActionPlay,
 }
 
 func (e JobAction) IsValid() bool {
 	switch e {
-	case JobActionDownload, JobActionRemoveAds, JobActionEncode, JobActionPlay:
+	case JobActionDownload, JobActionComskip, JobActionEncode, JobActionPlay:
 		return true
 	}
 	return false
