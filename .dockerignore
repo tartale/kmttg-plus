@@ -10,6 +10,9 @@ debug/
 java/
 project/
 
-input/files
-input/config.ini.overrides
-input/auto.ini.overrides
+input/kmttg/files
+input/kmttg/config.ini.overrides
+input/kmttg/auto.ini.overrides
+
+output/
+!**/.placeholder
