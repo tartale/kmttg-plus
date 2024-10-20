@@ -42,12 +42,9 @@ RUN curl -L https://sourceforge.net/projects/kmttg/files/latest/download | busyb
 
 RUN apk add gettext
 ENV APP_DIR /home/kmttg/app
-ENV MOUNT_DIR /mnt/kmttg
+ENV INPUT_DIR /mnt/kmttg/input
+ENV OUTPUT_DIR /mnt/kmttg/output
 ENV TOOLS_DIR /usr/local/bin 
-COPY --chown=kmttg:kmttg input/auto.ini.* .
-COPY --chown=kmttg:kmttg input/config.ini.* .
-COPY --chown=kmttg:kmttg input/comskip.ini.* .
-COPY --chown=kmttg:kmttg input/encoders/* ./encode/
 COPY --chown=kmttg:kmttg kmttg.sh .
 
 USER kmttg

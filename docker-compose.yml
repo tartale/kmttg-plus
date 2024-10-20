@@ -1,0 +1,12 @@
+version: '3.1'
+services:
+  kmttg-plus:
+    build: .
+    container_name: kmttg-plus-local
+    image: kmttg-plus:local
+    network_mode: host
+    ports:
+      - 8181:8181
+    volumes:
+      - ${INPUT_DIR:-./input}:/mnt/kmttg/input:rw
+      - ${OUTPUT_DIR:-./output}:/mnt/kmttg/output:rw
