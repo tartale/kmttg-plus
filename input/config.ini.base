@@ -1,4 +1,3 @@
-
 # kmttg config.ini file
 ${OVERRIDES}
 <FontSize>
@@ -142,7 +141,6 @@ ${TOOLS_DIR}/mediainfo
 ${TOOLS_DIR}/mencoder
 
 <handbrake>
-${TOOLS_DIR}/handbrakeCLI
 
 <comskip>
 ${TOOLS_DIR}/comskip
