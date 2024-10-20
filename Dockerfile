@@ -1,9 +1,19 @@
-FROM drnay/kmttg:latest
-
-USER root
+## copied/modified from: https://github.com/drnay/docker-kmttg/blob/master/Dockerfile
+# Alpine Linux with Oracle JRE
+FROM sgrio/java:jre_8
 
 RUN apk update
 RUN apk upgrade
+RUN apk add --no-cache \
+      font-noto \
+      gettext \
+      gtk+2.0 \
+      jq \
+      libxtst \
+      tzdata \
+      wget \
+      xterm
+
 RUN apk add mediainfo mkvtoolnix mplayer \
  && ln -s /usr/bin/mediainfo /usr/local/bin/mediainfo \
  && ln -s /usr/bin/mencoder /usr/local/bin/mencoder \
@@ -36,17 +46,46 @@ RUN apk --no-cache add python ffmpeg tzdata bash \
  && rm -rf /var/cache/apk/* /tmp/* /tmp/.[!.]*
 COPY --from=plexinc/pms-docker /usr/lib/plexmediaserver/Resources/comskip.ini /opt/comskip.ini
 
-# Get the latest kmttg version
-RUN curl -L https://sourceforge.net/projects/kmttg/files/latest/download | busybox unzip -o - \
-    && chmod -R ugo+w /home/kmttg/app \
-    && rm -rf /home/kmttg/app/config.ini \
-    && rm -rf /home/kmttg/app/auto.ini 
+# server port
+EXPOSE 8181
 
-RUN apk add gettext
+# Setup environment variables
+ENV LD_LIBRARY_PATH=/lib:/usr/lib
+
+# Run as a non-root (appending to /etc files directly to override 
+# potential pre-existing users/groups with the given IDs)
+ARG USER_ID
+ARG GROUP_ID
+RUN echo "kmttg:x:${GROUP_ID}:kmttg" >> /etc/group \
+ && echo "kmttg:x:${USER_ID}:${GROUP_ID}:kmttg:/home/kmttg:/sbin/nologin" >> /etc/passwd \
+ && mkdir -p /home/kmttg \
+ && chown kmttg /home/kmttg
+
+USER kmttg
+
+# Set the working directory
 ENV APP_DIR /home/kmttg/app
-ENV INPUT_DIR /mnt/kmttg/input
-ENV OUTPUT_DIR /mnt/kmttg/output
+RUN mkdir -p ${APP_DIR}/web/cache
+WORKDIR ${APP_DIR}
+
+# Get the latest kmttg version
+ARG APP_VERSION
+RUN url=$(curl -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/lart2150/kmttg/releases/tags/${APP_VERSION}" \
+  | jq -r '.assets[0].browser_download_url') \
+ && wget -O kmttg.zip "${url}" \
+ && busybox unzip -o kmttg.zip \
+ && chmod +x kmttg
+
+ENV INPUT_DIR /mnt/input
+ENV OUTPUT_DIR /mnt/output
 ENV TOOLS_DIR /usr/local/bin 
+
+# mount points for input/output files
+VOLUME ${OUTPUT_DIR}
+
+# persist the install dir
+VOLUME ${APP_DIR}
+
 COPY --chmod=777 kmttg.sh .
 
 CMD ["/home/kmttg/app/kmttg.sh"]

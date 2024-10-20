@@ -2,16 +2,20 @@ version: '3.1'
 
 services:
   kmttg-plus:
-    build: .
+    build:
+      context: .
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+        APP_VERSION: ${APP_VERSION:-v2.9-rc1}
     container_name: kmttg-plus-local
     image: tartale/kmttg-plus:local
     network_mode: host
     ports:
       - 8181:8181
-    user: ${USER_ID}
     volumes:
-      - ${INPUT_DIR:-./input}/kmttg:/mnt/kmttg/input:rw
-      - ${OUTPUT_DIR:-./output}/kmttg:/mnt/kmttg/output:rw
+      - ${INPUT_DIR:-./input}:/mnt/input:rw
+      - ${OUTPUT_DIR:-./output}:/mnt/output:rw
 
   handbrake:
     container_name: handbrake-latest
@@ -37,7 +41,7 @@ services:
       - 5800:5800
       - 5900:5900
     volumes:
-      - ${OUTPUT_DIR:-./output}/handbrake/config:/config:rw
-      - ${OUTPUT_DIR:-./output}/handbrake/output:/output:rw
-      - ${OUTPUT_DIR:-./output}/handbrake/storage:/storage:ro
-      - ${OUTPUT_DIR:-./output}/handbrake/watch:/watch:rw
+      - ${OUTPUT_DIR:-./output}/watch:/watch:rw
+      - ${OUTPUT_DIR:-./output}/encode:/output:rw
+      - ${OUTPUT_DIR:-./output}/handbrake:/config:rw
+      - ${OUTPUT_DIR:-./output}/handbrake:/storage:ro
