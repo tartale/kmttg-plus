@@ -38,15 +38,15 @@ COPY --from=plexinc/pms-docker /usr/lib/plexmediaserver/Resources/comskip.ini /o
 
 # Get the latest kmttg version
 RUN curl -L https://sourceforge.net/projects/kmttg/files/latest/download | busybox unzip -o - \
-    && chmod +x /home/kmttg/app/kmttg
+    && chmod -R ugo+w /home/kmttg/app \
+    && rm -rf /home/kmttg/app/config.ini \
+    && rm -rf /home/kmttg/app/auto.ini 
 
 RUN apk add gettext
 ENV APP_DIR /home/kmttg/app
 ENV INPUT_DIR /mnt/kmttg/input
 ENV OUTPUT_DIR /mnt/kmttg/output
 ENV TOOLS_DIR /usr/local/bin 
-COPY --chown=kmttg:kmttg kmttg.sh .
-
-USER kmttg
+COPY --chmod=777 kmttg.sh .
 
 CMD ["/home/kmttg/app/kmttg.sh"]

@@ -79,7 +79,7 @@ if [[ -z "${APP_DIR+x}" ]] || [[ -z "${INPUT_DIR+x}" ]] || [[ -z "${OUTPUT_DIR+x
   usage
 fi
 
-export TMPDIR="${TMPDIR:-${PWD}/tmp}"
+export TMPDIR="${TMPDIR:-${OUTPUT_DIR}/tmp}"
 export COMSKIP_FILE="${COMSKIP_FILE:-comskip.ini.us-ota}"
 export ENCODER_NAME="${ENCODER_NAME:-none}"
 if [[ "${ENCODER_NAME}" == "none" ]]; then
