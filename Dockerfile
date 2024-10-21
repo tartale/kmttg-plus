@@ -70,11 +70,14 @@ WORKDIR ${APP_DIR}
 
 # Get the latest kmttg version
 ARG APP_VERSION
-RUN url=$(curl -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/lart2150/kmttg/releases/tags/${APP_VERSION}" \
+RUN url=$(curl -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/lart2150/kmttg/releases/tags/${APP_VERSION}" \
   | jq -r '.assets[0].browser_download_url') \
  && wget -O kmttg.zip "${url}" \
  && busybox unzip -o kmttg.zip \
- && chmod +x kmttg
+ && chmod +x kmttg \
+ && wget -O cdata.zip https://github.com/lart2150/kmttg/files/12424192/cdata.zip \
+ && busybox unzip -o cdata.zip
 
 ENV INPUT_DIR /mnt/input
 ENV OUTPUT_DIR /mnt/output

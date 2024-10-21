@@ -43,6 +43,7 @@ func CertificatePath() (string, error) {
 type values struct {
 	LogLevel           string        `mapstructure:"KMTTG_LOG_LEVEL" default:"INFO"`
 	LogMessages        bool          `mapstructure:"KMTTG_LOG_MESSAGES" default:"false"`
+	Port               string        `mapstructure:"KMTTG_PORT" default:"8080"`
 	MediaAccessKey     string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY" default:""`
 	Timeout            time.Duration `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
 	MaxBackgroundTasks int           `mapstructure:"KMTTG_MAX_BACKGROUND_TASKS" default:"8"`

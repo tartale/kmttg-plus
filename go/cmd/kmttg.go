@@ -29,7 +29,6 @@ import (
 	"github.com/tartale/kmttg-plus/go/pkg/tivos"
 )
 
-const port = "8080"
 const crlf = "\r\n"
 
 var cfgFile string
@@ -98,7 +97,7 @@ func runWebServer(ctx context.Context) {
 	addGraphQLRoutes(router)
 	addWebUIRoutes(router)
 
-	err := http.ListenAndServe(":"+port, router)
+	err := http.ListenAndServe(":"+config.Values.Port, router)
 	logz.Logger.Fatal("error while running kmttg server", zap.Errors("error", []error{err}))
 }
 
@@ -120,8 +119,8 @@ func addGraphQLRoutes(router *mux.Router) {
 	router.Handle("/api/playground", playground.Handler("GraphQL playground", "/api/query"))
 	router.Handle("/api/query", gqlServer)
 
-	logz.Logger.Info("POST to http://localhost:" + port + "/api/query for GraphQL queries")
-	logz.Logger.Info("connect to http://localhost:" + port + "/api/playground for GraphQL playground")
+	logz.Logger.Info("POST to http://localhost:" + config.Values.Port + "/api/query for GraphQL queries")
+	logz.Logger.Info("connect to http://localhost:" + config.Values.Port + "/api/playground for GraphQL playground")
 }
 
 func addWebUIRoutes(router *mux.Router) {
@@ -139,7 +138,7 @@ func addWebUIRoutes(router *mux.Router) {
 
 	router.PathPrefix("/").Handler(http.StripPrefix("/", webUIServer))
 
-	logz.Logger.Info("connect to http://localhost:" + port + " for the KMTTG web UI")
+	logz.Logger.Info("connect to http://localhost:" + config.Values.Port + " for the KMTTG web UI")
 }
 
 func runTerminal() {
