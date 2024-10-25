@@ -23,6 +23,9 @@ type nopLogger struct {
 	*zap.Logger
 }
 
+func (l nopLogger) Infof(msg string, args ...interface{}) {
+}
+
 func (l nopLogger) Debugf(msg string, args ...interface{}) {
 }
 

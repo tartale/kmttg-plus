@@ -144,7 +144,8 @@ func NewProgressWriter(subtask *Subtask, totalBytes int64) *ProgressWriter {
 func (p *ProgressWriter) Write(b []byte) (n int, err error) {
 
 	p.currentBytes += int64(len(b))
-	progress := mathx.DivideAndRound(p.currentBytes*100, p.totalBytes)
+	var progress int64
+	mathx.Divide(p.currentBytes*100, p.totalBytes, &progress)
 	p.subtask.Status.Progress = int(mathx.Min(progress, int64(100)))
 
 	return len(b), nil

@@ -1,4 +1,4 @@
-package config
+package certificate
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestConfig(t *testing.T) {
+func TestCertificate(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Config Test Suite")
+	RunSpecs(t, "Certificate Test Suite")
 }

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/tartale/go/pkg/retry"
+	"github.com/tartale/kmttg-plus/go/pkg/certificate"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
@@ -23,8 +24,10 @@ import (
 	"go.uber.org/zap"
 )
 
-const tivoRPCPort = "1413"
-const heartbeatInterval = 5 * time.Second
+const (
+	tivoRPCPort       = "1413"
+	heartbeatInterval = 5 * time.Second
+)
 
 type TivoClient struct {
 	tivo          *model.Tivo
@@ -38,7 +41,6 @@ type TivoClient struct {
 }
 
 func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
-
 	tlsConfig, err := NewTLSConfig(tivo)
 	if err != nil {
 		return nil, err
@@ -60,12 +62,7 @@ func NewTivoClient(tivo *model.Tivo) (*TivoClient, error) {
 }
 
 func NewTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
-
-	certPath, err := config.CertificatePath()
-	if err != nil {
-		return nil, err
-	}
-	cert, certPool, err := GetCertificates(certPath)
+	cert, certPool, err := certificate.Read()
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +90,10 @@ func NewTLSConfig(tivo *model.Tivo) (*tls.Config, error) {
 }
 
 func (t *TivoClient) Close() error {
-
 	return t.connection.Close()
 }
 
 func (t *TivoClient) Connect() error {
-
 	timeout := config.Values.Timeout
 	ctx := context.Background()
 	ctx, cancelFunc := context.WithTimeout(ctx, timeout)
@@ -130,7 +125,6 @@ func (t *TivoClient) Connect() error {
 }
 
 func (t *TivoClient) Reconnect(ctx context.Context, cause error) error {
-
 	logz.Logger.Warn("reconnecting client due to error", zap.Error(cause))
 	t.connection.Close()
 	err := t.Connect()
@@ -150,7 +144,6 @@ func (t *TivoClient) BodyID() string {
 }
 
 func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage) error {
-
 	tivoRequestMessage := tivoMessage.
 		WithSessionID(t.sessionID).
 		WithRpcID(t.rpcID)
@@ -170,7 +163,6 @@ func (t *TivoClient) Send(ctx context.Context, tivoMessage *message.TivoMessage)
 }
 
 func (t *TivoClient) SendFile(ctx context.Context, filename string) error {
-
 	message, err := os.ReadFile(filename)
 	if err != nil {
 		return err
@@ -187,7 +179,6 @@ func (t *TivoClient) SendFile(ctx context.Context, filename string) error {
 }
 
 func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessage) error {
-
 	responseReader := bufio.NewReader(t.connection)
 
 	err := t.ensureConnection(ctx)
@@ -203,7 +194,6 @@ func (t *TivoClient) Receive(ctx context.Context, tivoMessage *message.TivoMessa
 }
 
 func (t *TivoClient) Write(b []byte) (int, error) {
-
 	err := t.ensureConnection(context.Background())
 	if err != nil {
 		return 0, err
@@ -213,7 +203,6 @@ func (t *TivoClient) Write(b []byte) (int, error) {
 }
 
 func (t *TivoClient) Read(b []byte) (int, error) {
-
 	err := t.ensureConnection(context.Background())
 	if err != nil {
 		return 0, err
@@ -223,7 +212,6 @@ func (t *TivoClient) Read(b []byte) (int, error) {
 }
 
 func (t *TivoClient) ensureConnection(ctx context.Context) error {
-
 	var err error
 	if time.Now().After(t.lastHeartbeat.Add(heartbeatInterval)) {
 		err = t.testConnection()

@@ -3,3 +3,4 @@ go.work.sum
 tmp/
 output/
 tools/tivodecode/
+cdata.zip

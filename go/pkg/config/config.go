@@ -2,11 +2,7 @@ package config
 
 import (
 	"errors"
-	"fmt"
-	"os"
-	"path"
 	"reflect"
-	"runtime"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -16,42 +12,20 @@ import (
 	"github.com/tartale/go/pkg/structs"
 )
 
-const certificateFilename = "cdata.p12"
-
-var (
-	Values values
-)
-
-func CertificatePath() (string, error) {
-	var (
-		file string
-		ok   bool
-	)
-	if _, file, _, ok = runtime.Caller(0); !ok {
-		return "", fmt.Errorf("error while trying to locate certificate file")
-	}
-	dir := path.Dir(file)
-	certificatePath := path.Join(dir, certificateFilename)
-
-	if _, err := os.Stat(certificatePath); errors.Is(err, os.ErrNotExist) {
-		return "", fmt.Errorf("certificate file does not exist in expected path: %s", certificatePath)
-	}
-
-	return certificatePath, nil
-}
+var Values values
 
 type values struct {
+	ComskipPath        string        `mapstructure:"KMTTG_COMSKIP_PATH" default:"${PWD}/tools/comskip/comskip" validate:"file"`
 	LogLevel           string        `mapstructure:"KMTTG_LOG_LEVEL" default:"INFO"`
 	LogMessages        bool          `mapstructure:"KMTTG_LOG_MESSAGES" default:"false"`
-	Port               string        `mapstructure:"KMTTG_PORT" default:"8080"`
-	MediaAccessKey     string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY" default:""`
-	Timeout            time.Duration `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
 	MaxBackgroundTasks int           `mapstructure:"KMTTG_MAX_BACKGROUND_TASKS" default:"8"`
-	WebUIDir           string        `mapstructure:"KMTTG_WEBUI_DIR" default:""`
-	TempDir            string        `mapstructure:"KMTTG_TEMP_DIR" default:"${PWD}/tmp" validate:"dir"`
+	MediaAccessKey     string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY" default:""`
 	OutputDir          string        `mapstructure:"KMTTG_OUTPUT_DIR" default:"${PWD}/output" validate:"dir"`
+	Port               string        `mapstructure:"KMTTG_PORT" default:"8080"`
+	TempDir            string        `mapstructure:"KMTTG_TEMP_DIR" default:"${PWD}/tmp" validate:"dir"`
+	Timeout            time.Duration `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
 	TivoDecodePath     string        `mapstructure:"KMTTG_TIVODECODE_PATH" default:"${PWD}/tools/tivodecode/tivodecode" validate:"file"`
-	ComskipPath        string        `mapstructure:"KMTTG_COMSKIP_PATH" default:"${PWD}/tools/comskip/comskip" validate:"file"`
+	WebUIDir           string        `mapstructure:"KMTTG_WEBUI_DIR" default:""`
 }
 
 func (v *values) SetDefaults() {
@@ -59,9 +33,7 @@ func (v *values) SetDefaults() {
 }
 
 func (v *values) ResolveVariables() error {
-
 	err := structs.Walk(&Values, func(sf reflect.StructField, sv reflect.Value) error {
-
 		val := sv.Interface()
 		err := stringz.Envsubst(&val)
 		if err != nil && errors.Is(err, errorz.ErrInvalidType) {
@@ -81,7 +53,6 @@ func (v *values) ResolveVariables() error {
 }
 
 func (v *values) Validate() error {
-
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	return validate.Struct(Values)
 }

@@ -40,6 +40,7 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
+	FilterOperator() FilterOperatorResolver
 }
 
 type DirectiveRoot struct {
@@ -126,6 +127,16 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Tivos(ctx context.Context, filters []*model.TivoFilter) ([]*model.Tivo, error)
 	Jobs(ctx context.Context, filters []*model.JobFilter) ([]*model.JobStatus, error)
+}
+
+type FilterOperatorResolver interface {
+	Eq(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Ne(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Lt(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Gt(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Lte(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Gte(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Matches(ctx context.Context, obj *filter.Operator, data interface{}) error
 }
 
 type executableSchema struct {
@@ -5253,7 +5264,9 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-			it.Eq = data
+			if err = ec.resolvers.FilterOperator().Eq(ctx, &it, data); err != nil {
+				return it, err
+			}
 		case "ne":
 			var err error
 
@@ -5262,7 +5275,9 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-			it.Ne = data
+			if err = ec.resolvers.FilterOperator().Ne(ctx, &it, data); err != nil {
+				return it, err
+			}
 		case "lt":
 			var err error
 
@@ -5271,7 +5286,9 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-			it.Lt = data
+			if err = ec.resolvers.FilterOperator().Lt(ctx, &it, data); err != nil {
+				return it, err
+			}
 		case "gt":
 			var err error
 
@@ -5280,7 +5297,9 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-			it.Gt = data
+			if err = ec.resolvers.FilterOperator().Gt(ctx, &it, data); err != nil {
+				return it, err
+			}
 		case "lte":
 			var err error
 
@@ -5289,7 +5308,9 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-			it.Lte = data
+			if err = ec.resolvers.FilterOperator().Lte(ctx, &it, data); err != nil {
+				return it, err
+			}
 		case "gte":
 			var err error
 
@@ -5298,7 +5319,9 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-			it.Gte = data
+			if err = ec.resolvers.FilterOperator().Gte(ctx, &it, data); err != nil {
+				return it, err
+			}
 		case "matches":
 			var err error
 
@@ -5307,7 +5330,9 @@ func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-			it.Matches = data
+			if err = ec.resolvers.FilterOperator().Matches(ctx, &it, data); err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -7313,7 +7338,7 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) unmarshalOAny2interface(ctx context.Context, v interface{}) (any, error) {
+func (ec *executionContext) unmarshalOAny2interface(ctx context.Context, v interface{}) (interface{}, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -7321,7 +7346,7 @@ func (ec *executionContext) unmarshalOAny2interface(ctx context.Context, v inter
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOAny2interface(ctx context.Context, sel ast.SelectionSet, v any) graphql.Marshaler {
+func (ec *executionContext) marshalOAny2interface(ctx context.Context, sel ast.SelectionSet, v interface{}) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
