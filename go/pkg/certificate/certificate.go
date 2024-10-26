@@ -60,6 +60,8 @@ func ReadFrom(certificateReader *bytes.Reader) (*tls.Certificate, *x509.CertPool
 	if err != nil {
 		return nil, nil, err
 	}
+	// result, _ := certinfo.CertificateText(cert.Leaf)
+	// fmt.Print(result)
 
 	certPool := x509.NewCertPool()
 	certPool.AppendCertsFromPEM(pemData)
