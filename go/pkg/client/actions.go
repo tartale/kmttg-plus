@@ -17,7 +17,6 @@ import (
 const maxLimitValue = 50
 
 func (t *TivoClient) Authenticate(ctx context.Context) error {
-
 	authRequest := message.NewTivoMessage().WithAuthRequest(config.Values.MediaAccessKey)
 	err := t.Send(ctx, authRequest)
 	if err != nil {
@@ -38,7 +37,6 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 }
 
 func (t *TivoClient) GetShows(ctx context.Context) ([]model.Show, error) {
-
 	var result []model.Show
 	ctx = apicontext.Wrap(ctx).
 		WithShowOffset(0).
@@ -61,7 +59,6 @@ func (t *TivoClient) GetShows(ctx context.Context) ([]model.Show, error) {
 }
 
 func (t *TivoClient) getShowsPage(ctx context.Context) (shows []model.Show, nextOffset int, err error) {
-
 	request := message.NewTivoMessage().WithGetRecordingListRequest(ctx, t.BodyID())
 	err = t.Send(ctx, request)
 	if err != nil {
@@ -96,7 +93,6 @@ func (t *TivoClient) getShowsPage(ctx context.Context) (shows []model.Show, next
 }
 
 func (t *TivoClient) getShowDetails(ctx context.Context, recordingFolderItem message.RecordingFolderItem) (model.Show, error) {
-
 	recordingDetails, err := t.getRecordingDetails(ctx, recordingFolderItem)
 	if err != nil {
 		return nil, err
@@ -111,15 +107,11 @@ func (t *TivoClient) getShowDetails(ctx context.Context, recordingFolderItem mes
 	}
 
 	show := shows.New(t.tivo, objectID, recordingDetails, collectionDetails)
-	if err != nil {
-		return nil, err
-	}
 
 	return show, nil
 }
 
 func (t *TivoClient) getRecordingDetails(ctx context.Context, recordingFolderItem message.RecordingFolderItem) (*message.RecordingItem, error) {
-
 	request := message.NewTivoMessage().WithGetRecordingRequest(ctx, t.BodyID(), recordingFolderItem.ChildRecordingID)
 	err := t.Send(ctx, request)
 	if err != nil {
@@ -148,7 +140,6 @@ func (t *TivoClient) getRecordingDetails(ctx context.Context, recordingFolderIte
 }
 
 func (t *TivoClient) getCollectionDetails(ctx context.Context, collectionIDs []string) (*message.CollectionItem, error) {
-
 	request := message.NewTivoMessage().WithGetCollectionRequest(ctx, collectionIDs)
 	err := t.Send(ctx, request)
 	if err != nil {
@@ -174,7 +165,6 @@ func (t *TivoClient) getCollectionDetails(ctx context.Context, collectionIDs []s
 }
 
 func (t *TivoClient) getObjectID(ctx context.Context, searchID string) (string, error) {
-
 	request := message.NewTivoMessage().WithIdSearchRequest(ctx, t.BodyID(), searchID)
 	err := t.Send(ctx, request)
 	if err != nil {
