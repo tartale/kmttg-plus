@@ -90,7 +90,7 @@ func startJobWorkers(ctx context.Context) {
 	go jobs.RunWorkerPool(ctx)
 }
 
-func runWebServer(ctx context.Context) {
+func runWebServer(_ context.Context) {
 	router := mux.NewRouter()
 
 	addCORSMiddleware(router)
@@ -124,7 +124,6 @@ func addGraphQLRoutes(router *mux.Router) {
 }
 
 func addWebUIRoutes(router *mux.Router) {
-
 	var webUIServer http.Handler
 	if config.Values.WebUIDir != "" {
 		webUIServer = http.FileServer(http.Dir(config.Values.WebUIDir))
@@ -142,7 +141,6 @@ func addWebUIRoutes(router *mux.Router) {
 }
 
 func runTerminal() {
-
 	logz.Logger = logz.NopLogger.Logger
 
 	fmt.Println("detecting Tivos on the network")
