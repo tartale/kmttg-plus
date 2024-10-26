@@ -10,10 +10,17 @@ debug/
 java/
 project/
 
-input/files
-input/config.ini.overrides
+input/auto.ini
 input/auto.ini.overrides
-
+input/config.ini
+input/config.ini.overrides
+input/files
 output/
-
 !**/.placeholder
+
+cdata*
+go.work
+go.work.sum
+output/
+tools/tivodecode/
+tmp/
