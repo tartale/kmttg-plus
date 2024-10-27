@@ -19,5 +19,5 @@ KMTTG_CERT_ZIP_URI              Points to a location where the latest certificat
     exit 1
 }
 
-curl -L "${KMTTG_CERT_ZIP_URI}" -o "${THIS_SCRIPT_DIR}/cdata.zip"
-go test ${THIS_SCRIPT_DIR}/../pkg/certificate/...
+curl -L "${KMTTG_CERT_ZIP_URI}" -o "${THIS_SCRIPT_DIR}/assets/cdata.zip"
+go test ${THIS_SCRIPT_DIR}/pkg/certificate/...
