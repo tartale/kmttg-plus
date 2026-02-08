@@ -74,12 +74,12 @@ function mergeIniFiles() {
   removeOverriddenEntries "${tmpOutputPath}" "${outputPath}"  
 }
 
-if [[ -z "${APP_DIR+x}" ]] || [[ -z "${INPUT_DIR+x}" ]] || [[ -z "${OUTPUT_DIR+x}" ]] || [[ -z "${TOOLS_DIR+x}" ]]; then
+if [[ -z "${APP_DIR+x}" ]] || [[ -z "${MOUNT_DIR+x}" ]] || [[ -z "${TOOLS_DIR+x}" ]]; then
   usage
 fi
 
 export TMPDIR="${TMPDIR:-${THIS_SCRIPT_DIR}/.tmp}"
-export INPUT_DIR="${APP_DIR}/input"
+export INPUT_DIR="${MOUNT_DIR}/input"
 export OVERRIDES_DIR="${MOUNT_DIR}/overrides"
 export OUTPUT_DIR="${MOUNT_DIR}/output"
 export COMSKIP_DIR="${INPUT_DIR}/comskip"
