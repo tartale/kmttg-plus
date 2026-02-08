@@ -79,7 +79,7 @@ if [[ -z "${APP_DIR+x}" ]] || [[ -z "${MOUNT_DIR+x}" ]] || [[ -z "${TOOLS_DIR+x}
 fi
 
 export TMPDIR="${TMPDIR:-${THIS_SCRIPT_DIR}/.tmp}"
-export INPUT_DIR="${APP_DIR}/input"
+export INPUT_DIR="${THIS_SCRIPT_DIR}/input"
 export OVERRIDES_DIR="${MOUNT_DIR}/overrides"
 export OUTPUT_DIR="${MOUNT_DIR}/output"
 export COMSKIP_DIR="${INPUT_DIR}/comskip"
@@ -92,9 +92,9 @@ else
   export ENCODE=1
 fi
 
-umask 000
+umask 0022
 
-echo "creating required files/directories in ${MOUNT_DIR}"
+echo "creating required files/directories in ${OUTPUT_DIR}"
 mkdir -p "${TMPDIR}"
 mkdir -p "${ENCODER_DIR}"
 mkdir -p "${OUTPUT_DIR}/download"
@@ -111,7 +111,7 @@ echo "merging configuration base and overrides files"
 mergeIniFiles "${INPUT_DIR}/config.ini.base" "${OVERRIDES_DIR}/config.ini.overrides" "${APP_DIR}/config.ini"
 mergeIniFiles "${INPUT_DIR}/auto.ini.base" "${OVERRIDES_DIR}/auto.ini.overrides" "${APP_DIR}/auto.ini"
 
-echo "linking input/output files to app home directory"
+echo "linking output files to app home directory"
 ln -f -s "${OUTPUT_DIR}/logs/auto.history" "${APP_DIR}/auto.history"
 ln -f -s "${OUTPUT_DIR}/logs/auto.log.0" "${APP_DIR}/auto.log.0"
 
