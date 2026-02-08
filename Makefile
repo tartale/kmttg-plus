@@ -1,11 +1,11 @@
 DOCKER_IMAGE_TAG ?= local
 DOCKER_IMAGE = tartale/kmttg-plus:$(DOCKER_IMAGE_TAG)
-DOCKER_RUN_ARGS = -it --rm -v $(CURDIR)/overrides:$(MOUNT_DIR)/overrides -v $(CURDIR)/output:$(MOUNT_DIR)/output:rw -p 8181:8181 
+DOCKER_RUN_ARGS = -it --rm -v $(CURDIR)/overrides:$(MOUNT_DIR)/overrides -v $(CURDIR)/output:$(MOUNT_DIR)/output:rw -p 8181:8181
 DOCKER_RUN_CMD = docker run $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE)
 
 MOUNT_DIR = /mnt/kmttg
 
-all: java image push run auto shell
+all: java image push run shell
 
 java:
 	cd java; \
@@ -20,10 +20,7 @@ push: image
 run:
 	$(DOCKER_RUN_CMD)
 
-auto:
-	$(DOCKER_RUN_CMD) -a
-
 shell:
 	$(DOCKER_RUN_CMD) /bin/bash
 
-.PHONY: all java image push run auto shell
+.PHONY: all java image push run shell
