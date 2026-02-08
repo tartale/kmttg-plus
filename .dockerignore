@@ -1,19 +1,8 @@
-@eaDir/
-.DS_Store
-.envrc
-.vscode
-.idea/
-vscode.env
+# Ignore everything
+*
 
-app/
-debug/
-java/
-project/
-
-input/files
-input/config.ini.overrides
-input/auto.ini.overrides
-
-output/
-
-!**/.placeholder
+# Allow files and directories
+!/input
+!/java/release
+!/kmttg.sh
+!/overrides
