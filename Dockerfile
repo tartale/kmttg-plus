@@ -56,4 +56,4 @@ COPY --chown=kmttg:kmttg java/release/kmttg.jar ${APP_DIR}/
 COPY --chown=kmttg:kmttg input/* ${APP_DIR}/input/
 COPY --chown=kmttg:kmttg kmttg.sh ${APP_DIR}/
 
-CMD ["/bin/bash", "-c", "${APP_DIR}/kmttg.sh"]
+CMD ["/bin/bash", "-c", "${APP_DIR}/kmttg.sh", "-a"]
