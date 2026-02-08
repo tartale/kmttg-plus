@@ -1,0 +1,8 @@
+# Ignore everything
+*
+
+# Allow files and directories
+!/input
+!/java/release
+!/kmttg.sh
+!/overrides
