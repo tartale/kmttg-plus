@@ -11,7 +11,7 @@ java:
 	cd java; \
 	ant release
 
-image: java
+image:
 	docker build -t $(DOCKER_IMAGE) .
 
 push: image
