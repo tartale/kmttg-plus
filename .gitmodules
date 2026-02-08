@@ -1,0 +1,4 @@
+[submodule "java"]
+	path = java
+	url = git@github.com:tartale/kmttg.git
+	branch = multi-platform-build
