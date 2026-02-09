@@ -2,6 +2,9 @@
 
 package model
 
+type Query struct {
+}
+
 type Tivo struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
