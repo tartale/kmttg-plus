@@ -4,28 +4,59 @@ set -Eeuo pipefail
 
 THIS_SCRIPT_DIR="$(cd $(dirname ${BASH_SOURCE}); pwd)"
 
+export TMPDIR="${TMPDIR:-${THIS_SCRIPT_DIR}/.tmp}"
+export APP_DIR="${APP_DIR:-${THIS_SCRIPT_DIR}/java/release}"
+export MOUNT_DIR="${MOUNT_DIR:-${THIS_SCRIPT_DIR}}"
+export TOOLS_DIR="${TOOLS_DIR:-/usr/local/Homebrew/bin}"
+export COMSKIP_FILE="${COMSKIP_FILE:-comskip.ini.us-ota}"
+export ENCODER_NAME="${ENCODER_NAME:-none}"
+if [[ "${ENCODER_NAME}" == "none" ]]; then
+  export ENCODE=0
+else
+  export ENCODE=1
+fi
+
+export INPUT_DIR="${THIS_SCRIPT_DIR}/input"
+export OVERRIDES_DIR="${MOUNT_DIR}/overrides"
+export OUTPUT_DIR="${MOUNT_DIR}/output"
+export COMSKIP_DIR="${INPUT_DIR}/comskip"
+export ENCODER_DIR="${INPUT_DIR}/encoders"
+
 usage() {
   echo "
 usage: ${0} [flags]
             [-h|--help]
 
 
-Flags                           Purpose
+Flags                     
 <none>
 
-Environment variable            Purpose
-APP_DIR
-MOUNT_DIR
-TOOLS_DIR
+Environment variable      Purpose
+APP_DIR                   The directory that contains the kmttg release (with kmttg.jar)
+                          Current value: '${APP_DIR}'.
 
-COMSKIP_FILE
-ENCODER_NAME
+MOUNT_DIR                 The directory to mount inside the container; this will contain
+                          the "output" and "overrides" folders.
+                          Current value: '${MOUNT_DIR}'.
+
+TOOLS_DIR                 The directory to which the kmttg required tools will be installed.
+                          Current value: '${TOOLS_DIR}'
+
+COMSKIP_FILE              The configuration file for the comskip tool; defaults to 'comskip.ini.us-ota'.
+                          Current value: '${COMSKIP_FILE}'
+
+ENCODER_NAME              The file used to configure encoding with handbrake.
+                          Defaults to 'none' (no encoding).
+                          Current value: '${ENCODER_NAME}'
 
 " >&2
-
-    exit 1
 }
 
+if [[ "${1:-}" == "-h" ]] || [[ "${1:-}" == "--help" ]]; then
+  usage
+  ${APP_DIR}/kmttg -h
+  exit 1
+fi
 
 function removeOverriddenEntries() {
 
@@ -73,24 +104,6 @@ function mergeIniFiles() {
   envsubst < "${basePath}" > "${tmpOutputPath}"
   removeOverriddenEntries "${tmpOutputPath}" "${outputPath}"  
 }
-
-if [[ -z "${APP_DIR+x}" ]] || [[ -z "${MOUNT_DIR+x}" ]] || [[ -z "${TOOLS_DIR+x}" ]]; then
-  usage
-fi
-
-export TMPDIR="${TMPDIR:-${THIS_SCRIPT_DIR}/.tmp}"
-export INPUT_DIR="${THIS_SCRIPT_DIR}/input"
-export OVERRIDES_DIR="${MOUNT_DIR}/overrides"
-export OUTPUT_DIR="${MOUNT_DIR}/output"
-export COMSKIP_DIR="${INPUT_DIR}/comskip"
-export COMSKIP_FILE="${COMSKIP_FILE:-comskip.ini.us-ota}"
-export ENCODER_DIR="${INPUT_DIR}/encoders"
-export ENCODER_NAME="${ENCODER_NAME:-none}"
-if [[ "${ENCODER_NAME}" == "none" ]]; then
-  export ENCODE=0
-else
-  export ENCODE=1
-fi
 
 umask 0022
 
