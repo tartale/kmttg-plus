@@ -1,6 +1,6 @@
 DOCKER_IMAGE_TAG ?= local
 DOCKER_IMAGE = tartale/kmttg-plus:$(DOCKER_IMAGE_TAG)
-DOCKER_RUN_ARGS = -it --rm -v $(CURDIR)/overrides:$(MOUNT_DIR)/overrides -v $(CURDIR)/output:$(MOUNT_DIR)/output:rw -p 8181:8181
+DOCKER_RUN_ARGS = --rm -d -v $(CURDIR)/overrides:$(MOUNT_DIR)/overrides -v $(CURDIR)/output:$(MOUNT_DIR)/output:rw -p 8181:8181
 DOCKER_RUN_CMD = docker run $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE)
 
 MOUNT_DIR = /mnt/kmttg
