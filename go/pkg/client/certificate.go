@@ -10,11 +10,10 @@ import (
 )
 
 const (
-	certificatePassword = "vlZaKoduom"
+	certificatePassword = "SKA2Kvgxvs"
 )
 
 func GetCertificates(certificatePath string) (*tls.Certificate, *x509.CertPool, error) {
-
 	certificateBytes, err := os.ReadFile(certificatePath)
 	if err != nil {
 		return nil, nil, err
