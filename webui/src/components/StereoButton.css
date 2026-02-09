@@ -1,0 +1,66 @@
+.stereo-button {
+  position: relative;
+  border: none;
+  background-color: transparent;
+  width: 200px;
+  height: 75px;
+  margin-right: 20px;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.stereo-button .face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(to bottom, #e8e8e8, #d8d8d8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.stereo-button .face .light {
+  position: absolute;
+  top: 10px;
+  width: 50px;
+  height: 20px;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+}
+
+.stereo-button .face .indicator {
+  width: 40%;
+  height: 2px;
+  border-radius: 2px;
+  margin-top: 50px;
+  transition: all 0.2s ease-in-out;
+}
+
+.stereo-button .face .label {
+  color: #333;
+  font-size: 15px;
+  margin-top: 3px;
+  text-align: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.stereo-button.off .face .light {
+  background-color: #888;
+}
+
+.stereo-button.off .face .indicator {
+  background-color: #888;
+}
+
+.stereo-button.on .face .light {
+  background-color: #0f0;
+  box-shadow: 0 0 6px #0f0;
+}
+
+.stereo-button.on .face .indicator {
+  background-color: #888;
+}

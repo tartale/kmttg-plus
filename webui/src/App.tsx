@@ -1,19 +1,15 @@
 import React from "react";
 import "./App.css";
-import "./components/TivoStyle.css";
-import ShowListing from "./components/ShowListing";
-import TiVoLogo from "./components/TivoLogo";
+import Home from "./components/Home";
+import {BrowserRouter, Route, Routes} from 'react-router-dom';
 
 function App() {
   return (
-    <div>
-      <div style={{position: "absolute", top: 10, left: 10}}>
-        <TiVoLogo />
-      </div>
-      <div style={{position: "absolute", top: 150, left: 10}}>
-        <ShowListing />
-      </div>
-    </div>
+    <BrowserRouter basename="/">
+      <Routes>
+        <Route path="/" Component={Home}/>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

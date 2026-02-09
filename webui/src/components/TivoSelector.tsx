@@ -1,42 +1,36 @@
-import React, {useState, useEffect} from "react";
-import yaml from "js-yaml";
+import React, {useEffect, useState} from "react";
+import graphql from "babel-plugin-relay/macro";
+import type { TivoSelectorQuery as TivoSelectorQueryType } from "./__generated__/TivoSelectorQuery.graphql";
+import { useLazyLoadQuery } from "react-relay";
+import StereoButton from "./StereoButton";
+import { Box } from "@mui/system";
 
-interface TivoConfig {
-  devices: {
-    name: string;
-    address: string;
-  }[];
-}
+const TivoSelectorQuery = graphql`
+  query TivoSelectorQuery {
+    tivos {
+      name
+    }
+  }
+`;
 
 function TivoSelector(props: any) {
   const [options, setOptions] = useState<string[]>([]);
 
+  const data = useLazyLoadQuery
+    <TivoSelectorQueryType>
+    (TivoSelectorQuery, {});
+  const names: string[] = data.tivos.map((tivo) => tivo.name);
+
   useEffect(() => {
-    fetch("config/tivo.yaml")
-      .then((response) => response.text())
-      .then((text) => {
-        const data: TivoConfig = yaml.load(text) as TivoConfig;
-        const names: string[] = data.devices.map((device) => device.name);
-        setOptions(names);
-      });
+    setOptions(names);
   }, []);
-
-  function handleChange(event: any) {
-    props.onChange(event.target.value);
-  }
-
-  if (!options || options.length === 0) {
-    return <div>Loading...</div>;
-  }
-
+  
   return (
-    <select onChange={handleChange}>
-      {options.map((option, index) => (
-        <option key={index} value={option}>
-          {option}
-        </option>
+    <React.Fragment>
+      {options.map((option: string, index: number) => (
+        <StereoButton label={option} key={index} {...props}/>
       ))}
-    </select>
+    </React.Fragment>
   );
 }
 

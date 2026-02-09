@@ -3,7 +3,8 @@ import TableRow from "@mui/material/TableRow";
 import TableHead from "@mui/material/TableHead";
 import React from "react";
 import { getImageFileForShow, getTitleExtension, recordedOn } from "./showListingHelpers";
-import { ShowKind, Series } from "./ShowListing";
+import { Series } from "./ShowListing";
+import { ShowKind } from "../services/generated/graphql-types"
 import IconButton from "@mui/material/IconButton";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
@@ -118,7 +119,7 @@ function RecordedOnCell(props: any) {
 
 const actionCellStyle = makeStyles(() => ({
   iconButton: {
-    backgroundColor: 'rgb(3, 136, 180)',
+    backgroundColor: 'white',
     margin: '0.25rem',
   },
 }));
@@ -133,10 +134,10 @@ function ActionCell(props: any) {
       return (
         <React.Fragment>
           <TableCell {...props}>
-          <IconButton size="medium" className={classes.iconButton}>
+          <IconButton size="small" className={classes.iconButton}>
               <DownloadSharpIcon/>
             </IconButton>
-            <IconButton size="medium" className={classes.iconButton}>
+            <IconButton size="small" className={classes.iconButton}>
               <PlayCircleIcon/>
             </IconButton>
           </TableCell>

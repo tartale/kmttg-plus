@@ -1,0 +1,5 @@
+devices:
+  - name: Living Room
+    address: 0.0.0.0
+  - name: Master Bedroom
+    address: 0.0.0.0

@@ -2,17 +2,20 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 
-	"github.com/99designs/gqlgen/graphql/handler"
+	gqlhandler "github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/tartale/kmttg-plus/go/dist"
 	"github.com/tartale/kmttg-plus/go/pkg/beacon"
+	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/resolvers"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
@@ -28,13 +31,13 @@ var rootCmd = &cobra.Command{
 	Short: "Port of KMTTG to golang",
 	Run: func(cmd *cobra.Command, args []string) {
 		startBeaconListener()
-		runGraphQLServer()
+		runWebServer()
 	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func main() {
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -42,7 +45,7 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(func() { config.InitConfig(cfgFile) })
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
@@ -55,44 +58,55 @@ func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".kmttg" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".kmttg")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
-}
-
-func main() {
-	Execute()
-}
-
 func startBeaconListener() {
 	go beacon.Listen(context.Background())
 }
 
-func runGraphQLServer() {
-	srv := handler.NewDefaultServer(server.NewExecutableSchema(server.Config{Resolvers: &resolvers.Resolver{}}))
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
-	logz.Logger.Info("connect to http://localhost:" + port + "/ for GraphQL playground")
-	err := http.ListenAndServe(":"+port, nil)
+func runWebServer() {
+	router := mux.NewRouter()
 
+	// addCORSMiddleware(router)
+	addGraphQLRoutes(router)
+	addWebUIRoutes(router)
+
+	err := http.ListenAndServe(":"+port, router)
 	logz.Logger.Fatal("error while running kmttg server", zap.Errors("error", []error{err}))
+}
+
+func addCORSMiddleware(router *mux.Router) {
+	// Add CORS middleware around every request
+	// See https://github.com/rs/cors for full option listing
+	corz := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:*", "http://127.0.0.1:*", "electron://altair*"},
+		AllowCredentials: true,
+		Debug:            true,
+	})
+	corz.Log = logz.LoggerX
+	router.Use(corz.Handler)
+}
+
+func addGraphQLRoutes(router *mux.Router) {
+	gqlExecutableSchema := server.NewExecutableSchema(server.Config{Resolvers: &resolvers.Resolver{}})
+	gqlServer := gqlhandler.NewDefaultServer(gqlExecutableSchema)
+
+	router.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
+	router.Handle("/query", gqlServer)
+
+	logz.Logger.Info("connect to http://localhost:" + port + "/playground for GraphQL playground")
+}
+
+func addWebUIRoutes(router *mux.Router) {
+
+	var webUIServer http.Handler
+	if config.Values.WebUIDir != "" {
+		webUIServer = http.FileServer(http.Dir(config.Values.WebUIDir))
+	} else {
+		webUIFiles, err := fs.Sub(dist.Filesystem, "webui")
+		if err != nil {
+			panic(err)
+		}
+		webUIServer = http.FileServer(http.FS(webUIFiles))
+	}
+
+	router.PathPrefix("/").Handler(http.StripPrefix("/", webUIServer))
 }

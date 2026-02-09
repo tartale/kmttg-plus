@@ -28,6 +28,6 @@
 
 .showListingTable thead th {
   font-size: 1.25rem;
-  border-bottom-width: .5rem;
-  border-bottom-color: aqua;
+  border-bottom-width: .25rem;
+  border-bottom-color: white;
 }

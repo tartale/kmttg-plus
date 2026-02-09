@@ -2,11 +2,120 @@
 
 package model
 
-type Query struct {
+import (
+	"fmt"
+	"io"
+	"strconv"
+	"time"
+)
+
+type Show interface {
+	IsShow()
+	GetKind() ShowKind
+	GetRecordingID() string
+	GetTitle() string
+	GetRecordedOn() time.Time
+	GetDescription() string
 }
 
+type Episode struct {
+	Kind               ShowKind  `json:"kind"`
+	RecordingID        string    `json:"recordingID"`
+	Title              string    `json:"title"`
+	RecordedOn         time.Time `json:"recordedOn"`
+	Description        string    `json:"description"`
+	OriginalAirDate    time.Time `json:"originalAirDate"`
+	SeasonNumber       int       `json:"seasonNumber"`
+	EpisodeNumber      int       `json:"episodeNumber"`
+	EpisodeTitle       string    `json:"episodeTitle"`
+	EpisodeDescription string    `json:"episodeDescription"`
+}
+
+func (Episode) IsShow()                       {}
+func (this Episode) GetKind() ShowKind        { return this.Kind }
+func (this Episode) GetRecordingID() string   { return this.RecordingID }
+func (this Episode) GetTitle() string         { return this.Title }
+func (this Episode) GetRecordedOn() time.Time { return this.RecordedOn }
+func (this Episode) GetDescription() string   { return this.Description }
+
+type Movie struct {
+	Kind        ShowKind  `json:"kind"`
+	RecordingID string    `json:"recordingID"`
+	Title       string    `json:"title"`
+	RecordedOn  time.Time `json:"recordedOn"`
+	Description string    `json:"description"`
+	MovieYear   *string   `json:"movieYear,omitempty"`
+}
+
+func (Movie) IsShow()                       {}
+func (this Movie) GetKind() ShowKind        { return this.Kind }
+func (this Movie) GetRecordingID() string   { return this.RecordingID }
+func (this Movie) GetTitle() string         { return this.Title }
+func (this Movie) GetRecordedOn() time.Time { return this.RecordedOn }
+func (this Movie) GetDescription() string   { return this.Description }
+
+type Series struct {
+	Kind        ShowKind   `json:"kind"`
+	RecordingID string     `json:"recordingID"`
+	Title       string     `json:"title"`
+	RecordedOn  time.Time  `json:"recordedOn"`
+	Description string     `json:"description"`
+	Episodes    []*Episode `json:"episodes"`
+}
+
+func (Series) IsShow()                       {}
+func (this Series) GetKind() ShowKind        { return this.Kind }
+func (this Series) GetRecordingID() string   { return this.RecordingID }
+func (this Series) GetTitle() string         { return this.Title }
+func (this Series) GetRecordedOn() time.Time { return this.RecordedOn }
+func (this Series) GetDescription() string   { return this.Description }
+
 type Tivo struct {
-	Name    string `json:"name"`
-	Address string `json:"address"`
-	Tsn     string `json:"tsn"`
+	Name       string `json:"name"`
+	Address    string `json:"address"`
+	Tsn        string `json:"tsn"`
+	Recordings []Show `json:"recordings,omitempty"`
+}
+
+type ShowKind string
+
+const (
+	ShowKindMovie   ShowKind = "MOVIE"
+	ShowKindSeries  ShowKind = "SERIES"
+	ShowKindEpisode ShowKind = "EPISODE"
+)
+
+var AllShowKind = []ShowKind{
+	ShowKindMovie,
+	ShowKindSeries,
+	ShowKindEpisode,
+}
+
+func (e ShowKind) IsValid() bool {
+	switch e {
+	case ShowKindMovie, ShowKindSeries, ShowKindEpisode:
+		return true
+	}
+	return false
+}
+
+func (e ShowKind) String() string {
+	return string(e)
+}
+
+func (e *ShowKind) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ShowKind(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ShowKind", str)
+	}
+	return nil
+}
+
+func (e ShowKind) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }

@@ -1,0 +1,49 @@
+scalar Time
+
+enum ShowKind {
+  MOVIE
+  SERIES
+  EPISODE
+}
+
+interface Show {
+  kind: ShowKind!
+  recordingID: String!
+  title: String!
+  recordedOn: Time!
+  description: String!
+}
+
+type Movie implements Show {
+  kind: ShowKind!
+  recordingID: String!
+  title: String!
+  recordedOn: Time!
+  description: String!
+
+  movieYear: String
+}
+
+type Series implements Show {
+  kind: ShowKind!
+  recordingID: String!
+  title: String!
+  recordedOn: Time!
+  description: String!
+
+  episodes: [Episode!]!
+}
+
+type Episode implements Show {
+  kind: ShowKind!
+  recordingID: String!
+  title: String!
+  recordedOn: Time!
+  description: String!
+
+  originalAirDate: Time!
+  seasonNumber: Int!
+  episodeNumber: Int!
+  episodeTitle: String!
+  episodeDescription: String!
+}

@@ -6,22 +6,8 @@ import { useEffect, useState } from "react";
 import "./ShowListing.css";
 import { getShows } from "./showListingHelpers";
 import { ShowHeader, ShowRow } from "./ShowRow";
+import { Show, ShowKind } from "../services/generated/graphql-types"
 import "./TivoStyle.css";
-
-export enum ShowKind {
-  Movie,
-  Series,
-  Episode
-}
-
-export interface Show {
-  info: any;
-  recordingId: string;
-  kind: ShowKind;
-  title: string;
-  recordedOn: Date;
-  description: string;
-}
 
 export type ShowSortField = 'kind' | 'title' | 'recordedOn';
 
@@ -41,7 +27,7 @@ export interface Episode extends Show {
   episodeDescription: string;
 }
 
-export default function ShowListing() {
+export default function ShowListing(props: any) {
   const [shows, setShows] = useState<Show[]>([]);
 
   useEffect(getShows(setShows), []);
@@ -50,12 +36,13 @@ export default function ShowListing() {
     <TableContainer
       component={Paper}
       sx={{ background: "linear-gradient(to bottom, #162c4f, #000000);" }}
+      {...props}
     >
       <Table className="showListingTable">
         <ShowHeader/>
         <TableBody>
           {shows.map((show) => (
-            <ShowRow key={show.recordingId} show={show} />
+            <ShowRow key={show.recordingID} show={show} />
           ))}
         </TableBody>
       </Table>

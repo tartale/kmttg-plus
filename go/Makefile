@@ -10,4 +10,4 @@ build:
 run:
 	go run cmd/kmttg.go
 
-.PHONY: all tools build run
+.PHONY: all tools tidy build run
