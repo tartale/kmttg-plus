@@ -11,6 +11,10 @@ java:
 	cd java; \
 	ant release
 
+go:
+	cd go; \
+	make build
+
 image:
 	docker build -t $(DOCKER_IMAGE) .
 
@@ -23,4 +27,4 @@ run:
 shell:
 	$(DOCKER_RUN_CMD) /bin/bash
 
-.PHONY: all java image push run shell
+.PHONY: all java go image push run shell
