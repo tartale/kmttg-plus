@@ -42,7 +42,7 @@ RUN cd /tmp \
 
 COPY --from=plexinc/pms-docker /usr/lib/plexmediaserver/Resources/comskip.ini /opt/comskip.ini
 
-COPY --chown=kmttg:kmttg docker.bashrc /home/kmttg/.bashrc
+COPY --chown=kmttg:kmttg .bashrc.docker /home/kmttg/app/.bashrc
 
 RUN apk add doas \
  && echo 'permit nopass :wheel' >> /etc/doas.conf \
@@ -52,15 +52,12 @@ ARG KMTTG_VERSION
 COPY --chown=kmttg:kmttg input/* /home/kmttg/app/input/
 COPY --chown=kmttg:kmttg kmttg.sh /home/kmttg/app/
 COPY --chown=kmttg:kmttg java/dist/kmttg_${KMTTG_VERSION}.zip /home/kmttg/app/
-COPY --chown=kmttg:kmttg java/.java-version /home/kmttg/app/
 
 RUN cd /home/kmttg/app \
  && unzip -o -q kmttg_${KMTTG_VERSION}.zip \
  && chown -R kmttg:kmttg /home/kmttg/app \
  && rm -rf kmttg_${KMTTG_VERSION}.zip
 
-ENV APP_DIR /home/kmttg/app
-ENV MOUNT_DIR /mnt/kmttg
 VOLUME [ /mnt/kmttg ]
 
 USER kmttg

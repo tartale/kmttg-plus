@@ -2,9 +2,8 @@
 *
 
 # Allow files and directories
+!/.bashrc.docker
 !/input
-!/java/.java-version
 !/java/dist
 !/kmttg.sh
 !/overrides
-!/docker.bashrc

@@ -4,6 +4,10 @@ set -Eeuo pipefail
 
 THIS_SCRIPT_DIR="$(cd $(dirname ${BASH_SOURCE}); pwd)"
 
+if [[ -f "${THIS_SCRIPT_DIR}/.bashrc" ]]; then
+  source "${THIS_SCRIPT_DIR}/.bashrc"
+fi
+
 export TMPDIR="${TMPDIR:-${THIS_SCRIPT_DIR}/.tmp}"
 export APP_DIR="${APP_DIR:-${THIS_SCRIPT_DIR}/java/release}"
 export MOUNT_DIR="${MOUNT_DIR:-${THIS_SCRIPT_DIR}}"
@@ -104,7 +108,7 @@ function mergeIniFiles() {
   removeOverriddenEntries "${tmpOutputPath}" "${outputPath}"  
 }
 
-echo "creating required files/directories"
+echo "Creating required files/directories"
 mkdir -p "${TMPDIR}"
 mkdir -p "${ENCODER_DIR}"
 mkdir -p "${OUTPUT_DIR}/download"
@@ -117,11 +121,11 @@ mkdir -p "${OUTPUT_DIR}/logs"
 touch "${OUTPUT_DIR}/logs/auto.history"
 touch "${OUTPUT_DIR}/logs/auto.log.0"
 
-echo "merging configuration base and overrides files"
+echo "Merging configuration base and overrides files"
 mergeIniFiles "${INPUT_DIR}/config.ini.base" "${OVERRIDES_DIR}/config.ini.overrides" "${APP_DIR}/config.ini"
 mergeIniFiles "${INPUT_DIR}/auto.ini.base" "${OVERRIDES_DIR}/auto.ini.overrides" "${APP_DIR}/auto.ini"
 
-echo "linking output files to app home directory"
+echo "Linking output files to app home directory"
 ln -f -s "${OUTPUT_DIR}/logs/auto.history" "${APP_DIR}/auto.history"
 ln -f -s "${OUTPUT_DIR}/logs/auto.log.0" "${APP_DIR}/auto.log.0"
 
@@ -133,5 +137,5 @@ if [[ -e "${ENCODER_DIR}/${ENCODER_NAME}.enc" ]]; then
   ln -f -s "${ENCODER_DIR}/${ENCODER_NAME}.enc" "${APP_DIR}/encode/"
 fi
 
-echo "running kmttg"
+echo "Running kmttg"
 ${APP_DIR}/kmttg "$@"
