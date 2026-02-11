@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
+echo "Setting profile for docker"
+
 alias ll='ls -la'
 export APP_DIR="/home/kmttg/app"
 export MOUNT_DIR="/mnt/kmttg"
 
-doas chown -R kmttg:kmttg /mnt/kmttg
+doas chmod -R a+rwx /mnt/kmttg

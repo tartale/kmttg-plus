@@ -4,11 +4,18 @@ DOCKER_IMAGE_TAG ?= local
 DOCKER_IMAGE = tartale/kmttg-plus:$(DOCKER_IMAGE_TAG)
 DOCKER_RUN_ARGS = --rm -v $(CURDIR)/overrides:$(MOUNT_DIR)/overrides -v $(CURDIR)/output:$(MOUNT_DIR)/output:rw -p 8181:8181
 
-all: java image push run shell
+clean:
+	docker rmi $(DOCKER_IMAGE)
+	cd java \
+	ant clean
 
 java:
-	cd java; \
+	cd java \
 	ant release
+
+java-run:
+	cd java \
+	./release/kmttg
 
 go:
 	cd go; \
@@ -17,13 +24,13 @@ go:
 image:
 	docker build --build-arg KMTTG_VERSION=$(KMTTG_VERSION) -t $(DOCKER_IMAGE) .
 
+image-run:
+	docker run -d $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE)
+
 push: image
 	docker push $(DOCKER_IMAGE)
-
-run:
-	docker run -d $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE)
 
 shell:
 	docker run -it $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE) /bin/bash
 
-.PHONY: all java go image push run shell
+.PHONY: clean java java-run go image image-run push shell
