@@ -7,7 +7,7 @@ THIS_SCRIPT_DIR="$(cd $(dirname ${BASH_SOURCE}); pwd)"
 export TMPDIR="${TMPDIR:-${THIS_SCRIPT_DIR}/.tmp}"
 export APP_DIR="${APP_DIR:-${THIS_SCRIPT_DIR}/java/release}"
 export MOUNT_DIR="${MOUNT_DIR:-${THIS_SCRIPT_DIR}}"
-export TOOLS_DIR="${TOOLS_DIR:-/usr/local/Homebrew/bin}"
+export TOOLS_DIR="${TOOLS_DIR:-/usr/local/bin}"
 export COMSKIP_FILE="${COMSKIP_FILE:-comskip.ini.us-ota}"
 export ENCODER_NAME="${ENCODER_NAME:-none}"
 if [[ "${ENCODER_NAME}" == "none" ]]; then
@@ -27,7 +27,6 @@ usage() {
 usage: ${0} [flags]
             [-h|--help]
 
-
 Flags                     
 <none>
 
@@ -39,7 +38,7 @@ MOUNT_DIR                 The directory to mount inside the container; this will
                           the "output" and "overrides" folders.
                           Current value: '${MOUNT_DIR}'.
 
-TOOLS_DIR                 The directory to which the kmttg required tools will be installed.
+TOOLS_DIR                 The directory to which the kmttg required tools are installed.
                           Current value: '${TOOLS_DIR}'
 
 COMSKIP_FILE              The configuration file for the comskip tool; defaults to 'comskip.ini.us-ota'.
@@ -105,9 +104,7 @@ function mergeIniFiles() {
   removeOverriddenEntries "${tmpOutputPath}" "${outputPath}"  
 }
 
-umask 0022
-
-echo "creating required files/directories in ${OUTPUT_DIR}"
+echo "creating required files/directories"
 mkdir -p "${TMPDIR}"
 mkdir -p "${ENCODER_DIR}"
 mkdir -p "${OUTPUT_DIR}/download"

@@ -5,20 +5,13 @@ USER root
 RUN apk update
 RUN apk upgrade
 
-ENV APP_DIR /home/kmttg/app
-ENV MOUNT_DIR /mnt/kmttg
-ENV TOOLS_DIR /usr/local/bin
-
-RUN mkdir -p ${APP_DIR} ${MOUNT_DIR} ${TOOLS_DIR} \
- && chown kmttg:kmttg ${APP_DIR} ${MOUNT_DIR} ${TOOLS_DIR}
-
 RUN apk add gettext mediainfo mkvtoolnix mplayer \
- && ln -s /usr/bin/mediainfo ${TOOLS_DIR}/mediainfo \
- && ln -s /usr/bin/mencoder ${TOOLS_DIR}/mencoder \
- && ln -s /usr/bin/ffmpeg ${TOOLS_DIR}/ffmpeg
+ && ln -s /usr/bin/mediainfo /usr/local/bin/mediainfo \
+ && ln -s /usr/bin/mencoder /usr/local/bin/mencoder \
+ && ln -s /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 
 RUN curl -L -o ./AtomicParsleyAlpine.zip https://github.com/wez/atomicparsley/releases/download/20210715.151551.e7ad03a/AtomicParsleyAlpine.zip \
- && unzip -d ${TOOLS_DIR} ./AtomicParsleyAlpine.zip \
+ && unzip -d /usr/local/bin ./AtomicParsleyAlpine.zip \
  && rm ./AtomicParsleyAlpine.zip
 
 RUN apk add --no-cache g++ make \
@@ -42,18 +35,33 @@ RUN cd /tmp \
  && cd Comskip && ./autogen.sh && ./configure && make && make install \
  && wget -O /opt/PlexComskip.py https://raw.githubusercontent.com/ekim1337/PlexComskip/master/PlexComskip.py \
  && wget -O /opt/PlexComskip.conf https://raw.githubusercontent.com/ekim1337/PlexComskip/master/PlexComskip.conf.example \
- && sed -i "s#${TOOLS_DIR}/ffmpeg#/usr/bin/ffmpeg#g" /opt/PlexComskip.conf \
+ && sed -i "s#/usr/local/bin/ffmpeg#/usr/bin/ffmpeg#g" /opt/PlexComskip.conf \
  && sed -i "/forensics/s/True/False/g" /opt/PlexComskip.conf \
  && apk del builddeps \
  && rm -rf /var/cache/apk/* /tmp/* /tmp/.[!.]*
 
 COPY --from=plexinc/pms-docker /usr/lib/plexmediaserver/Resources/comskip.ini /opt/comskip.ini
 
+COPY --chown=kmttg:kmttg docker.bashrc /home/kmttg/.bashrc
+
+RUN apk add doas \
+ && echo 'permit nopass :wheel' >> /etc/doas.conf \
+ && addgroup kmttg wheel
+
+ARG KMTTG_VERSION
+COPY --chown=kmttg:kmttg input/* /home/kmttg/app/input/
+COPY --chown=kmttg:kmttg kmttg.sh /home/kmttg/app/
+COPY --chown=kmttg:kmttg java/dist/kmttg_${KMTTG_VERSION}.zip /home/kmttg/app/
+COPY --chown=kmttg:kmttg java/.java-version /home/kmttg/app/
+
+RUN cd /home/kmttg/app \
+ && unzip -o -q kmttg_${KMTTG_VERSION}.zip \
+ && chown -R kmttg:kmttg /home/kmttg/app \
+ && rm -rf kmttg_${KMTTG_VERSION}.zip
+
+ENV APP_DIR /home/kmttg/app
+ENV MOUNT_DIR /mnt/kmttg
+VOLUME [ /mnt/kmttg ]
+
 USER kmttg
-
-COPY --chown=kmttg:kmttg java/release/kmttg ${APP_DIR}/
-COPY --chown=kmttg:kmttg java/release/kmttg.jar ${APP_DIR}/
-COPY --chown=kmttg:kmttg input/* ${APP_DIR}/input/
-COPY --chown=kmttg:kmttg kmttg.sh ${APP_DIR}/
-
-CMD ["/bin/bash", "-c", "${APP_DIR}/kmttg.sh", "-a"]
+CMD ["/bin/bash", "-c", "/home/kmttg/app/kmttg.sh", "-a"]
