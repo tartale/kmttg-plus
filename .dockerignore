@@ -3,6 +3,8 @@
 
 # Allow files and directories
 !/input
-!/java/release
+!/java/.java-version
+!/java/dist
 !/kmttg.sh
 !/overrides
+!/docker.bashrc
