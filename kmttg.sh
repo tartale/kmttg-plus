@@ -108,6 +108,8 @@ function mergeIniFiles() {
   removeOverriddenEntries "${tmpOutputPath}" "${outputPath}"  
 }
 
+umask 000
+
 echo "Creating required files/directories"
 mkdir -p "${TMPDIR}"
 mkdir -p "${ENCODER_DIR}"
