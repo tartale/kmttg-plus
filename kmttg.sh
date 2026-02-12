@@ -29,13 +29,13 @@ export ENCODER_DIR="${INPUT_DIR}/encoders"
 usage() {
   echo "
 usage: ${0} [flags]
-            [-h|--help]
+            
 
 Flags                     
-<none>
+[-h|--help]               Print this help message.
 
-Environment variable      Purpose
-APP_DIR                   The directory that contains the kmttg release (with kmttg.jar)
+Environment variable      
+APP_DIR                   The directory that contains the kmttg release.
                           Current value: '${APP_DIR}'.
 
 MOUNT_DIR                 The directory to mount inside the container; this will contain
@@ -108,8 +108,6 @@ function mergeIniFiles() {
   removeOverriddenEntries "${tmpOutputPath}" "${outputPath}"  
 }
 
-umask 000
-
 echo "Creating required files/directories"
 mkdir -p "${TMPDIR}"
 mkdir -p "${ENCODER_DIR}"
@@ -127,15 +125,15 @@ echo "Merging configuration base and overrides files"
 mergeIniFiles "${INPUT_DIR}/config.ini.base" "${OVERRIDES_DIR}/config.ini.overrides" "${APP_DIR}/config.ini"
 mergeIniFiles "${INPUT_DIR}/auto.ini.base" "${OVERRIDES_DIR}/auto.ini.overrides" "${APP_DIR}/auto.ini"
 
-echo "Linking output files to app home directory"
+echo "Linking input/output files to app home directory"
 ln -f -s "${OUTPUT_DIR}/logs/auto.history" "${APP_DIR}/auto.history"
 ln -f -s "${OUTPUT_DIR}/logs/auto.log.0" "${APP_DIR}/auto.log.0"
 
-if [[ -e "${COMSKIP_DIR}/${COMSKIP_FILE}" ]]; then
+if [[ -f "${COMSKIP_DIR}/${COMSKIP_FILE}" ]]; then
   ln -f -s "${COMSKIP_DIR}/${COMSKIP_FILE}" "${APP_DIR}/comskip.ini"
 fi
 
-if [[ -e "${ENCODER_DIR}/${ENCODER_NAME}.enc" ]]; then
+if [[ -f "${ENCODER_DIR}/${ENCODER_NAME}.enc" ]]; then
   ln -f -s "${ENCODER_DIR}/${ENCODER_NAME}.enc" "${APP_DIR}/encode/"
 fi
 

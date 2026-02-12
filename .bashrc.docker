@@ -6,4 +6,5 @@ alias ll='ls -la'
 export APP_DIR="/home/kmttg/app"
 export MOUNT_DIR="/mnt/kmttg"
 
+umask 000
 doas chmod -R a+rwx /mnt/kmttg
