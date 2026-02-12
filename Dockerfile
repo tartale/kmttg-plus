@@ -60,5 +60,8 @@ RUN cd /home/kmttg/app \
 
 VOLUME [ /mnt/kmttg ]
 
+ENV COMSKIP_FILE comskip.ini.us-ota
+ENV ENCODER_NAME none
+
 USER kmttg
 CMD ["/bin/bash", "-c", "/home/kmttg/app/kmttg.sh -a"]
