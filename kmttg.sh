@@ -139,5 +139,5 @@ if [[ -e "${ENCODER_DIR}/${ENCODER_NAME}.enc" ]]; then
   ln -f -s "${ENCODER_DIR}/${ENCODER_NAME}.enc" "${APP_DIR}/encode/"
 fi
 
-echo "Running kmttg"
-${APP_DIR}/kmttg "$@"
+echo "Running ${APP_DIR}/kmttg $@"
+${APP_DIR}/kmttg $@

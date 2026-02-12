@@ -61,4 +61,4 @@ RUN cd /home/kmttg/app \
 VOLUME [ /mnt/kmttg ]
 
 USER kmttg
-CMD ["/bin/bash", "-c", "/home/kmttg/app/kmttg.sh", "-a"]
+CMD ["/bin/bash", "-c", "/home/kmttg/app/kmttg.sh -a"]
