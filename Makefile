@@ -9,7 +9,7 @@ clean:
 	cd java \
 	ant clean
 
-java:
+java-build:
 	cd java \
 	ant release
 
@@ -17,7 +17,7 @@ java-run:
 	cd java \
 	./release/kmttg
 
-go:
+go-build:
 	cd go; \
 	make build
 
