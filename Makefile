@@ -21,6 +21,10 @@ go:
 	cd go; \
 	make build
 
+go-run:
+	cd go; \
+	make run
+
 image:
 	docker build --build-arg KMTTG_VERSION=$(KMTTG_VERSION) -t $(DOCKER_IMAGE) .
 
