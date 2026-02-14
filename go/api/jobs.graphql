@@ -1,0 +1,50 @@
+
+enum JobAction {
+  DOWNLOAD
+  COMSKIP
+  ENCODE
+  PLAY
+}
+
+input Job {
+  id: ID
+  action: JobAction!
+  showID: String!
+}
+
+type JobSubtask {
+  action: JobAction!
+  showID: String!
+  status: JobSubtaskStatus!
+}
+
+enum JobState {
+  QUEUED
+  RUNNING
+  COMPLETE
+  FAILED
+}
+
+type JobSubtaskStatus {
+  action: JobAction!
+  showID: String!
+  state: JobState!
+  progress: Int!
+  error: String
+}
+
+type JobStatus {
+  jobID: ID!
+  action: JobAction!
+  showID: String!
+  state: JobState!
+  progress: Int!
+  subtasks: [JobSubtaskStatus!]!
+}
+
+input JobFilter {
+  jobID: FilterOperator
+  action: FilterOperator
+  showID: FilterOperator
+  state: FilterOperator
+}

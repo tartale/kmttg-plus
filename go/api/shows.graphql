@@ -1,0 +1,88 @@
+enum ShowKind {
+  MOVIE
+  SERIES
+  EPISODE
+}
+
+interface Show {
+  id: ID!
+  kind: ShowKind!
+  title: String!
+  recordedOn: Time!
+  description: String!
+}
+
+# Movies are any show that is a single program, which includes both cinema and one-off specials.
+type Movie implements Show {
+  id: ID!
+  kind: ShowKind!
+  title: String!
+  recordedOn: Time!
+  description: String!
+  imageURL(width: Int!, height: Int!): String!
+
+  movieYear: Int!
+}
+
+# A series is any show with multiple seasons/episodes.
+type Series implements Show {
+  id: ID!
+  kind: ShowKind!
+  title: String!
+  recordedOn: Time!
+  description: String!
+  imageURL(width: Int!, height: Int!): String!
+
+  episodes(filter: [EpisodeFilter], offset: Int = 0, limit: Int = 25): [Episode!]!
+}
+
+type Episode implements Show {
+  id: ID!
+  kind: ShowKind!
+  title: String!
+  recordedOn: Time!
+  description: String!
+
+  seriesId: ID!
+  originalAirDate: Date!
+  seasonNumber: Int!
+  episodeNumber: Int!
+  episodeTitle: String!
+  episodeDescription: String!
+}
+
+input ShowFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  and: [ShowFilter]
+  or: [ShowFilter]
+}
+
+input MovieFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  movieYear: FilterOperator
+}
+
+input SeriesFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+}
+
+input EpisodeFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  originalAirDate: FilterOperator
+  seasonNumber: FilterOperator
+  episodeNumber: FilterOperator
+  episodeTitle: FilterOperator
+  episodeDescription: FilterOperator
+}
