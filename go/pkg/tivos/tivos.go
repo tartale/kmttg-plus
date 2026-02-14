@@ -19,7 +19,9 @@ import (
 	"go.uber.org/zap"
 )
 
-var tivoMap = xsync.NewMapOf[*model.Tivo]()
+var (
+	tivoMap = xsync.NewMapOf[*model.Tivo]()
+)
 
 func RunBackgroundLoader(ctx context.Context) {
 	loadTicker := time.NewTicker(10 * time.Second)
@@ -36,6 +38,7 @@ func RunBackgroundLoader(ctx context.Context) {
 }
 
 func LoadAll() error {
+
 	var errs errorx.Errors
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
 		errs = append(errs, Load(val))
@@ -46,6 +49,7 @@ func LoadAll() error {
 }
 
 func Load(tivo *model.Tivo) error {
+
 	logz.Logger.Debug("loading all shows", zap.String("tivoName", tivo.Name))
 	tivoClient, err := client.NewRpcClient(tivo)
 	if err != nil {
@@ -66,6 +70,7 @@ func Load(tivo *model.Tivo) error {
 }
 
 func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show, error) {
+
 	const (
 		retryCount = 3
 	)
@@ -96,6 +101,7 @@ func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show
 }
 
 func List(ctx context.Context) []*model.Tivo {
+
 	var list []*model.Tivo
 	tivoFilterFn := apicontext.TivoFilterFn(ctx)
 	showFilterFn := apicontext.ShowFilterFn(ctx)
@@ -138,8 +144,10 @@ func List(ctx context.Context) []*model.Tivo {
 }
 
 func GetShowForID(recordingID string) (model.Show, error) {
+
 	var result model.Show
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
+
 		for _, show := range val.Shows {
 			details := shows.GetDetails(show)
 			if details.Recording.RecordingID == recordingID {

@@ -58,8 +58,5 @@ func (r *Resolver) Mutation() server.MutationResolver { return &mutationResolver
 // Query returns server.QueryResolver implementation.
 func (r *Resolver) Query() server.QueryResolver { return &queryResolver{r} }
 
-type (
-	mutationResolver struct{ *Resolver }
-	queryResolver    struct{ *Resolver }
-	tivoResolver     struct{ *Resolver }
-)
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }

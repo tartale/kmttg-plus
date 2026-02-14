@@ -43,7 +43,8 @@ type ResolverRoot interface {
 	FilterOperator() FilterOperatorResolver
 }
 
-type DirectiveRoot struct{}
+type DirectiveRoot struct {
+}
 
 type ComplexityRoot struct {
 	Episode struct {
@@ -112,15 +113,6 @@ type ComplexityRoot struct {
 		Title       func(childComplexity int) int
 	}
 
-	Series struct {
-		Description func(childComplexity int) int
-		Episodes    func(childComplexity int) int
-		Kind        func(childComplexity int) int
-		RecordedOn  func(childComplexity int) int
-		RecordingID func(childComplexity int) int
-		Title       func(childComplexity int) int
-	}
-
 	Tivo struct {
 		Address func(childComplexity int) int
 		Name    func(childComplexity int) int
@@ -145,9 +137,6 @@ type FilterOperatorResolver interface {
 	Lte(ctx context.Context, obj *filter.Operator, data interface{}) error
 	Gte(ctx context.Context, obj *filter.Operator, data interface{}) error
 	Matches(ctx context.Context, obj *filter.Operator, data interface{}) error
-}
-type TivoResolver interface {
-	Recordings(ctx context.Context, obj *model.Tivo, limit *int, offset *int) ([]model.Show, error)
 }
 
 type executableSchema struct {
@@ -489,48 +478,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Series.Title(childComplexity), true
 
-	case "Series.description":
-		if e.complexity.Series.Description == nil {
-			break
-		}
-
-		return e.complexity.Series.Description(childComplexity), true
-
-	case "Series.episodes":
-		if e.complexity.Series.Episodes == nil {
-			break
-		}
-
-		return e.complexity.Series.Episodes(childComplexity), true
-
-	case "Series.kind":
-		if e.complexity.Series.Kind == nil {
-			break
-		}
-
-		return e.complexity.Series.Kind(childComplexity), true
-
-	case "Series.recordedOn":
-		if e.complexity.Series.RecordedOn == nil {
-			break
-		}
-
-		return e.complexity.Series.RecordedOn(childComplexity), true
-
-	case "Series.recordingID":
-		if e.complexity.Series.RecordingID == nil {
-			break
-		}
-
-		return e.complexity.Series.RecordingID(childComplexity), true
-
-	case "Series.title":
-		if e.complexity.Series.Title == nil {
-			break
-		}
-
-		return e.complexity.Series.Title(childComplexity), true
-
 	case "Tivo.address":
 		if e.complexity.Tivo.Address == nil {
 			break
@@ -626,13 +573,10 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
-			response.Data = buf.Bytes()
-			if atomic.LoadInt32(&ec.deferred) > 0 {
-				hasNext := atomic.LoadInt32(&ec.pendingDeferred) > 0
-				response.HasNext = &hasNext
-			}
 
-			return &response
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
 		}
 
 	default:
