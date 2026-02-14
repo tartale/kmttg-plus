@@ -1,0 +1,47 @@
+version: '3.1'
+
+services:
+  kmttg-plus:
+    build:
+      context: .
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+        APP_VERSION: ${APP_VERSION:-v2.9-rc1}
+    container_name: kmttg-plus-local
+    image: tartale/kmttg-plus:local
+    network_mode: host
+    ports:
+      - 8181:8181
+    volumes:
+      - ${INPUT_DIR:-./input}:/mnt/input:rw
+      - ${OUTPUT_DIR:-./output}:/mnt/output:rw
+
+  handbrake:
+    container_name: handbrake-latest
+    image: jlesage/handbrake:latest
+    environment:
+      - AUTOMATED_CONVERSION=1
+      - AUTOMATED_CONVERSION_VIDEO_FILE_EXTENSIONS=mpg
+      - AUTOMATED_CONVERSION_NON_VIDEO_FILE_ACTION=copy
+      - AUTOMATED_CONVERSION_PRESET=General/Plex Media Server
+      - AUTOMATED_CONVERSION_FORMAT=mkv
+      - AUTOMATED_CONVERSION_OVERWRITE_OUTPUT=0
+      - AUTOMATED_CONVERSION_OUTPUT_SUBDIR=SAME_AS_SRC
+      - AUTOMATED_CONVERSION_KEEP_SOURCE=0
+      - DARK_MODE=1
+      - DISPLAY=:0
+      - DISPLAY_WIDTH=1280
+      - DISPLAY_HEIGHT=768
+      - UMASK=000
+      - USER_ID=${USER_ID}
+      - GROUP_ID=${GROUP_ID}
+    network_mode: host
+    ports:
+      - 5800:5800
+      - 5900:5900
+    volumes:
+      - ${OUTPUT_DIR:-./output}/watch:/watch:rw
+      - ${OUTPUT_DIR:-./output}/encode:/output:rw
+      - ${OUTPUT_DIR:-./output}/handbrake:/config:rw
+      - ${OUTPUT_DIR:-./output}/handbrake:/storage:ro
