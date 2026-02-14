@@ -1,19 +1,19 @@
 import React, {useEffect, useState} from "react";
-import graphql from "babel-plugin-relay/macro";
-import type { TivoSelectorQuery as TivoSelectorQueryType } from "./__generated__/TivoSelectorQuery.graphql";
-import { useLazyLoadQuery } from "react-relay";
 import StereoButton from "./StereoButton";
-import { Box } from "@mui/system";
+import {
+  useQuery,
+  gql
+ } from "@apollo/client";
 
-const TivoSelectorQuery = graphql`
-  query TivoSelectorQuery {
-    tivos {
-      name
-    }
-  }
-`;
+const GET_TIVO_NAMES = gql`
+ query getTivoNames {
+   tivos {
+     name
+   }
+}`;
 
-function TivoSelector(props: any) {
+function TivoSelectorComponent(props: any) {
+  const { names } = props
   const [options, setOptions] = useState<string[]>([]);
 
   const data = useLazyLoadQuery
@@ -33,5 +33,20 @@ function TivoSelector(props: any) {
     </React.Fragment>
   );
 }
+
+const TivoSelector = (props: any) => {
+  const { loading, error, data } = useQuery(GET_TIVO_NAMES);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  if (error) {
+    console.error(error);
+    return <div>Error!</div>;
+  }
+
+  const names = data.tivos.map((tivo: { name: string }) => tivo.name);
+  return <TivoSelectorComponent names={names} {...props} />;
+};
 
 export default TivoSelector;

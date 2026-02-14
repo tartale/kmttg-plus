@@ -1,5 +1,3 @@
-import { RelayEnvironmentProvider } from "react-relay";
-import { RelayEnvironment } from "./RelayEnvironment";
 import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";

@@ -27,11 +27,11 @@ func Listen(ctx context.Context) error {
 	for {
 		select {
 		case entry := <-entries:
-			tivo, err := newTivoFromServiceEntry(entry)
+			tvo, err := newTivoFromServiceEntry(entry)
 			if err != nil {
 				continue
 			}
-			tivos.Add(tivo)
+			tivos.Load(tvo)
 		case <-ctx.Done():
 			return nil
 		}
@@ -39,7 +39,6 @@ func Listen(ctx context.Context) error {
 }
 
 func newTivoFromServiceEntry(entry *zeroconf.ServiceEntry) (*model.Tivo, error) {
-
 	logz.Logger.Info("detected device", zap.Strings("entryText", entry.Text))
 	properties := make(map[string]string)
 	for _, property := range entry.Text {
@@ -64,7 +63,7 @@ func newTivoFromServiceEntry(entry *zeroconf.ServiceEntry) (*model.Tivo, error) 
 	if platform, ok = properties["platform"]; !ok {
 		return nil, errors.New("device does not have a platform")
 	}
-	if strings.Contains(platform, "Silver") {
+	if !strings.Contains(platform, "Series") {
 		return nil, errors.New("device is not a Tivo DVR")
 	}
 	if len(entry.AddrIPv4) == 0 {

@@ -14,6 +14,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/tartale/go/pkg/filter"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
@@ -37,12 +38,12 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
-	Tivo() TivoResolver
+	FilterOperator() FilterOperatorResolver
 }
 
-type DirectiveRoot struct {
-}
+type DirectiveRoot struct{}
 
 type ComplexityRoot struct {
 	Episode struct {
@@ -50,25 +51,65 @@ type ComplexityRoot struct {
 		EpisodeDescription func(childComplexity int) int
 		EpisodeNumber      func(childComplexity int) int
 		EpisodeTitle       func(childComplexity int) int
+		ID                 func(childComplexity int) int
 		Kind               func(childComplexity int) int
 		OriginalAirDate    func(childComplexity int) int
 		RecordedOn         func(childComplexity int) int
-		RecordingID        func(childComplexity int) int
 		SeasonNumber       func(childComplexity int) int
+		SeriesID           func(childComplexity int) int
 		Title              func(childComplexity int) int
+	}
+
+	JobStatus struct {
+		Action   func(childComplexity int) int
+		JobID    func(childComplexity int) int
+		Progress func(childComplexity int) int
+		ShowID   func(childComplexity int) int
+		State    func(childComplexity int) int
+		Subtasks func(childComplexity int) int
+	}
+
+	JobSubtask struct {
+		Action func(childComplexity int) int
+		ShowID func(childComplexity int) int
+		Status func(childComplexity int) int
+	}
+
+	JobSubtaskStatus struct {
+		Action   func(childComplexity int) int
+		Error    func(childComplexity int) int
+		Progress func(childComplexity int) int
+		ShowID   func(childComplexity int) int
+		State    func(childComplexity int) int
 	}
 
 	Movie struct {
 		Description func(childComplexity int) int
+		ID          func(childComplexity int) int
+		ImageURL    func(childComplexity int, width int, height int) int
 		Kind        func(childComplexity int) int
 		MovieYear   func(childComplexity int) int
 		RecordedOn  func(childComplexity int) int
-		RecordingID func(childComplexity int) int
 		Title       func(childComplexity int) int
 	}
 
+	Mutation struct {
+		StartJob func(childComplexity int, job model.Job) int
+	}
+
 	Query struct {
-		Tivos func(childComplexity int) int
+		Jobs  func(childComplexity int, filters []*model.JobFilter) int
+		Tivos func(childComplexity int, filters []*model.TivoFilter) int
+	}
+
+	Series struct {
+		Description func(childComplexity int) int
+		Episodes    func(childComplexity int, filter []*model.EpisodeFilter, offset *int, limit *int) int
+		ID          func(childComplexity int) int
+		ImageURL    func(childComplexity int, width int, height int) int
+		Kind        func(childComplexity int) int
+		RecordedOn  func(childComplexity int) int
+		Title       func(childComplexity int) int
 	}
 
 	Series struct {
@@ -81,15 +122,29 @@ type ComplexityRoot struct {
 	}
 
 	Tivo struct {
-		Address    func(childComplexity int) int
-		Name       func(childComplexity int) int
-		Recordings func(childComplexity int, limit *int, offset *int) int
-		Tsn        func(childComplexity int) int
+		Address func(childComplexity int) int
+		Name    func(childComplexity int) int
+		Shows   func(childComplexity int, filters []*model.ShowFilter, offset *int, limit *int) int
+		Tsn     func(childComplexity int) int
 	}
 }
 
+type MutationResolver interface {
+	StartJob(ctx context.Context, job model.Job) (*model.JobStatus, error)
+}
 type QueryResolver interface {
-	Tivos(ctx context.Context) ([]*model.Tivo, error)
+	Tivos(ctx context.Context, filters []*model.TivoFilter) ([]*model.Tivo, error)
+	Jobs(ctx context.Context, filters []*model.JobFilter) ([]*model.JobStatus, error)
+}
+
+type FilterOperatorResolver interface {
+	Eq(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Ne(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Lt(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Gt(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Lte(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Gte(ctx context.Context, obj *filter.Operator, data interface{}) error
+	Matches(ctx context.Context, obj *filter.Operator, data interface{}) error
 }
 type TivoResolver interface {
 	Recordings(ctx context.Context, obj *model.Tivo, limit *int, offset *int) ([]model.Show, error)
@@ -138,6 +193,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Episode.EpisodeTitle(childComplexity), true
 
+	case "Episode.id":
+		if e.complexity.Episode.ID == nil {
+			break
+		}
+
+		return e.complexity.Episode.ID(childComplexity), true
+
 	case "Episode.kind":
 		if e.complexity.Episode.Kind == nil {
 			break
@@ -159,19 +221,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Episode.RecordedOn(childComplexity), true
 
-	case "Episode.recordingID":
-		if e.complexity.Episode.RecordingID == nil {
-			break
-		}
-
-		return e.complexity.Episode.RecordingID(childComplexity), true
-
 	case "Episode.seasonNumber":
 		if e.complexity.Episode.SeasonNumber == nil {
 			break
 		}
 
 		return e.complexity.Episode.SeasonNumber(childComplexity), true
+
+	case "Episode.seriesId":
+		if e.complexity.Episode.SeriesID == nil {
+			break
+		}
+
+		return e.complexity.Episode.SeriesID(childComplexity), true
 
 	case "Episode.title":
 		if e.complexity.Episode.Title == nil {
@@ -180,12 +242,129 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Episode.Title(childComplexity), true
 
+	case "JobStatus.action":
+		if e.complexity.JobStatus.Action == nil {
+			break
+		}
+
+		return e.complexity.JobStatus.Action(childComplexity), true
+
+	case "JobStatus.jobID":
+		if e.complexity.JobStatus.JobID == nil {
+			break
+		}
+
+		return e.complexity.JobStatus.JobID(childComplexity), true
+
+	case "JobStatus.progress":
+		if e.complexity.JobStatus.Progress == nil {
+			break
+		}
+
+		return e.complexity.JobStatus.Progress(childComplexity), true
+
+	case "JobStatus.showID":
+		if e.complexity.JobStatus.ShowID == nil {
+			break
+		}
+
+		return e.complexity.JobStatus.ShowID(childComplexity), true
+
+	case "JobStatus.state":
+		if e.complexity.JobStatus.State == nil {
+			break
+		}
+
+		return e.complexity.JobStatus.State(childComplexity), true
+
+	case "JobStatus.subtasks":
+		if e.complexity.JobStatus.Subtasks == nil {
+			break
+		}
+
+		return e.complexity.JobStatus.Subtasks(childComplexity), true
+
+	case "JobSubtask.action":
+		if e.complexity.JobSubtask.Action == nil {
+			break
+		}
+
+		return e.complexity.JobSubtask.Action(childComplexity), true
+
+	case "JobSubtask.showID":
+		if e.complexity.JobSubtask.ShowID == nil {
+			break
+		}
+
+		return e.complexity.JobSubtask.ShowID(childComplexity), true
+
+	case "JobSubtask.status":
+		if e.complexity.JobSubtask.Status == nil {
+			break
+		}
+
+		return e.complexity.JobSubtask.Status(childComplexity), true
+
+	case "JobSubtaskStatus.action":
+		if e.complexity.JobSubtaskStatus.Action == nil {
+			break
+		}
+
+		return e.complexity.JobSubtaskStatus.Action(childComplexity), true
+
+	case "JobSubtaskStatus.error":
+		if e.complexity.JobSubtaskStatus.Error == nil {
+			break
+		}
+
+		return e.complexity.JobSubtaskStatus.Error(childComplexity), true
+
+	case "JobSubtaskStatus.progress":
+		if e.complexity.JobSubtaskStatus.Progress == nil {
+			break
+		}
+
+		return e.complexity.JobSubtaskStatus.Progress(childComplexity), true
+
+	case "JobSubtaskStatus.showID":
+		if e.complexity.JobSubtaskStatus.ShowID == nil {
+			break
+		}
+
+		return e.complexity.JobSubtaskStatus.ShowID(childComplexity), true
+
+	case "JobSubtaskStatus.state":
+		if e.complexity.JobSubtaskStatus.State == nil {
+			break
+		}
+
+		return e.complexity.JobSubtaskStatus.State(childComplexity), true
+
 	case "Movie.description":
 		if e.complexity.Movie.Description == nil {
 			break
 		}
 
 		return e.complexity.Movie.Description(childComplexity), true
+
+	case "Movie.id":
+		if e.complexity.Movie.ID == nil {
+			break
+		}
+
+		return e.complexity.Movie.ID(childComplexity), true
+
+	case "Movie.imageURL":
+		if e.complexity.Movie.ImageURL == nil {
+			break
+		}
+
+		args, err := ec.field_Movie_imageURL_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Movie.ImageURL(childComplexity, args["width"].(int), args["height"].(int)), true
 
 	case "Movie.kind":
 		if e.complexity.Movie.Kind == nil {
@@ -208,13 +387,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Movie.RecordedOn(childComplexity), true
 
-	case "Movie.recordingID":
-		if e.complexity.Movie.RecordingID == nil {
-			break
-		}
-
-		return e.complexity.Movie.RecordingID(childComplexity), true
-
 	case "Movie.title":
 		if e.complexity.Movie.Title == nil {
 			break
@@ -222,12 +394,100 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Movie.Title(childComplexity), true
 
+	case "Mutation.startJob":
+		if e.complexity.Mutation.StartJob == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_startJob_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.StartJob(childComplexity, args["job"].(model.Job)), true
+
+	case "Query.jobs":
+		if e.complexity.Query.Jobs == nil {
+			break
+		}
+
+		args, err := ec.field_Query_jobs_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Jobs(childComplexity, args["filters"].([]*model.JobFilter)), true
+
 	case "Query.tivos":
 		if e.complexity.Query.Tivos == nil {
 			break
 		}
 
-		return e.complexity.Query.Tivos(childComplexity), true
+		args, err := ec.field_Query_tivos_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Tivos(childComplexity, args["filters"].([]*model.TivoFilter)), true
+
+	case "Series.description":
+		if e.complexity.Series.Description == nil {
+			break
+		}
+
+		return e.complexity.Series.Description(childComplexity), true
+
+	case "Series.episodes":
+		if e.complexity.Series.Episodes == nil {
+			break
+		}
+
+		args, err := ec.field_Series_episodes_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Series.Episodes(childComplexity, args["filter"].([]*model.EpisodeFilter), args["offset"].(*int), args["limit"].(*int)), true
+
+	case "Series.id":
+		if e.complexity.Series.ID == nil {
+			break
+		}
+
+		return e.complexity.Series.ID(childComplexity), true
+
+	case "Series.imageURL":
+		if e.complexity.Series.ImageURL == nil {
+			break
+		}
+
+		args, err := ec.field_Series_imageURL_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Series.ImageURL(childComplexity, args["width"].(int), args["height"].(int)), true
+
+	case "Series.kind":
+		if e.complexity.Series.Kind == nil {
+			break
+		}
+
+		return e.complexity.Series.Kind(childComplexity), true
+
+	case "Series.recordedOn":
+		if e.complexity.Series.RecordedOn == nil {
+			break
+		}
+
+		return e.complexity.Series.RecordedOn(childComplexity), true
+
+	case "Series.title":
+		if e.complexity.Series.Title == nil {
+			break
+		}
+
+		return e.complexity.Series.Title(childComplexity), true
 
 	case "Series.description":
 		if e.complexity.Series.Description == nil {
@@ -285,17 +545,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tivo.Name(childComplexity), true
 
-	case "Tivo.recordings":
-		if e.complexity.Tivo.Recordings == nil {
+	case "Tivo.shows":
+		if e.complexity.Tivo.Shows == nil {
 			break
 		}
 
-		args, err := ec.field_Tivo_recordings_args(context.TODO(), rawArgs)
+		args, err := ec.field_Tivo_shows_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Tivo.Recordings(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
+		return e.complexity.Tivo.Shows(childComplexity, args["filters"].([]*model.ShowFilter), args["offset"].(*int), args["limit"].(*int)), true
 
 	case "Tivo.tsn":
 		if e.complexity.Tivo.Tsn == nil {
@@ -311,7 +571,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputEpisodeFilter,
+		ec.unmarshalInputFilterOperator,
+		ec.unmarshalInputJob,
+		ec.unmarshalInputJobFilter,
+		ec.unmarshalInputMovieFilter,
+		ec.unmarshalInputSeriesFilter,
+		ec.unmarshalInputShowFilter,
+		ec.unmarshalInputSortBy,
+		ec.unmarshalInputSorter,
+		ec.unmarshalInputTivoFilter,
+	)
 	first := true
 
 	switch rc.Operation.Operation {
@@ -335,6 +606,24 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 					return nil
 				}
 			}
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+			response.Data = buf.Bytes()
+			if atomic.LoadInt32(&ec.deferred) > 0 {
+				hasNext := atomic.LoadInt32(&ec.pendingDeferred) > 0
+				response.HasNext = &hasNext
+			}
+
+			return &response
+		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
+			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
 			response.Data = buf.Bytes()
@@ -393,79 +682,217 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../../api/recording.graphql", Input: `scalar Time
+	{Name: "../../api/common.graphql", Input: `scalar Any
+scalar Date
+scalar Time
 
-enum ShowKind {
+directive @goModel(
+	model: String
+	models: [String!]
+) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+
+directive @goTag(
+  key: String!
+  value: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
+directive @goField(
+  forceResolver: Boolean
+  name: String
+) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+
+input FilterOperator @goModel(model: "github.com/tartale/go/pkg/filter.Operator") {
+  eq: Any
+  ne: Any
+  lt: Any
+  gt: Any
+  lte: Any
+  gte: Any
+  matches: Any
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+input SortBy {
+  field: Any!
+  direction: SortDirection!
+}
+
+input Sorter {
+  fields: [SortBy!]!
+}
+`, BuiltIn: false},
+	{Name: "../../api/jobs.graphql", Input: `
+enum JobAction {
+  DOWNLOAD
+  COMSKIP
+  ENCODE
+  PLAY
+}
+
+input Job {
+  id: ID
+  action: JobAction!
+  showID: String!
+}
+
+type JobSubtask {
+  action: JobAction!
+  showID: String!
+  status: JobSubtaskStatus!
+}
+
+enum JobState {
+  QUEUED
+  RUNNING
+  COMPLETE
+  FAILED
+}
+
+type JobSubtaskStatus {
+  action: JobAction!
+  showID: String!
+  state: JobState!
+  progress: Int!
+  error: String
+}
+
+type JobStatus {
+  jobID: ID!
+  action: JobAction!
+  showID: String!
+  state: JobState!
+  progress: Int!
+  subtasks: [JobSubtaskStatus!]!
+}
+
+input JobFilter {
+  jobID: FilterOperator
+  action: FilterOperator
+  showID: FilterOperator
+  state: FilterOperator
+}
+`, BuiltIn: false},
+	{Name: "../../api/schema.graphql", Input: `type Query {
+  tivos(filters: [TivoFilter]): [Tivo!]!
+  jobs(filters: [JobFilter]): [JobStatus!]!
+}
+
+type Mutation {
+  startJob(job: Job!): JobStatus!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+`, BuiltIn: false},
+	{Name: "../../api/shows.graphql", Input: `enum ShowKind {
   MOVIE
   SERIES
   EPISODE
 }
 
 interface Show {
+  id: ID!
   kind: ShowKind!
-  recordingID: String!
   title: String!
   recordedOn: Time!
   description: String!
 }
 
+# Movies are any show that is a single program, which includes both cinema and one-off specials.
 type Movie implements Show {
+  id: ID!
   kind: ShowKind!
-  recordingID: String!
   title: String!
   recordedOn: Time!
   description: String!
+  imageURL(width: Int!, height: Int!): String!
 
-  movieYear: String
+  movieYear: Int!
 }
 
+# A series is any show with multiple seasons/episodes.
 type Series implements Show {
+  id: ID!
   kind: ShowKind!
-  recordingID: String!
   title: String!
   recordedOn: Time!
   description: String!
+  imageURL(width: Int!, height: Int!): String!
 
-  episodes: [Episode!]!
+  episodes(filter: [EpisodeFilter], offset: Int = 0, limit: Int = 25): [Episode!]!
 }
 
 type Episode implements Show {
+  id: ID!
   kind: ShowKind!
-  recordingID: String!
   title: String!
   recordedOn: Time!
   description: String!
 
-  originalAirDate: Time!
+  seriesId: ID!
+  originalAirDate: Date!
   seasonNumber: Int!
   episodeNumber: Int!
   episodeTitle: String!
   episodeDescription: String!
 }
+
+input ShowFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  and: [ShowFilter]
+  or: [ShowFilter]
+}
+
+input MovieFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  movieYear: FilterOperator
+}
+
+input SeriesFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+}
+
+input EpisodeFilter {
+  kind: FilterOperator
+  title: FilterOperator
+  recordedOn: FilterOperator
+  description: FilterOperator
+  originalAirDate: FilterOperator
+  seasonNumber: FilterOperator
+  episodeNumber: FilterOperator
+  episodeTitle: FilterOperator
+  episodeDescription: FilterOperator
+}
 `, BuiltIn: false},
-	{Name: "../../api/schema.graphql", Input: `directive @goTag(
-  key: String!
-  value: String
-) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
-
-directive @goField(
-    forceResolver: Boolean
-    name: String
-) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
-
+	{Name: "../../api/tivos.graphql", Input: `
 type Tivo {
+  # The name assigned to the Tivo. This value is obtained via the ZeroConfig beacon.
   name: String!
+  # The IP address of the Tivo. This value is obtained via the ZeroConfig beacon.
   address: String!
+  # The serial number of the Tivo. This value is obtained via the ZeroConfig beacon.
   tsn: String!
-  recordings(limit: Int = 25, offset: Int = 0): [Show] @goField(forceResolver: true)
+  # Get a list of series and movies.
+  shows(filters: [ShowFilter], offset: Int = 0, limit: Int = 25): [Show]
 }
 
-type Query {
-  tivos: [Tivo!]!
-}
-
-schema {
-  query: Query
+input TivoFilter {
+  name: FilterOperator
 }
 `, BuiltIn: false},
 }
@@ -474,6 +901,45 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Movie_imageURL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["width"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("width"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["width"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["height"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["height"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_startJob_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.Job
+	if tmp, ok := rawArgs["job"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("job"))
+		arg0, err = ec.unmarshalNJob2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJob(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["job"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -490,18 +956,48 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Tivo_recordings_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_jobs_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *int
-	if tmp, ok := rawArgs["limit"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+	var arg0 []*model.JobFilter
+	if tmp, ok := rawArgs["filters"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filters"))
+		arg0, err = ec.unmarshalOJobFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobFilter(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["limit"] = arg0
+	args["filters"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_tivos_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []*model.TivoFilter
+	if tmp, ok := rawArgs["filters"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filters"))
+		arg0, err = ec.unmarshalOTivoFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivoFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filters"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Series_episodes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []*model.EpisodeFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg0, err = ec.unmarshalOEpisodeFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐEpisodeFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg0
 	var arg1 *int
 	if tmp, ok := rawArgs["offset"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
@@ -511,6 +1007,72 @@ func (ec *executionContext) field_Tivo_recordings_args(ctx context.Context, rawA
 		}
 	}
 	args["offset"] = arg1
+	var arg2 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Series_imageURL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["width"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("width"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["width"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["height"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("height"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["height"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Tivo_shows_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []*model.ShowFilter
+	if tmp, ok := rawArgs["filters"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filters"))
+		arg0, err = ec.unmarshalOShowFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filters"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["offset"] = arg1
+	var arg2 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg2
 	return args, nil
 }
 
@@ -552,6 +1114,50 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _Episode_id(ctx context.Context, field graphql.CollectedField, obj *model.Episode) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Episode_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Episode_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Episode",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Episode_kind(ctx context.Context, field graphql.CollectedField, obj *model.Episode) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Episode_kind(ctx, field)
 	if err != nil {
@@ -591,50 +1197,6 @@ func (ec *executionContext) fieldContext_Episode_kind(ctx context.Context, field
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ShowKind does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Episode_recordingID(ctx context.Context, field graphql.CollectedField, obj *model.Episode) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Episode_recordingID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.RecordingID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Episode_recordingID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Episode",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -772,6 +1334,50 @@ func (ec *executionContext) fieldContext_Episode_description(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Episode_seriesId(ctx context.Context, field graphql.CollectedField, obj *model.Episode) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Episode_seriesId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SeriesID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Episode_seriesId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Episode",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Episode_originalAirDate(ctx context.Context, field graphql.CollectedField, obj *model.Episode) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Episode_originalAirDate(ctx, field)
 	if err != nil {
@@ -798,9 +1404,9 @@ func (ec *executionContext) _Episode_originalAirDate(ctx context.Context, field 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(time.Time)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNDate2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Episode_originalAirDate(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -810,7 +1416,7 @@ func (ec *executionContext) fieldContext_Episode_originalAirDate(ctx context.Con
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
+			return nil, errors.New("field of type Date does not have child fields")
 		},
 	}
 	return fc, nil
@@ -992,6 +1598,687 @@ func (ec *executionContext) fieldContext_Episode_episodeDescription(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _JobStatus_jobID(ctx context.Context, field graphql.CollectedField, obj *model.JobStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobStatus_jobID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.JobID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobStatus_jobID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobStatus_action(ctx context.Context, field graphql.CollectedField, obj *model.JobStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobStatus_action(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Action, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.JobAction)
+	fc.Result = res
+	return ec.marshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobStatus_action(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JobAction does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobStatus_showID(ctx context.Context, field graphql.CollectedField, obj *model.JobStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobStatus_showID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShowID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobStatus_showID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobStatus_state(ctx context.Context, field graphql.CollectedField, obj *model.JobStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobStatus_state(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.State, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.JobState)
+	fc.Result = res
+	return ec.marshalNJobState2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobState(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobStatus_state(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JobState does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobStatus_progress(ctx context.Context, field graphql.CollectedField, obj *model.JobStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobStatus_progress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Progress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobStatus_progress(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobStatus_subtasks(ctx context.Context, field graphql.CollectedField, obj *model.JobStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobStatus_subtasks(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subtasks, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.JobSubtaskStatus)
+	fc.Result = res
+	return ec.marshalNJobSubtaskStatus2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobSubtaskStatusᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobStatus_subtasks(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "action":
+				return ec.fieldContext_JobSubtaskStatus_action(ctx, field)
+			case "showID":
+				return ec.fieldContext_JobSubtaskStatus_showID(ctx, field)
+			case "state":
+				return ec.fieldContext_JobSubtaskStatus_state(ctx, field)
+			case "progress":
+				return ec.fieldContext_JobSubtaskStatus_progress(ctx, field)
+			case "error":
+				return ec.fieldContext_JobSubtaskStatus_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type JobSubtaskStatus", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtask_action(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtask) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtask_action(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Action, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.JobAction)
+	fc.Result = res
+	return ec.marshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtask_action(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtask",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JobAction does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtask_showID(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtask) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtask_showID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShowID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtask_showID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtask",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtask_status(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtask) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtask_status(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.JobSubtaskStatus)
+	fc.Result = res
+	return ec.marshalNJobSubtaskStatus2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobSubtaskStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtask_status(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtask",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "action":
+				return ec.fieldContext_JobSubtaskStatus_action(ctx, field)
+			case "showID":
+				return ec.fieldContext_JobSubtaskStatus_showID(ctx, field)
+			case "state":
+				return ec.fieldContext_JobSubtaskStatus_state(ctx, field)
+			case "progress":
+				return ec.fieldContext_JobSubtaskStatus_progress(ctx, field)
+			case "error":
+				return ec.fieldContext_JobSubtaskStatus_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type JobSubtaskStatus", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtaskStatus_action(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtaskStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtaskStatus_action(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Action, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.JobAction)
+	fc.Result = res
+	return ec.marshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtaskStatus_action(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtaskStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JobAction does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtaskStatus_showID(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtaskStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtaskStatus_showID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShowID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtaskStatus_showID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtaskStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtaskStatus_state(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtaskStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtaskStatus_state(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.State, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.JobState)
+	fc.Result = res
+	return ec.marshalNJobState2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobState(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtaskStatus_state(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtaskStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JobState does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtaskStatus_progress(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtaskStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtaskStatus_progress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Progress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtaskStatus_progress(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtaskStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _JobSubtaskStatus_error(ctx context.Context, field graphql.CollectedField, obj *model.JobSubtaskStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_JobSubtaskStatus_error(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Error, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_JobSubtaskStatus_error(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "JobSubtaskStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Movie_id(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Movie_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Movie_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Movie",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Movie_kind(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Movie_kind(ctx, field)
 	if err != nil {
@@ -1031,50 +2318,6 @@ func (ec *executionContext) fieldContext_Movie_kind(ctx context.Context, field g
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ShowKind does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Movie_recordingID(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Movie_recordingID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.RecordingID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Movie_recordingID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Movie",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1212,6 +2455,61 @@ func (ec *executionContext) fieldContext_Movie_description(ctx context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Movie_imageURL(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Movie_imageURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImageURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Movie_imageURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Movie",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Movie_imageURL_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Movie_movieYear(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Movie_movieYear(ctx, field)
 	if err != nil {
@@ -1233,11 +2531,14 @@ func (ec *executionContext) _Movie_movieYear(ctx context.Context, field graphql.
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Movie_movieYear(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1247,8 +2548,77 @@ func (ec *executionContext) fieldContext_Movie_movieYear(ctx context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Int does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_startJob(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_startJob(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().StartJob(rctx, fc.Args["job"].(model.Job))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.JobStatus)
+	fc.Result = res
+	return ec.marshalNJobStatus2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_startJob(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "jobID":
+				return ec.fieldContext_JobStatus_jobID(ctx, field)
+			case "action":
+				return ec.fieldContext_JobStatus_action(ctx, field)
+			case "showID":
+				return ec.fieldContext_JobStatus_showID(ctx, field)
+			case "state":
+				return ec.fieldContext_JobStatus_state(ctx, field)
+			case "progress":
+				return ec.fieldContext_JobStatus_progress(ctx, field)
+			case "subtasks":
+				return ec.fieldContext_JobStatus_subtasks(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type JobStatus", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_startJob_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1267,7 +2637,7 @@ func (ec *executionContext) _Query_tivos(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Tivos(rctx)
+		return ec.resolvers.Query().Tivos(rctx, fc.Args["filters"].([]*model.TivoFilter))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1298,11 +2668,91 @@ func (ec *executionContext) fieldContext_Query_tivos(ctx context.Context, field 
 				return ec.fieldContext_Tivo_address(ctx, field)
 			case "tsn":
 				return ec.fieldContext_Tivo_tsn(ctx, field)
-			case "recordings":
-				return ec.fieldContext_Tivo_recordings(ctx, field)
+			case "shows":
+				return ec.fieldContext_Tivo_shows(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Tivo", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_tivos_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_jobs(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_jobs(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Jobs(rctx, fc.Args["filters"].([]*model.JobFilter))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.JobStatus)
+	fc.Result = res
+	return ec.marshalNJobStatus2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobStatusᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_jobs(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "jobID":
+				return ec.fieldContext_JobStatus_jobID(ctx, field)
+			case "action":
+				return ec.fieldContext_JobStatus_action(ctx, field)
+			case "showID":
+				return ec.fieldContext_JobStatus_showID(ctx, field)
+			case "state":
+				return ec.fieldContext_JobStatus_state(ctx, field)
+			case "progress":
+				return ec.fieldContext_JobStatus_progress(ctx, field)
+			case "subtasks":
+				return ec.fieldContext_JobStatus_subtasks(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type JobStatus", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_jobs_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1436,6 +2886,50 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Series_id(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Series_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Series_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Series",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Series_kind(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Series_kind(ctx, field)
 	if err != nil {
@@ -1475,50 +2969,6 @@ func (ec *executionContext) fieldContext_Series_kind(ctx context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ShowKind does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Series_recordingID(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Series_recordingID(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.RecordingID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Series_recordingID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Series",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -1656,6 +3106,61 @@ func (ec *executionContext) fieldContext_Series_description(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Series_imageURL(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Series_imageURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImageURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Series_imageURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Series",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Series_imageURL_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Series_episodes(ctx context.Context, field graphql.CollectedField, obj *model.Series) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Series_episodes(ctx, field)
 	if err != nil {
@@ -1695,16 +3200,18 @@ func (ec *executionContext) fieldContext_Series_episodes(ctx context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Episode_id(ctx, field)
 			case "kind":
 				return ec.fieldContext_Episode_kind(ctx, field)
-			case "recordingID":
-				return ec.fieldContext_Episode_recordingID(ctx, field)
 			case "title":
 				return ec.fieldContext_Episode_title(ctx, field)
 			case "recordedOn":
 				return ec.fieldContext_Episode_recordedOn(ctx, field)
 			case "description":
 				return ec.fieldContext_Episode_description(ctx, field)
+			case "seriesId":
+				return ec.fieldContext_Episode_seriesId(ctx, field)
 			case "originalAirDate":
 				return ec.fieldContext_Episode_originalAirDate(ctx, field)
 			case "seasonNumber":
@@ -1718,6 +3225,17 @@ func (ec *executionContext) fieldContext_Series_episodes(ctx context.Context, fi
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Episode", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Series_episodes_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1854,8 +3372,8 @@ func (ec *executionContext) fieldContext_Tivo_tsn(ctx context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _Tivo_recordings(ctx context.Context, field graphql.CollectedField, obj *model.Tivo) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Tivo_recordings(ctx, field)
+func (ec *executionContext) _Tivo_shows(ctx context.Context, field graphql.CollectedField, obj *model.Tivo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Tivo_shows(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1868,7 +3386,7 @@ func (ec *executionContext) _Tivo_recordings(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Tivo().Recordings(rctx, obj, fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		return obj.Shows, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1882,12 +3400,12 @@ func (ec *executionContext) _Tivo_recordings(ctx context.Context, field graphql.
 	return ec.marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Tivo_recordings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Tivo_shows(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Tivo",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("FieldContext.Child cannot be called on type INTERFACE")
 		},
@@ -1899,7 +3417,7 @@ func (ec *executionContext) fieldContext_Tivo_recordings(ctx context.Context, fi
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Tivo_recordings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Tivo_shows_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3679,6 +5197,598 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputEpisodeFilter(ctx context.Context, obj interface{}) (model.EpisodeFilter, error) {
+	var it model.EpisodeFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description", "originalAirDate", "seasonNumber", "episodeNumber", "episodeTitle", "episodeDescription"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "recordedOn":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RecordedOn = data
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "originalAirDate":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("originalAirDate"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OriginalAirDate = data
+		case "seasonNumber":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("seasonNumber"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SeasonNumber = data
+		case "episodeNumber":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeNumber"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EpisodeNumber = data
+		case "episodeTitle":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeTitle"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EpisodeTitle = data
+		case "episodeDescription":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("episodeDescription"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EpisodeDescription = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFilterOperator(ctx context.Context, obj interface{}) (filter.Operator, error) {
+	var it filter.Operator
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"eq", "ne", "lt", "gt", "lte", "gte", "matches"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "eq":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eq"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.FilterOperator().Eq(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "ne":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ne"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.FilterOperator().Ne(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "lt":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lt"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.FilterOperator().Lt(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "gt":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gt"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.FilterOperator().Gt(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "lte":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lte"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.FilterOperator().Lte(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "gte":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gte"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.FilterOperator().Gte(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "matches":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("matches"))
+			data, err := ec.unmarshalOAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.FilterOperator().Matches(ctx, &it, data); err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputJob(ctx context.Context, obj interface{}) (model.Job, error) {
+	var it model.Job
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "action", "showID"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "action":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("action"))
+			data, err := ec.unmarshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Action = data
+		case "showID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showID"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputJobFilter(ctx context.Context, obj interface{}) (model.JobFilter, error) {
+	var it model.JobFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"jobID", "action", "showID", "state"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "jobID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("jobID"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.JobID = data
+		case "action":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("action"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Action = data
+		case "showID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showID"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowID = data
+		case "state":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputMovieFilter(ctx context.Context, obj interface{}) (model.MovieFilter, error) {
+	var it model.MovieFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description", "movieYear"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "recordedOn":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RecordedOn = data
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "movieYear":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("movieYear"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MovieYear = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSeriesFilter(ctx context.Context, obj interface{}) (model.SeriesFilter, error) {
+	var it model.SeriesFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "recordedOn":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RecordedOn = data
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputShowFilter(ctx context.Context, obj interface{}) (model.ShowFilter, error) {
+	var it model.ShowFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"kind", "title", "recordedOn", "description", "and", "or"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "kind":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("kind"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Kind = data
+		case "title":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "recordedOn":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recordedOn"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RecordedOn = data
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "and":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("and"))
+			data, err := ec.unmarshalOShowFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.And = data
+		case "or":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("or"))
+			data, err := ec.unmarshalOShowFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Or = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSortBy(ctx context.Context, obj interface{}) (model.SortBy, error) {
+	var it model.SortBy
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"field", "direction"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "field":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			data, err := ec.unmarshalNAny2interface(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Field = data
+		case "direction":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			data, err := ec.unmarshalNSortDirection2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Direction = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSorter(ctx context.Context, obj interface{}) (model.Sorter, error) {
+	var it model.Sorter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"fields"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "fields":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fields"))
+			data, err := ec.unmarshalNSortBy2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortByᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Fields = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputTivoFilter(ctx context.Context, obj interface{}) (model.TivoFilter, error) {
+	var it model.TivoFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3728,13 +5838,13 @@ func (ec *executionContext) _Episode(ctx context.Context, sel ast.SelectionSet, 
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Episode")
-		case "kind":
-			out.Values[i] = ec._Episode_kind(ctx, field, obj)
+		case "id":
+			out.Values[i] = ec._Episode_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "recordingID":
-			out.Values[i] = ec._Episode_recordingID(ctx, field, obj)
+		case "kind":
+			out.Values[i] = ec._Episode_kind(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3750,6 +5860,11 @@ func (ec *executionContext) _Episode(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "description":
 			out.Values[i] = ec._Episode_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "seriesId":
+			out.Values[i] = ec._Episode_seriesId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3801,6 +5916,175 @@ func (ec *executionContext) _Episode(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
+var jobStatusImplementors = []string{"JobStatus"}
+
+func (ec *executionContext) _JobStatus(ctx context.Context, sel ast.SelectionSet, obj *model.JobStatus) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, jobStatusImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JobStatus")
+		case "jobID":
+			out.Values[i] = ec._JobStatus_jobID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "action":
+			out.Values[i] = ec._JobStatus_action(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "showID":
+			out.Values[i] = ec._JobStatus_showID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "state":
+			out.Values[i] = ec._JobStatus_state(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "progress":
+			out.Values[i] = ec._JobStatus_progress(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "subtasks":
+			out.Values[i] = ec._JobStatus_subtasks(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var jobSubtaskImplementors = []string{"JobSubtask"}
+
+func (ec *executionContext) _JobSubtask(ctx context.Context, sel ast.SelectionSet, obj *model.JobSubtask) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, jobSubtaskImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JobSubtask")
+		case "action":
+			out.Values[i] = ec._JobSubtask_action(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "showID":
+			out.Values[i] = ec._JobSubtask_showID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._JobSubtask_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var jobSubtaskStatusImplementors = []string{"JobSubtaskStatus"}
+
+func (ec *executionContext) _JobSubtaskStatus(ctx context.Context, sel ast.SelectionSet, obj *model.JobSubtaskStatus) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, jobSubtaskStatusImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("JobSubtaskStatus")
+		case "action":
+			out.Values[i] = ec._JobSubtaskStatus_action(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "showID":
+			out.Values[i] = ec._JobSubtaskStatus_showID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "state":
+			out.Values[i] = ec._JobSubtaskStatus_state(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "progress":
+			out.Values[i] = ec._JobSubtaskStatus_progress(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "error":
+			out.Values[i] = ec._JobSubtaskStatus_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var movieImplementors = []string{"Movie", "Show"}
 
 func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, obj *model.Movie) graphql.Marshaler {
@@ -3812,13 +6096,13 @@ func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Movie")
-		case "kind":
-			out.Values[i] = ec._Movie_kind(ctx, field, obj)
+		case "id":
+			out.Values[i] = ec._Movie_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "recordingID":
-			out.Values[i] = ec._Movie_recordingID(ctx, field, obj)
+		case "kind":
+			out.Values[i] = ec._Movie_kind(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3837,8 +6121,65 @@ func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "imageURL":
+			out.Values[i] = ec._Movie_imageURL(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "movieYear":
 			out.Values[i] = ec._Movie_movieYear(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var mutationImplementors = []string{"Mutation"}
+
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
+			Object: field.Name,
+			Field:  field,
+		})
+
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "startJob":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_startJob(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3903,6 +6244,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "jobs":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_jobs(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -3945,13 +6308,13 @@ func (ec *executionContext) _Series(ctx context.Context, sel ast.SelectionSet, o
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Series")
-		case "kind":
-			out.Values[i] = ec._Series_kind(ctx, field, obj)
+		case "id":
+			out.Values[i] = ec._Series_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "recordingID":
-			out.Values[i] = ec._Series_recordingID(ctx, field, obj)
+		case "kind":
+			out.Values[i] = ec._Series_kind(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3967,6 +6330,11 @@ func (ec *executionContext) _Series(ctx context.Context, sel ast.SelectionSet, o
 			}
 		case "description":
 			out.Values[i] = ec._Series_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "imageURL":
+			out.Values[i] = ec._Series_imageURL(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4012,51 +6380,20 @@ func (ec *executionContext) _Tivo(ctx context.Context, sel ast.SelectionSet, obj
 		case "name":
 			out.Values[i] = ec._Tivo_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "address":
 			out.Values[i] = ec._Tivo_address(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "tsn":
 			out.Values[i] = ec._Tivo_tsn(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
-		case "recordings":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Tivo_recordings(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "shows":
+			out.Values[i] = ec._Tivo_shows(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4406,6 +6743,27 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNAny2interface(ctx context.Context, v interface{}) (interface{}, error) {
+	res, err := graphql.UnmarshalAny(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAny2interface(ctx context.Context, sel ast.SelectionSet, v interface{}) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	res := graphql.MarshalAny(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4413,6 +6771,21 @@ func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interf
 
 func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.SelectionSet, v bool) graphql.Marshaler {
 	res := graphql.MarshalBoolean(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNDate2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalString(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDate2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -4475,6 +6848,21 @@ func (ec *executionContext) marshalNEpisode2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑ
 	return ec._Episode(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4490,6 +6878,143 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) unmarshalNJob2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJob(ctx context.Context, v interface{}) (model.Job, error) {
+	res, err := ec.unmarshalInputJob(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx context.Context, v interface{}) (model.JobAction, error) {
+	var res model.JobAction
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNJobAction2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobAction(ctx context.Context, sel ast.SelectionSet, v model.JobAction) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNJobState2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobState(ctx context.Context, v interface{}) (model.JobState, error) {
+	var res model.JobState
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNJobState2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobState(ctx context.Context, sel ast.SelectionSet, v model.JobState) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNJobStatus2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobStatus(ctx context.Context, sel ast.SelectionSet, v model.JobStatus) graphql.Marshaler {
+	return ec._JobStatus(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNJobStatus2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobStatusᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.JobStatus) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNJobStatus2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobStatus(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNJobStatus2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobStatus(ctx context.Context, sel ast.SelectionSet, v *model.JobStatus) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._JobStatus(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNJobSubtaskStatus2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobSubtaskStatusᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.JobSubtaskStatus) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNJobSubtaskStatus2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobSubtaskStatus(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNJobSubtaskStatus2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobSubtaskStatus(ctx context.Context, sel ast.SelectionSet, v *model.JobSubtaskStatus) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._JobSubtaskStatus(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNShowKind2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx context.Context, v interface{}) (model.ShowKind, error) {
 	var res model.ShowKind
 	err := res.UnmarshalGQL(v)
@@ -4497,6 +7022,38 @@ func (ec *executionContext) unmarshalNShowKind2githubᚗcomᚋtartaleᚋkmttgᚑ
 }
 
 func (ec *executionContext) marshalNShowKind2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowKind(ctx context.Context, sel ast.SelectionSet, v model.ShowKind) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNSortBy2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortByᚄ(ctx context.Context, v interface{}) ([]*model.SortBy, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.SortBy, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNSortBy2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortBy(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNSortBy2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortBy(ctx context.Context, v interface{}) (*model.SortBy, error) {
+	res, err := ec.unmarshalInputSortBy(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNSortDirection2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortDirection(ctx context.Context, v interface{}) (model.SortDirection, error) {
+	var res model.SortDirection
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSortDirection2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐSortDirection(ctx context.Context, sel ast.SelectionSet, v model.SortDirection) graphql.Marshaler {
 	return v
 }
 
@@ -4837,6 +7394,22 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) unmarshalOAny2interface(ctx context.Context, v interface{}) (interface{}, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalAny(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAny2interface(ctx context.Context, sel ast.SelectionSet, v interface{}) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalAny(v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4863,6 +7436,58 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) unmarshalOEpisodeFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐEpisodeFilter(ctx context.Context, v interface{}) ([]*model.EpisodeFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.EpisodeFilter, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOEpisodeFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐEpisodeFilter(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalOEpisodeFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐEpisodeFilter(ctx context.Context, v interface{}) (*model.EpisodeFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputEpisodeFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOFilterOperator2ᚖgithubᚗcomᚋtartaleᚋgoᚋpkgᚋfilterᚐOperator(ctx context.Context, v interface{}) (*filter.Operator, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFilterOperator(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalID(*v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -4877,6 +7502,34 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	}
 	res := graphql.MarshalInt(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOJobFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobFilter(ctx context.Context, v interface{}) ([]*model.JobFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.JobFilter, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOJobFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobFilter(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalOJobFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐJobFilter(ctx context.Context, v interface{}) (*model.JobFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputJobFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOShow2githubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShow(ctx context.Context, sel ast.SelectionSet, v model.Show) graphql.Marshaler {
@@ -4927,6 +7580,72 @@ func (ec *executionContext) marshalOShow2ᚕgithubᚗcomᚋtartaleᚋkmttgᚑplu
 	return ret
 }
 
+func (ec *executionContext) unmarshalOShowFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx context.Context, v interface{}) ([]*model.ShowFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.ShowFilter, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOShowFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalOShowFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐShowFilter(ctx context.Context, v interface{}) (*model.ShowFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputShowFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -4941,6 +7660,34 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	}
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOTivoFilter2ᚕᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivoFilter(ctx context.Context, v interface{}) ([]*model.TivoFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.TivoFilter, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOTivoFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivoFilter(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalOTivoFilter2ᚖgithubᚗcomᚋtartaleᚋkmttgᚑplusᚋgoᚋpkgᚋmodelᚐTivoFilter(ctx context.Context, v interface{}) (*model.TivoFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputTivoFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

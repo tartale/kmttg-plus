@@ -1,24 +1,13 @@
-directive @goTag(
-  key: String!
-  value: String
-) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
-
-directive @goField(
-    forceResolver: Boolean
-    name: String
-) on INPUT_FIELD_DEFINITION | FIELD_DEFINITION
-
-type Tivo {
-  name: String!
-  address: String!
-  tsn: String!
-  recordings(limit: Int = 25, offset: Int = 0): [Show] @goField(forceResolver: true)
+type Query {
+  tivos(filters: [TivoFilter]): [Tivo!]!
+  jobs(filters: [JobFilter]): [JobStatus!]!
 }
 
-type Query {
-  tivos: [Tivo!]!
+type Mutation {
+  startJob(job: Job!): JobStatus!
 }
 
 schema {
   query: Query
+  mutation: Mutation
 }

@@ -4,7 +4,9 @@ tools:
 	go generate -tags=tools ./...
 
 build:
+	./getCertificate.sh
 	go generate ./...
+	go work sync > /dev/null 2>&1 || true
 	go build ./...
 
 run:

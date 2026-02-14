@@ -7,24 +7,27 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"github.com/tartale/go/pkg/filter"
 )
 
 type Show interface {
 	IsShow()
+	GetID() string
 	GetKind() ShowKind
-	GetRecordingID() string
 	GetTitle() string
 	GetRecordedOn() time.Time
 	GetDescription() string
 }
 
 type Episode struct {
+	ID                 string    `json:"id"`
 	Kind               ShowKind  `json:"kind"`
-	RecordingID        string    `json:"recordingID"`
 	Title              string    `json:"title"`
 	RecordedOn         time.Time `json:"recordedOn"`
 	Description        string    `json:"description"`
-	OriginalAirDate    time.Time `json:"originalAirDate"`
+	SeriesID           string    `json:"seriesId"`
+	OriginalAirDate    string    `json:"originalAirDate"`
 	SeasonNumber       int       `json:"seasonNumber"`
 	EpisodeNumber      int       `json:"episodeNumber"`
 	EpisodeTitle       string    `json:"episodeTitle"`
@@ -32,49 +35,226 @@ type Episode struct {
 }
 
 func (Episode) IsShow()                       {}
+func (this Episode) GetID() string            { return this.ID }
 func (this Episode) GetKind() ShowKind        { return this.Kind }
-func (this Episode) GetRecordingID() string   { return this.RecordingID }
 func (this Episode) GetTitle() string         { return this.Title }
 func (this Episode) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Episode) GetDescription() string   { return this.Description }
 
+type EpisodeFilter struct {
+	Kind               *filter.Operator `json:"kind,omitempty"`
+	Title              *filter.Operator `json:"title,omitempty"`
+	RecordedOn         *filter.Operator `json:"recordedOn,omitempty"`
+	Description        *filter.Operator `json:"description,omitempty"`
+	OriginalAirDate    *filter.Operator `json:"originalAirDate,omitempty"`
+	SeasonNumber       *filter.Operator `json:"seasonNumber,omitempty"`
+	EpisodeNumber      *filter.Operator `json:"episodeNumber,omitempty"`
+	EpisodeTitle       *filter.Operator `json:"episodeTitle,omitempty"`
+	EpisodeDescription *filter.Operator `json:"episodeDescription,omitempty"`
+}
+
+type Job struct {
+	ID     *string   `json:"id,omitempty"`
+	Action JobAction `json:"action"`
+	ShowID string    `json:"showID"`
+}
+
+type JobFilter struct {
+	JobID  *filter.Operator `json:"jobID,omitempty"`
+	Action *filter.Operator `json:"action,omitempty"`
+	ShowID *filter.Operator `json:"showID,omitempty"`
+	State  *filter.Operator `json:"state,omitempty"`
+}
+
+type JobStatus struct {
+	JobID    string              `json:"jobID"`
+	Action   JobAction           `json:"action"`
+	ShowID   string              `json:"showID"`
+	State    JobState            `json:"state"`
+	Progress int                 `json:"progress"`
+	Subtasks []*JobSubtaskStatus `json:"subtasks"`
+}
+
+type JobSubtask struct {
+	Action JobAction         `json:"action"`
+	ShowID string            `json:"showID"`
+	Status *JobSubtaskStatus `json:"status"`
+}
+
+type JobSubtaskStatus struct {
+	Action   JobAction `json:"action"`
+	ShowID   string    `json:"showID"`
+	State    JobState  `json:"state"`
+	Progress int       `json:"progress"`
+	Error    *string   `json:"error,omitempty"`
+}
+
 type Movie struct {
+	ID          string    `json:"id"`
 	Kind        ShowKind  `json:"kind"`
-	RecordingID string    `json:"recordingID"`
 	Title       string    `json:"title"`
 	RecordedOn  time.Time `json:"recordedOn"`
 	Description string    `json:"description"`
-	MovieYear   *string   `json:"movieYear,omitempty"`
+	ImageURL    string    `json:"imageURL"`
+	MovieYear   int       `json:"movieYear"`
 }
 
 func (Movie) IsShow()                       {}
+func (this Movie) GetID() string            { return this.ID }
 func (this Movie) GetKind() ShowKind        { return this.Kind }
-func (this Movie) GetRecordingID() string   { return this.RecordingID }
 func (this Movie) GetTitle() string         { return this.Title }
 func (this Movie) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Movie) GetDescription() string   { return this.Description }
 
+type MovieFilter struct {
+	Kind        *filter.Operator `json:"kind,omitempty"`
+	Title       *filter.Operator `json:"title,omitempty"`
+	RecordedOn  *filter.Operator `json:"recordedOn,omitempty"`
+	Description *filter.Operator `json:"description,omitempty"`
+	MovieYear   *filter.Operator `json:"movieYear,omitempty"`
+}
+
 type Series struct {
+	ID          string     `json:"id"`
 	Kind        ShowKind   `json:"kind"`
-	RecordingID string     `json:"recordingID"`
 	Title       string     `json:"title"`
 	RecordedOn  time.Time  `json:"recordedOn"`
 	Description string     `json:"description"`
+	ImageURL    string     `json:"imageURL"`
 	Episodes    []*Episode `json:"episodes"`
 }
 
 func (Series) IsShow()                       {}
+func (this Series) GetID() string            { return this.ID }
 func (this Series) GetKind() ShowKind        { return this.Kind }
-func (this Series) GetRecordingID() string   { return this.RecordingID }
 func (this Series) GetTitle() string         { return this.Title }
 func (this Series) GetRecordedOn() time.Time { return this.RecordedOn }
 func (this Series) GetDescription() string   { return this.Description }
 
+type SeriesFilter struct {
+	Kind        *filter.Operator `json:"kind,omitempty"`
+	Title       *filter.Operator `json:"title,omitempty"`
+	RecordedOn  *filter.Operator `json:"recordedOn,omitempty"`
+	Description *filter.Operator `json:"description,omitempty"`
+}
+
+type ShowFilter struct {
+	Kind        *filter.Operator `json:"kind,omitempty"`
+	Title       *filter.Operator `json:"title,omitempty"`
+	RecordedOn  *filter.Operator `json:"recordedOn,omitempty"`
+	Description *filter.Operator `json:"description,omitempty"`
+	And         []*ShowFilter    `json:"and,omitempty"`
+	Or          []*ShowFilter    `json:"or,omitempty"`
+}
+
+type SortBy struct {
+	Field     interface{}   `json:"field"`
+	Direction SortDirection `json:"direction"`
+}
+
+type Sorter struct {
+	Fields []*SortBy `json:"fields"`
+}
+
 type Tivo struct {
-	Name       string `json:"name"`
-	Address    string `json:"address"`
-	Tsn        string `json:"tsn"`
-	Recordings []Show `json:"recordings,omitempty"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
+	Tsn     string `json:"tsn"`
+	Shows   []Show `json:"shows,omitempty"`
+}
+
+type TivoFilter struct {
+	Name *filter.Operator `json:"name,omitempty"`
+}
+
+type JobAction string
+
+const (
+	JobActionDownload JobAction = "DOWNLOAD"
+	JobActionComskip  JobAction = "COMSKIP"
+	JobActionEncode   JobAction = "ENCODE"
+	JobActionPlay     JobAction = "PLAY"
+)
+
+var AllJobAction = []JobAction{
+	JobActionDownload,
+	JobActionComskip,
+	JobActionEncode,
+	JobActionPlay,
+}
+
+func (e JobAction) IsValid() bool {
+	switch e {
+	case JobActionDownload, JobActionComskip, JobActionEncode, JobActionPlay:
+		return true
+	}
+	return false
+}
+
+func (e JobAction) String() string {
+	return string(e)
+}
+
+func (e *JobAction) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = JobAction(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid JobAction", str)
+	}
+	return nil
+}
+
+func (e JobAction) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type JobState string
+
+const (
+	JobStateQueued   JobState = "QUEUED"
+	JobStateRunning  JobState = "RUNNING"
+	JobStateComplete JobState = "COMPLETE"
+	JobStateFailed   JobState = "FAILED"
+)
+
+var AllJobState = []JobState{
+	JobStateQueued,
+	JobStateRunning,
+	JobStateComplete,
+	JobStateFailed,
+}
+
+func (e JobState) IsValid() bool {
+	switch e {
+	case JobStateQueued, JobStateRunning, JobStateComplete, JobStateFailed:
+		return true
+	}
+	return false
+}
+
+func (e JobState) String() string {
+	return string(e)
+}
+
+func (e *JobState) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = JobState(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid JobState", str)
+	}
+	return nil
+}
+
+func (e JobState) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
 type ShowKind string
@@ -117,5 +297,46 @@ func (e *ShowKind) UnmarshalGQL(v interface{}) error {
 }
 
 func (e ShowKind) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type SortDirection string
+
+const (
+	SortDirectionAsc  SortDirection = "ASC"
+	SortDirectionDesc SortDirection = "DESC"
+)
+
+var AllSortDirection = []SortDirection{
+	SortDirectionAsc,
+	SortDirectionDesc,
+}
+
+func (e SortDirection) IsValid() bool {
+	switch e {
+	case SortDirectionAsc, SortDirectionDesc:
+		return true
+	}
+	return false
+}
+
+func (e SortDirection) String() string {
+	return string(e)
+}
+
+func (e *SortDirection) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SortDirection(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SortDirection", str)
+	}
+	return nil
+}
+
+func (e SortDirection) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

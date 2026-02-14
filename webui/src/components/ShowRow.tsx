@@ -2,9 +2,8 @@ import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 import TableHead from "@mui/material/TableHead";
 import React from "react";
-import { getImageFileForShow, getTitleExtension, recordedOn } from "./showListingHelpers";
-import { Series } from "./ShowListing";
-import { ShowKind } from "../services/generated/graphql-types"
+import { getImageFileForShow, getTitleExtension } from "./showListingHelpers";
+import { ShowKind, Series } from "../services/generated/graphql-types"
 import IconButton from "@mui/material/IconButton";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
@@ -29,11 +28,11 @@ export function ShowHeader(props: any) {
 export function ShowRow(props: any) {
   const { show } = props;
   const [open, setOpen] = React.useState(false);
-  const indent = (show.kind === ShowKind.Episode)
+  const indent: boolean = (show.kind === ShowKind.Episode)
 
   return (
     <React.Fragment>
-      <TableRow key={show.recordingId} onClick={() => setOpen(!open)}>
+      <TableRow key={show.recordingID} onClick={() => setOpen(!open)}>
         <IconCell width={"5%"} show={show} open={open} indent={indent} />
         <TitleCell width={"20%"} show={show} />
         <DescriptionCell show={show} />
@@ -57,7 +56,7 @@ function EpisodeRows(props: any) {
     <React.Fragment>
       {(show as Series).episodes?.map((episode) => (
         <ShowRow
-          key={episode.recordingId}
+          key={episode.id}
           show={{ ...show, ...episode }} />
       ))}
     </React.Fragment>
@@ -65,15 +64,15 @@ function EpisodeRows(props: any) {
 }
 
 function IconCell(props: any) {
-  const { show, open, indent } = props;
+  const { show, open, indent, ...remainingProps } = props;
   const imageFile: string = getImageFileForShow(show, open);
 
   const style = indent
-    ? { paddingLeft: "2rem", width: "3rem", height: "3rem" }
-    : { width: "3rem", height: "3rem" };
+    ? { paddingLeft: "2rem", width: "3rem" }
+    : { width: "3rem" };
 
   return (
-    <TableCell {...props}>
+    <TableCell {...remainingProps}>
       <img src={imageFile} style={style} alt="" />
     </TableCell>
   );
@@ -92,9 +91,13 @@ function DescriptionCell(props: any) {
 
   switch (show.kind) {
     case ShowKind.Movie:
-    case ShowKind.Episode:
+    case ShowKind.Series:
       return (
         <TableCell {...props} style={{ whiteSpace: 'normal' }}>{show.description}</TableCell>
+      );
+    case ShowKind.Episode:
+      return (
+        <TableCell {...props} style={{ whiteSpace: 'normal', paddingLeft: "3rem", paddingRight: "10rem" }}>{show.episodeDescription}</TableCell>
       );
     default:
       return (<TableCell {...props} style={{ whiteSpace: 'normal' }} />);
@@ -103,10 +106,11 @@ function DescriptionCell(props: any) {
 
 function RecordedOnCell(props: any) {
   const { show } = props;
-  const recordingDate = recordedOn(show)?.toLocaleDateString("en-US", {
+  const recordedOn = new Date(show.recordedOn);
+  const recordingDate = recordedOn.toLocaleDateString("en-US", {
     dateStyle: "medium"
   });
-  const recordingTime = recordedOn(show)?.toLocaleTimeString("en-US", {
+  const recordingTime = recordedOn.toLocaleTimeString("en-US", {
     timeStyle: "short"
   });
 

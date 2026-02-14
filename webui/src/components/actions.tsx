@@ -1,5 +1,4 @@
-import { Episode, Movie, Series, Show } from "./ShowListing";
-import { ShowKind } from "../services/generated/graphql-types"
+import { Show, ShowKind, Episode, Movie, Series} from "../services/generated/graphql-types"
 
 
 export const startJob = () => {
