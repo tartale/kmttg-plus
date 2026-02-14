@@ -1,0 +1,30 @@
+[x] mRPC API
+[x] graphQL API
+[x] beacon
+[x] get tivos
+[x] get recordings
+[x] show metadata
+[x] paging 
+[] sorting
+  [] by name
+  [] by recording date
+[] filtering
+  [x] title/description
+  [] watched
+[] configuration
+[] jobs
+  [x] download
+  [x] decrypt
+  [] encode
+  [] play
+[] remove ads
+  [] using tivo skip info
+  [] using comskip info
+  [] remove in job
+  [] skip during playback
+[] terminal
+  [x] single tivo
+  [] multiple tivos
+[] file management
+[] cypress tests
+[] persistent cache
