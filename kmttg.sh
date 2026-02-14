@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-THIS_SCRIPT_DIR="$(cd $(dirname ${BASH_SOURCE}); pwd)"
+THIS_SCRIPT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}); pwd)"
 
 if [[ -f "${THIS_SCRIPT_DIR}/.bashrc" ]]; then
   source "${THIS_SCRIPT_DIR}/.bashrc"
@@ -63,8 +63,8 @@ fi
 
 function removeOverriddenEntries() {
 
-  inputPath="${1}"
-  outputPath="${2}"
+  local inputPath="${1}"
+  local outputPath="${2}"
 
   # https://stackoverflow.com/a/56977026/1258206
   #   Iterate through the file, only keep the first <xyz> entry that we see
@@ -93,9 +93,9 @@ function removeOverriddenEntries() {
 }
 
 function mergeIniFiles() {
-  basePath="${1}"
-  overridesPath="${2}"
-  outputPath="${3}"
+  local basePath="${1}"
+  local overridesPath="${2}"
+  local outputPath="${3}"
 
   if [[ -e "${overridesPath}" ]]; then
     export OVERRIDES=$(envsubst < "${overridesPath}")
@@ -103,7 +103,7 @@ function mergeIniFiles() {
     unset OVERRIDES
   fi
 
-  tmpOutputPath="${TMPDIR}/merged.ini"
+  local tmpOutputPath="${TMPDIR}/merged.ini"
   envsubst < "${basePath}" > "${tmpOutputPath}"
   removeOverriddenEntries "${tmpOutputPath}" "${outputPath}"  
 }
@@ -118,6 +118,7 @@ mkdir -p "${OUTPUT_DIR}/qsfix"
 mkdir -p "${OUTPUT_DIR}/webcache"
 mkdir -p "${OUTPUT_DIR}/mpegcut"
 mkdir -p "${OUTPUT_DIR}/logs"
+
 touch "${OUTPUT_DIR}/logs/auto.history"
 touch "${OUTPUT_DIR}/logs/auto.log.0"
 

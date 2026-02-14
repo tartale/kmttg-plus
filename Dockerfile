@@ -1,6 +1,6 @@
-FROM drnay/kmttg:latest
-
-USER root
+## copied/modified from: https://github.com/drnay/docker-kmttg/blob/master/Dockerfile
+# Alpine Linux with Oracle JRE
+FROM sgrio/java:jre_8
 
 RUN apk update
 RUN apk upgrade
@@ -11,7 +11,7 @@ RUN apk add gettext mediainfo mkvtoolnix mplayer \
  && ln -s /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 
 RUN curl -L -o ./AtomicParsleyAlpine.zip https://github.com/wez/atomicparsley/releases/download/20210715.151551.e7ad03a/AtomicParsleyAlpine.zip \
- && unzip -d /usr/local/bin ./AtomicParsleyAlpine.zip \
+ && unzip -d ${TOOLS_DIR} ./AtomicParsleyAlpine.zip \
  && rm ./AtomicParsleyAlpine.zip
 
 RUN apk add --no-cache g++ make \
@@ -35,7 +35,7 @@ RUN cd /tmp \
  && cd Comskip && ./autogen.sh && ./configure && make && make install \
  && wget -O /opt/PlexComskip.py https://raw.githubusercontent.com/ekim1337/PlexComskip/master/PlexComskip.py \
  && wget -O /opt/PlexComskip.conf https://raw.githubusercontent.com/ekim1337/PlexComskip/master/PlexComskip.conf.example \
- && sed -i "s#/usr/local/bin/ffmpeg#/usr/bin/ffmpeg#g" /opt/PlexComskip.conf \
+ && sed -i "s#${TOOLS_DIR}/ffmpeg#/usr/bin/ffmpeg#g" /opt/PlexComskip.conf \
  && sed -i "/forensics/s/True/False/g" /opt/PlexComskip.conf \
  && apk del builddeps \
  && rm -rf /var/cache/apk/* /tmp/* /tmp/.[!.]*
