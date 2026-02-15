@@ -6,7 +6,6 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/tartale/go/pkg/filter"
 	"github.com/tartale/kmttg-plus/go/pkg/server"
@@ -14,37 +13,44 @@ import (
 
 // Eq is the resolver for the eq field.
 func (r *filterOperatorResolver) Eq(ctx context.Context, obj *filter.Operator, data interface{}) error {
-	panic(fmt.Errorf("not implemented: Eq - eq"))
+	obj.Eq = data
+	return nil
 }
 
 // Ne is the resolver for the ne field.
 func (r *filterOperatorResolver) Ne(ctx context.Context, obj *filter.Operator, data interface{}) error {
-	panic(fmt.Errorf("not implemented: Ne - ne"))
+	obj.Ne = data
+	return nil
 }
 
 // Lt is the resolver for the lt field.
 func (r *filterOperatorResolver) Lt(ctx context.Context, obj *filter.Operator, data interface{}) error {
-	panic(fmt.Errorf("not implemented: Lt - lt"))
+	obj.Lt = data
+	return nil
 }
 
 // Gt is the resolver for the gt field.
 func (r *filterOperatorResolver) Gt(ctx context.Context, obj *filter.Operator, data interface{}) error {
-	panic(fmt.Errorf("not implemented: Gt - gt"))
+	obj.Gt = data
+	return nil
 }
 
 // Lte is the resolver for the lte field.
 func (r *filterOperatorResolver) Lte(ctx context.Context, obj *filter.Operator, data interface{}) error {
-	panic(fmt.Errorf("not implemented: Lte - lte"))
+	obj.Lte = data
+	return nil
 }
 
 // Gte is the resolver for the gte field.
 func (r *filterOperatorResolver) Gte(ctx context.Context, obj *filter.Operator, data interface{}) error {
-	panic(fmt.Errorf("not implemented: Gte - gte"))
+	obj.Gte = data
+	return nil
 }
 
 // Matches is the resolver for the matches field.
 func (r *filterOperatorResolver) Matches(ctx context.Context, obj *filter.Operator, data interface{}) error {
-	panic(fmt.Errorf("not implemented: Matches - matches"))
+	obj.Matches = data
+	return nil
 }
 
 // FilterOperator returns server.FilterOperatorResolver implementation.
