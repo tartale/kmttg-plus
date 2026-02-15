@@ -261,8 +261,8 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/subosito/gotenv v1.4.2 h1:X1TuBLAMDFbaTAChgCBLu3DU3UPyELpnF2jjJ2cz/S8=
 github.com/subosito/gotenv v1.4.2/go.mod h1:ayKnFf/c6rvx/2iiLrJUk1e6plDbT3edrFNGqEflhK0=
-github.com/tartale/go v0.0.0-20241012201716-0e68a08c836f h1:/WHyGRbNu+dqpI/QiQupKwrDOb7CmLbUQyf0wfSCj/s=
-github.com/tartale/go v0.0.0-20241012201716-0e68a08c836f/go.mod h1:4TxdOUkNnkaBp9MZofpfJMU5ywMiLMyDaYsCKC4+O0A=
+github.com/tartale/go v0.0.0-20260215040640-738ffdac353e h1:vFvjOzht7IjmUOTeIRXzNMthVVIUt7Wt+7PJY/JtSwo=
+github.com/tartale/go v0.0.0-20260215040640-738ffdac353e/go.mod h1:wm9iRyeTOzEtTonIpwEp0s5K8hENITyDcDCnOflBMNU=
 github.com/urfave/cli/v2 v2.25.7 h1:VAzn5oq403l5pHjc4OhD54+XGO9cdKVL/7lDjF+iKUs=
 github.com/urfave/cli/v2 v2.25.7/go.mod h1:8qnjx1vcq5s2/wpsqoZFndg2CE5tNFyrTvS6SinrnYQ=
 github.com/vektah/gqlparser/v2 v2.5.8 h1:pm6WOnGdzFOCfcQo9L3+xzW51mKrlwTEg4Wr7AH1JW4=

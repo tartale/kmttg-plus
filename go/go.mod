@@ -1,6 +1,6 @@
 module github.com/tartale/kmttg-plus/go
 
-go 1.23
+go 1.24
 
 require (
 	github.com/99designs/gqlgen v0.17.36
@@ -18,7 +18,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.4
-	github.com/tartale/go v0.0.0-20241012201716-0e68a08c836f
+	github.com/tartale/go v0.0.0-20260215040640-738ffdac353e
 	github.com/vektah/gqlparser/v2 v2.5.8
 	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.28.0
