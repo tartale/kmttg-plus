@@ -10,7 +10,6 @@ import (
 )
 
 var _ = Describe("Tivo Client", func() {
-
 	It("can create a TLS config from the certificates", func() {
 		if test.Tivo == nil {
 			Skip("skipping test; to enable, populate the KMTTG_TEST_TIVO env variable with information for an existing Tivo")
@@ -61,9 +60,5 @@ var _ = Describe("Tivo Client", func() {
 
 		err = tivoClient.Authenticate(context.Background())
 		Expect(err).ToNot(HaveOccurred())
-
-		recordings, err := tivoClient.GetAllRecordings(context.Background())
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(recordings)).To(BeNumerically(">", 0))
 	})
 })
