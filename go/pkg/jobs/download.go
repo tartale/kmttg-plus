@@ -12,7 +12,6 @@ import (
 	"github.com/tartale/go/pkg/filez"
 	"github.com/tartale/go/pkg/httpx"
 	"github.com/tartale/go/pkg/primitives"
-	"github.com/tartale/go/pkg/stringz"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
 	"github.com/tartale/kmttg-plus/go/pkg/decoder"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
@@ -52,8 +51,7 @@ func getDownloadURL(show model.Show) (*url.URL, error) {
 func getDownloadPaths(subtask *Subtask) (tmpPath, outputPath string) {
 	show := subtask.show
 	showCanonicalName := shows.GetCanonicalName(show)
-	safeCanonicalName := stringz.ToAlphaNumeric(showCanonicalName)
-	tmpPath = path.Join(subtask.tmpdir, safeCanonicalName+".mpg.tmp")
+	tmpPath = path.Join(subtask.tmpdir, showCanonicalName+".mpg.tmp")
 	outputPath = path.Join(subtask.outputdir, showCanonicalName+".mpg")
 
 	return

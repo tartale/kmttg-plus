@@ -12,7 +12,6 @@ import (
 	"github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/go/pkg/mathx"
 	"github.com/tartale/go/pkg/primitives"
-	"github.com/tartale/go/pkg/stringz"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
@@ -36,8 +35,7 @@ func MakeSubtaskID(action model.JobAction, showID string) string {
 }
 
 func NewSubtask(action model.JobAction, show model.Show) *Subtask {
-	safeTitle := stringz.ToAlphaNumeric(show.GetTitle())
-	tmpdir := path.Join(config.Values.TempDir, strings.ToLower(string(action)), safeTitle)
+	tmpdir := path.Join(config.Values.TempDir, strings.ToLower(string(action)), show.GetTitle())
 	outputdir := path.Join(config.Values.OutputDir, strings.ToLower(string(action)), show.GetTitle())
 
 	os.MkdirAll(tmpdir, os.ModePerm)
