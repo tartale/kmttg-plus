@@ -22,7 +22,7 @@ type values struct {
 	MediaAccessKey     string        `mapstructure:"KMTTG_MEDIA_ACCESS_KEY" default:""`
 	OutputDir          string        `mapstructure:"KMTTG_OUTPUT_DIR" default:"${PWD}/output" validate:"dir"`
 	Port               string        `mapstructure:"KMTTG_PORT" default:"8080"`
-	TempDir            string        `mapstructure:"KMTTG_TEMP_DIR" default:"${PWD}/tmp" validate:"dir"`
+	TempDir            string        `mapstructure:"KMTTG_TEMP_DIR" default:"${PWD}/.tmp" validate:"dir"`
 	Timeout            time.Duration `mapstructure:"KMTTG_TIMEOUT" default:"10s"`
 	TivoDecodePath     string        `mapstructure:"KMTTG_TIVODECODE_PATH" default:"${PWD}/tools/tivodecode/tivodecode" validate:"file"`
 	WebUIDir           string        `mapstructure:"KMTTG_WEBUI_DIR" default:""`

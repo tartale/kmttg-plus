@@ -22,7 +22,6 @@ import (
 )
 
 func Download(ctx context.Context, subtask *Subtask) error {
-
 	_, downloadPath := getDownloadPaths(subtask)
 	if filez.Exists(downloadPath) {
 		subtask.Status.Progress = 100
@@ -33,7 +32,6 @@ func Download(ctx context.Context, subtask *Subtask) error {
 }
 
 func getDownloadURL(show model.Show) (*url.URL, error) {
-
 	showDetails := shows.GetDetails(show)
 	showTitle := url.PathEscape(show.GetTitle())
 	showIDNumber := shows.ParseIDNumber(showDetails.ObjectID)
@@ -53,7 +51,6 @@ func getDownloadURL(show model.Show) (*url.URL, error) {
 }
 
 func getDownloadPaths(subtask *Subtask) (tmpPath, outputPath string) {
-
 	tmpPath = path.Join(subtask.tmpdir, stringz.ToAlphaNumeric(subtask.show.GetTitle())+".ts.tmp")
 	outputPath = path.Join(subtask.outputdir, stringz.ToAlphaNumeric(subtask.show.GetTitle())+".ts")
 
@@ -61,7 +58,6 @@ func getDownloadPaths(subtask *Subtask) (tmpPath, outputPath string) {
 }
 
 func download(ctx context.Context, subtask *Subtask) error {
-
 	downloadURL, err := getDownloadURL(subtask.show)
 	if err != nil {
 		return fmt.Errorf("%w: unable get download URL", err)
@@ -69,27 +65,27 @@ func download(ctx context.Context, subtask *Subtask) error {
 	logz.LoggerX.Infof("download URL: %s", downloadURL.String())
 	client, err := client.NewHttpClient(shows.GetDetails(subtask.show).Tivo)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: unable to create client for download subtask", err)
 	}
 	req, err := client.NewRequestWithContext(ctx, http.MethodGet, downloadURL.String(), nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: unable to create request for download subtask", err)
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: unable to execute request for download subtask", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return httpx.GetResponseError(resp)
+		return fmt.Errorf("%w: error response for download subtask", httpx.GetResponseError(resp))
 	}
 
 	tmpPath, downloadPath := getDownloadPaths(subtask)
-	tmpFile := filez.MustOpenFile(tmpPath, os.O_CREATE|os.O_WRONLY, 0644)
+	tmpFile := filez.MustOpenFile(tmpPath, os.O_CREATE|os.O_WRONLY, 0o664)
 	defer tmpFile.Close()
 	estimatedLength, err := primitives.ParseTo[int](resp.Header.Get("TiVo-Estimated-Length"))
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: could not get Tivo-Estimated-Length header", err)
 	}
 	progressWriter := NewProgressWriter(subtask, int64(estimatedLength))
 	multiWriter := io.MultiWriter(tmpFile, progressWriter)
@@ -99,7 +95,7 @@ func download(ctx context.Context, subtask *Subtask) error {
 	decoder.Stdout = multiWriter
 	err = decoder.Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: unable to run decoder command", err)
 	}
 	subtask.Status.Progress = 100
 
