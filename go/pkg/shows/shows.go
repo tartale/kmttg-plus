@@ -17,7 +17,6 @@ import (
 )
 
 func New(tivo *model.Tivo, objectID string, recording *message.RecordingItem, collection *message.CollectionItem) model.Show {
-
 	var result model.Show
 	switch recording.CollectionType {
 
@@ -36,7 +35,6 @@ func New(tivo *model.Tivo, objectID string, recording *message.RecordingItem, co
 }
 
 func WithImageURL(show model.Show, targetDimensions *apicontext.ImageDimensions) model.Show {
-
 	if targetDimensions == nil {
 		return show
 	}
@@ -62,7 +60,6 @@ func WithImageURL(show model.Show, targetDimensions *apicontext.ImageDimensions)
 }
 
 func AsAPIType(show model.Show) model.Show {
-
 	switch show.GetKind() {
 
 	case model.ShowKindMovie:
@@ -80,7 +77,6 @@ func AsAPIType(show model.Show) model.Show {
 }
 
 func MergeEpisodes(shows []model.Show) []model.Show {
-
 	combinedShowsMap := make(map[string]model.Show)
 
 	for _, show := range shows {
@@ -119,14 +115,13 @@ func ParseIDNumber(id string) string {
 }
 
 type Details struct {
-	Tivo       *model.Tivo
-	ObjectID   string
-	Recording  message.RecordingItem
-	Collection message.CollectionItem
+	Tivo       *model.Tivo            `json:"-"`
+	ObjectID   string                 `json:"objectID,omitempty"`
+	Recording  message.RecordingItem  `json:"recording"`
+	Collection message.CollectionItem `json:"collection"`
 }
 
 func GetDetails(show model.Show) *Details {
-
 	switch s := show.(type) {
 
 	case *movie:
@@ -144,7 +139,6 @@ func GetDetails(show model.Show) *Details {
 }
 
 func GetPath(show model.Show) string {
-
 	details := GetDetails(show)
 	if details == nil {
 		return stringz.ToAlphaNumeric(show.GetTitle())
@@ -170,11 +164,10 @@ func GetPath(show model.Show) string {
 
 type movie struct {
 	*model.Movie
-	Details Details
+	Details Details `json:"details"`
 }
 
 func newMovie(tivo *model.Tivo, objectID string, recording *message.RecordingItem, collection *message.CollectionItem) *movie {
-
 	if recording.CollectionType != message.CollectionTypeMovie &&
 		recording.CollectionType != message.CollectionTypeSpecial {
 
@@ -202,11 +195,10 @@ func newMovie(tivo *model.Tivo, objectID string, recording *message.RecordingIte
 
 type series struct {
 	*model.Series
-	Details Details
+	Details Details `json:"details,omitempty"`
 }
 
 func newSeries(episode *episode) *series {
-
 	return &series{
 		Series: &model.Series{
 			ID:          episode.SeriesID,
@@ -222,11 +214,10 @@ func newSeries(episode *episode) *series {
 
 type episode struct {
 	*model.Episode
-	Details Details
+	Details Details `json:"details,omitempty"`
 }
 
 func newEpisode(tivo *model.Tivo, objectID string, recording *message.RecordingItem, collection *message.CollectionItem) *episode {
-
 	if recording.CollectionType != message.CollectionTypeSeries {
 		panic(fmt.Errorf("%w: unexpected collection type for recording '%s': '%v'",
 			liberrorz.ErrFatal, recording.Title, recording.CollectionType))
@@ -261,7 +252,6 @@ func newEpisode(tivo *model.Tivo, objectID string, recording *message.RecordingI
 }
 
 func imageIsInvalid(image message.CollectionImage) bool {
-
 	resp, err := http.Get(image.ImageURL)
 	if err != nil {
 		return true
@@ -274,7 +264,6 @@ func imageIsInvalid(image message.CollectionImage) bool {
 }
 
 func findBestImageURL(images []message.CollectionImage, target *apicontext.ImageDimensions) string {
-
 	if len(images) == 0 || target == nil {
 		return ""
 	}

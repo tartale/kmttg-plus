@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 
 	"github.com/tartale/go/pkg/filez"
@@ -15,7 +14,7 @@ import (
 	"github.com/tartale/go/pkg/primitives"
 	"github.com/tartale/go/pkg/stringz"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
-	"github.com/tartale/kmttg-plus/go/pkg/config"
+	"github.com/tartale/kmttg-plus/go/pkg/decoder"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 	"github.com/tartale/kmttg-plus/go/pkg/shows"
@@ -51,8 +50,8 @@ func getDownloadURL(show model.Show) (*url.URL, error) {
 }
 
 func getDownloadPaths(subtask *Subtask) (tmpPath, outputPath string) {
-	tmpPath = path.Join(subtask.tmpdir, stringz.ToAlphaNumeric(subtask.show.GetTitle())+".ts.tmp")
-	outputPath = path.Join(subtask.outputdir, stringz.ToAlphaNumeric(subtask.show.GetTitle())+".ts")
+	tmpPath = path.Join(subtask.tmpdir, stringz.ToAlphaNumeric(subtask.show.GetTitle())+".mpg.tmp")
+	outputPath = path.Join(subtask.outputdir, stringz.ToAlphaNumeric(subtask.show.GetTitle())+".mpg")
 
 	return
 }
@@ -89,13 +88,9 @@ func download(ctx context.Context, subtask *Subtask) error {
 	}
 	progressWriter := NewProgressWriter(subtask, int64(estimatedLength))
 	multiWriter := io.MultiWriter(tmpFile, progressWriter)
-
-	decoder := exec.CommandContext(ctx, config.Values.TivoDecodePath, "-m", config.Values.MediaAccessKey, "-")
-	decoder.Stdin = resp.Body
-	decoder.Stdout = multiWriter
-	err = decoder.Run()
+	err = decoder.Decode(ctx, resp.Body, multiWriter)
 	if err != nil {
-		return fmt.Errorf("%w: unable to run decoder command", err)
+		return fmt.Errorf("%w: unable to decode download stream", err)
 	}
 	subtask.Status.Progress = 100
 

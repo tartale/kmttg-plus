@@ -2,9 +2,13 @@ package tivos
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/puzpuzpuz/xsync"
@@ -12,6 +16,7 @@ import (
 	liberrorz "github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/client"
+	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
@@ -19,9 +24,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	tivoMap = xsync.NewMapOf[*model.Tivo]()
-)
+var tivoMap = xsync.NewMapOf[*model.Tivo]()
 
 func RunBackgroundLoader(ctx context.Context) {
 	loadTicker := time.NewTicker(10 * time.Second)
@@ -29,7 +32,7 @@ func RunBackgroundLoader(ctx context.Context) {
 	for range loadTicker.C {
 		err := LoadAll()
 		if err != nil {
-			logz.Logger.Warn("error loading shows", zap.Error(err))
+			logz.Logger.Warn("Error loading shows", zap.Error(err))
 			loadTicker.Reset(30 * time.Second)
 		} else {
 			loadTicker.Reset(5 * time.Minute)
@@ -38,7 +41,6 @@ func RunBackgroundLoader(ctx context.Context) {
 }
 
 func LoadAll() error {
-
 	var errs errorx.Errors
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
 		errs = append(errs, Load(val))
@@ -49,8 +51,18 @@ func LoadAll() error {
 }
 
 func Load(tivo *model.Tivo) error {
+	var initOnce sync.Once
+	loadedFromCache := false
 
-	logz.Logger.Debug("loading all shows", zap.String("tivoName", tivo.Name))
+	// Check if there's a cache to initialize from the first time
+	initOnce.Do(func() {
+		loadedFromCache = loadFromCache(tivo)
+	})
+	if loadedFromCache {
+		return nil
+	}
+
+	logz.Logger.Debug("Loading shows via RPC", zap.String("tivoName", tivo.Name))
 	tivoClient, err := client.NewRpcClient(tivo)
 	if err != nil {
 		return err
@@ -64,13 +76,13 @@ func Load(tivo *model.Tivo) error {
 	newTivo := *tivo
 	newTivo.Shows = shows
 	tivoMap.Store(tivo.Name, &newTivo)
-	logz.Logger.Debug("Successfully loaded all shows", zap.String("tivoName", tivo.Name))
+	logz.Logger.Debug("Successfully loaded all shows via RPC", zap.String("tivoName", tivo.Name))
+	storeToCache(&newTivo)
 
 	return nil
 }
 
 func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show, error) {
-
 	const (
 		retryCount = 3
 	)
@@ -101,7 +113,6 @@ func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show
 }
 
 func List(ctx context.Context) []*model.Tivo {
-
 	var list []*model.Tivo
 	tivoFilterFn := apicontext.TivoFilterFn(ctx)
 	showFilterFn := apicontext.ShowFilterFn(ctx)
@@ -144,10 +155,8 @@ func List(ctx context.Context) []*model.Tivo {
 }
 
 func GetShowForID(recordingID string) (model.Show, error) {
-
 	var result model.Show
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
-
 		for _, show := range val.Shows {
 			details := shows.GetDetails(show)
 			if details.Recording.RecordingID == recordingID {
@@ -165,4 +174,42 @@ func GetShowForID(recordingID string) (model.Show, error) {
 	}
 
 	return result, nil
+}
+
+func loadFromCache(tivo *model.Tivo) bool {
+	tivoCacheFile := path.Join(config.Values.CacheDir, tivo.Name+".json")
+	if _, err := os.Stat(tivoCacheFile); errors.Is(err, os.ErrNotExist) {
+		logz.Logger.Debug("No cache found", zap.String("tivoName", tivo.Name))
+		return false
+	}
+	logz.Logger.Debug("Loading shows from cache", zap.String("tivoName", tivo.Name))
+	data, err := os.ReadFile(tivoCacheFile)
+	if err != nil {
+		logz.Logger.Debug("Unable to load cache file", zap.String("tivoName", tivo.Name), zap.Error(err))
+		return false
+	}
+	var newTivo model.Tivo
+	err = json.Unmarshal(data, &newTivo)
+	if err != nil {
+		logz.Logger.Debug("Unable to load cache file", zap.String("tivoName", tivo.Name), zap.Error(err))
+		return false
+	}
+	logz.Logger.Debug("Successfully loaded all shows from cache", zap.String("tivoName", tivo.Name))
+	tivoMap.Store(tivo.Name, &newTivo)
+	return true
+}
+
+func storeToCache(tivo *model.Tivo) {
+	tivoCacheFile := path.Join(config.Values.CacheDir, tivo.Name+".json")
+	data, err := json.MarshalIndent(tivo, "", "  ")
+	if err != nil {
+		logz.Logger.Debug("Unable to marshal Tivo to JSON; skipping cache write", zap.String("tivoName", tivo.Name), zap.Error(err))
+		return
+	}
+	err = os.WriteFile(tivoCacheFile, data, 0o664)
+	if err != nil {
+		logz.Logger.Debug("Unable to write cache file", zap.String("tivoName", tivo.Name), zap.Error(err))
+		return
+	}
+	logz.Logger.Debug("Successfully stored all shows to cache", zap.String("tivoName", tivo.Name))
 }

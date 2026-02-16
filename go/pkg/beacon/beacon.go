@@ -39,7 +39,7 @@ func Listen(ctx context.Context) error {
 }
 
 func newTivoFromServiceEntry(entry *zeroconf.ServiceEntry) (*model.Tivo, error) {
-	logz.Logger.Info("detected device", zap.Strings("entryText", entry.Text))
+	logz.Logger.Info("Detected device", zap.Strings("entryText", entry.Text))
 	properties := make(map[string]string)
 	for _, property := range entry.Text {
 		kv := strings.SplitN(property, "=", 2)
