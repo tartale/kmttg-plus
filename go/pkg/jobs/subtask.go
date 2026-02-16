@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"strings"
 
@@ -11,10 +12,10 @@ import (
 	"github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/go/pkg/mathx"
 	"github.com/tartale/go/pkg/primitives"
+	"github.com/tartale/go/pkg/stringz"
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
-	"github.com/tartale/kmttg-plus/go/pkg/shows"
 	"go.uber.org/zap"
 )
 
@@ -31,14 +32,16 @@ type Subtask struct {
 }
 
 func MakeSubtaskID(action model.JobAction, showID string) string {
-
 	return fmt.Sprintf("%s/%s", strings.ToLower(string(action)), showID)
 }
 
 func NewSubtask(action model.JobAction, show model.Show) *Subtask {
+	safeTitle := stringz.ToAlphaNumeric(show.GetTitle())
+	tmpdir := path.Join(config.Values.TempDir, strings.ToLower(string(action)), safeTitle)
+	outputdir := path.Join(config.Values.OutputDir, strings.ToLower(string(action)), show.GetTitle())
 
-	tmpdir := path.Join(config.Values.TempDir, strings.ToLower(string(action)), shows.GetPath(show))
-	outputdir := path.Join(config.Values.OutputDir, strings.ToLower(string(action)), shows.GetPath(show))
+	os.MkdirAll(tmpdir, os.ModePerm)
+	os.MkdirAll(outputdir, os.ModePerm)
 
 	return &Subtask{
 		JobSubtask: &model.JobSubtask{
@@ -59,16 +62,14 @@ func NewSubtask(action model.JobAction, show model.Show) *Subtask {
 }
 
 func (st *Subtask) GetID() string {
-
 	return MakeSubtaskID(st.Action, st.ShowID)
 }
 
 func (st *Subtask) Run(ctx context.Context) error {
-
 	ctx, cancel := context.WithCancelCause(ctx)
 	taskAlreadyStarted := st.activate(ctx)
 	if taskAlreadyStarted {
-		// wait for the already-running task
+		cancel(nil) // release our derived context; we're waiting on st.ctx
 		<-st.ctx.Done()
 		return st.ctx.Err()
 	}
@@ -110,7 +111,6 @@ func (st *Subtask) Run(ctx context.Context) error {
 }
 
 func (st *Subtask) activate(ctx context.Context) (taskAlreadyStarted bool) {
-
 	if st.activated {
 		panic(fmt.Errorf("%w: subtask was activated multiple times", errorz.ErrFatal))
 	}
@@ -134,7 +134,6 @@ type ProgressWriter struct {
 }
 
 func NewProgressWriter(subtask *Subtask, totalBytes int64) *ProgressWriter {
-
 	return &ProgressWriter{
 		subtask:    subtask,
 		totalBytes: totalBytes,
@@ -142,7 +141,6 @@ func NewProgressWriter(subtask *Subtask, totalBytes int64) *ProgressWriter {
 }
 
 func (p *ProgressWriter) Write(b []byte) (n int, err error) {
-
 	p.currentBytes += int64(len(b))
 	var progress int64
 	mathx.Divide(p.currentBytes*100, p.totalBytes, &progress)

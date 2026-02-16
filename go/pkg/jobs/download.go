@@ -50,8 +50,11 @@ func getDownloadURL(show model.Show) (*url.URL, error) {
 }
 
 func getDownloadPaths(subtask *Subtask) (tmpPath, outputPath string) {
-	tmpPath = path.Join(subtask.tmpdir, stringz.ToAlphaNumeric(subtask.show.GetTitle())+".mpg.tmp")
-	outputPath = path.Join(subtask.outputdir, stringz.ToAlphaNumeric(subtask.show.GetTitle())+".mpg")
+	show := subtask.show
+	showCanonicalName := shows.GetCanonicalName(show)
+	safeCanonicalName := stringz.ToAlphaNumeric(showCanonicalName)
+	tmpPath = path.Join(subtask.tmpdir, safeCanonicalName+".mpg.tmp")
+	outputPath = path.Join(subtask.outputdir, showCanonicalName+".mpg")
 
 	return
 }
@@ -61,7 +64,7 @@ func download(ctx context.Context, subtask *Subtask) error {
 	if err != nil {
 		return fmt.Errorf("%w: unable get download URL", err)
 	}
-	logz.LoggerX.Infof("download URL: %s", downloadURL.String())
+	logz.LoggerX.Debugf("Download URL: %s", downloadURL.String())
 	client, err := client.NewHttpClient(shows.GetDetails(subtask.show).Tivo)
 	if err != nil {
 		return fmt.Errorf("%w: unable to create client for download subtask", err)
@@ -80,12 +83,13 @@ func download(ctx context.Context, subtask *Subtask) error {
 	}
 
 	tmpPath, downloadPath := getDownloadPaths(subtask)
-	tmpFile := filez.MustOpenFile(tmpPath, os.O_CREATE|os.O_WRONLY, 0o664)
+	tmpFile := filez.MustOpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o664)
 	defer tmpFile.Close()
 	estimatedLength, err := primitives.ParseTo[int](resp.Header.Get("TiVo-Estimated-Length"))
 	if err != nil {
 		return fmt.Errorf("%w: could not get Tivo-Estimated-Length header", err)
 	}
+	logz.LoggerX.Debugf("Initiating download/decode to temp file: %s", tmpPath)
 	progressWriter := NewProgressWriter(subtask, int64(estimatedLength))
 	multiWriter := io.MultiWriter(tmpFile, progressWriter)
 	err = decoder.Decode(ctx, resp.Body, multiWriter)
@@ -94,6 +98,7 @@ func download(ctx context.Context, subtask *Subtask) error {
 	}
 	subtask.Status.Progress = 100
 
+	logz.LoggerX.Debugf("Moving downloaded file: %s", downloadPath)
 	filez.MustRename(tmpPath, downloadPath)
 
 	return nil

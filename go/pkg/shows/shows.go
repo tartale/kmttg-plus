@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path"
 	"sort"
 	"strings"
 
 	liberrorz "github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/go/pkg/mathx"
-	"github.com/tartale/go/pkg/stringz"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/message"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
@@ -215,27 +213,19 @@ func GetDetails(show model.Show) *Details {
 	}
 }
 
-func GetPath(show model.Show) string {
-	details := GetDetails(show)
-	if details == nil {
-		return stringz.ToAlphaNumeric(show.GetTitle())
-	}
+func GetCanonicalName(show model.Show) string {
+	switch s := show.(type) {
+	case *movie:
+		return s.CanonicalName()
 
-	switch show.GetKind() {
+	case *series:
+		return s.CanonicalName()
 
-	case model.ShowKindMovie:
-		return stringz.ToAlphaNumeric(details.Recording.Title)
-
-	case model.ShowKindSeries:
-		return stringz.ToAlphaNumeric(details.Collection.Title)
-
-	case model.ShowKindEpisode:
-		parentDir := stringz.ToAlphaNumeric(details.Collection.Title)
-		subDir := stringz.ToAlphaNumeric(details.Recording.Title)
-		return path.Join(parentDir, subDir)
+	case *episode:
+		return s.CanonicalName()
 
 	default:
-		panic(fmt.Errorf("%w: unexpected show kind '%s'", liberrorz.ErrFatal, show.GetKind()))
+		return s.GetTitle()
 	}
 }
 
@@ -270,6 +260,10 @@ func newMovie(tivo *model.Tivo, objectID string, recording *message.RecordingIte
 	}
 }
 
+func (m *movie) CanonicalName() string {
+	return fmt.Sprintf("%s (%d)", m.Title, m.MovieYear)
+}
+
 type series struct {
 	*model.Series
 	Details Details `json:"details,omitempty"`
@@ -287,6 +281,10 @@ func newSeries(episode *episode) *series {
 		},
 		Details: episode.Details,
 	}
+}
+
+func (s *series) CanonicalName() string {
+	return s.Title
 }
 
 type episode struct {
@@ -326,6 +324,10 @@ func newEpisode(tivo *model.Tivo, objectID string, recording *message.RecordingI
 			Collection: *collection,
 		},
 	}
+}
+
+func (e *episode) CanonicalName() string {
+	return fmt.Sprintf("%s - %s - E%02dS%02d", e.Title, e.EpisodeTitle, e.SeasonNumber, e.EpisodeNumber)
 }
 
 func imageIsInvalid(image message.CollectionImage) bool {

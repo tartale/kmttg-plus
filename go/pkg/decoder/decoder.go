@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"os/exec"
-	"strings"
 
 	"github.com/tartale/kmttg-plus/go/pkg/config"
 	"github.com/tartale/kmttg-plus/go/pkg/logz"
@@ -15,7 +14,7 @@ func Decode(ctx context.Context, in io.Reader, out io.Writer) error {
 	decoder := exec.CommandContext(ctx, decoderCommand[0], decoderCommand[1:]...)
 	decoder.Stdin = in
 	decoder.Stdout = out
-	logz.LoggerX.Debugf("Start decoding; command: %s", strings.Join(decoderCommand, " "))
+	logz.LoggerX.Debugf("Start decoding")
 	if err := decoder.Run(); err != nil {
 		logz.LoggerX.Errorf("%w: error running decoder", err)
 		return err
