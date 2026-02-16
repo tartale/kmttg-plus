@@ -5,7 +5,8 @@ DOCKER_IMAGE = tartale/kmttg-plus:$(DOCKER_IMAGE_TAG)
 DOCKER_RUN_ARGS = --rm -v $(CURDIR)/overrides:$(MOUNT_DIR)/overrides -v $(CURDIR)/output:$(MOUNT_DIR)/output:rw -p 8181:8181
 
 clean:
-	docker rmi $(DOCKER_IMAGE)
+	docker rmi $(DOCKER_IMAGE) || true
+	rm -rf "$(KMTTG_CACHE_DIR)/*"
 	cd java; \
 	ant clean
 
