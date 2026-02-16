@@ -26,6 +26,7 @@
 [] terminal
   [x] single tivo
   [] multiple tivos
+[] cli
 [] file management
 [] cypress tests
 [] persistent cache
