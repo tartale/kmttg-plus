@@ -1,6 +1,7 @@
 package shows
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"path"
@@ -32,6 +33,82 @@ func New(tivo *model.Tivo, objectID string, recording *message.RecordingItem, co
 	}
 
 	return result
+}
+
+// UnmarshalShowFromJSON unmarshals a Show from JSON bytes, handling both
+// wrapper types (with Details) and plain model types.
+func UnmarshalShowFromJSON(data []byte, tivo *model.Tivo) (model.Show, error) {
+	var kind struct {
+		Kind model.ShowKind `json:"kind"`
+	}
+	if err := json.Unmarshal(data, &kind); err != nil {
+		return nil, fmt.Errorf("unmarshal show kind: %w", err)
+	}
+
+	// Check if Details field exists
+	var hasDetails struct {
+		Details json.RawMessage `json:"details,omitempty"`
+	}
+	json.Unmarshal(data, &hasDetails)
+
+	if len(hasDetails.Details) > 0 {
+		// Unmarshal into wrapper type with Details
+		switch kind.Kind {
+		case model.ShowKindMovie:
+			m := movie{Movie: &model.Movie{}}
+			if err := json.Unmarshal(data, &m); err != nil {
+				return nil, fmt.Errorf("unmarshal movie with details: %w", err)
+			}
+			if m.Details.Tivo == nil {
+				m.Details.Tivo = tivo
+			}
+			return &m, nil
+		case model.ShowKindSeries:
+			s := series{Series: &model.Series{}}
+			if err := json.Unmarshal(data, &s); err != nil {
+				return nil, fmt.Errorf("unmarshal series with details: %w", err)
+			}
+			if s.Details.Tivo == nil {
+				s.Details.Tivo = tivo
+			}
+			return &s, nil
+		case model.ShowKindEpisode:
+			e := episode{Episode: &model.Episode{}}
+			if err := json.Unmarshal(data, &e); err != nil {
+				return nil, fmt.Errorf("unmarshal episode with details: %w", err)
+			}
+			if e.Details.Tivo == nil {
+				e.Details.Tivo = tivo
+			}
+			return &e, nil
+		default:
+			return nil, fmt.Errorf("unknown show kind: %s", kind.Kind)
+		}
+	}
+
+	// No Details field, unmarshal into plain model type
+	switch kind.Kind {
+	case model.ShowKindMovie:
+		var m model.Movie
+		if err := json.Unmarshal(data, &m); err != nil {
+			return nil, fmt.Errorf("unmarshal movie: %w", err)
+		}
+		return &m, nil
+	case model.ShowKindSeries:
+		var s model.Series
+		if err := json.Unmarshal(data, &s); err != nil {
+			return nil, fmt.Errorf("unmarshal series: %w", err)
+		}
+		return &s, nil
+	case model.ShowKindEpisode:
+		var e model.Episode
+		if err := json.Unmarshal(data, &e); err != nil {
+			return nil, fmt.Errorf("unmarshal episode: %w", err)
+		}
+		return &e, nil
+	default:
+		return nil, fmt.Errorf("unknown show kind: %s", kind.Kind)
+	}
 }
 
 func WithImageURL(show model.Show, targetDimensions *apicontext.ImageDimensions) model.Show {

@@ -24,7 +24,10 @@ import (
 	"go.uber.org/zap"
 )
 
-var tivoMap = xsync.NewMapOf[*model.Tivo]()
+var (
+	tivoMap           = xsync.NewMapOf[*model.Tivo]()
+	loadFromCacheOnce sync.Once
+)
 
 func RunBackgroundLoader(ctx context.Context) {
 	loadTicker := time.NewTicker(10 * time.Second)
@@ -51,11 +54,10 @@ func LoadAll() error {
 }
 
 func Load(tivo *model.Tivo) error {
-	var initOnce sync.Once
 	loadedFromCache := false
 
 	// Check if there's a cache to initialize from the first time
-	initOnce.Do(func() {
+	loadFromCacheOnce.Do(func() {
 		loadedFromCache = loadFromCache(tivo)
 	})
 	if loadedFromCache {
@@ -188,11 +190,31 @@ func loadFromCache(tivo *model.Tivo) bool {
 		logz.Logger.Debug("Unable to load cache file", zap.String("tivoName", tivo.Name), zap.Error(err))
 		return false
 	}
-	var newTivo model.Tivo
-	err = json.Unmarshal(data, &newTivo)
+	var aux struct {
+		Name    string            `json:"name"`
+		Address string            `json:"address"`
+		Tsn     string            `json:"tsn"`
+		Shows   []json.RawMessage `json:"shows,omitempty"`
+	}
+	err = json.Unmarshal(data, &aux)
 	if err != nil {
 		logz.Logger.Debug("Unable to load cache file", zap.String("tivoName", tivo.Name), zap.Error(err))
 		return false
+	}
+	newTivo := model.Tivo{
+		Name:    aux.Name,
+		Address: aux.Address,
+		Tsn:     aux.Tsn,
+		Shows:   make([]model.Show, 0, len(aux.Shows)),
+	}
+	// Unmarshal each show using the shows package helper to handle wrapper types
+	for _, raw := range aux.Shows {
+		show, err := shows.UnmarshalShowFromJSON(raw, &newTivo)
+		if err != nil {
+			logz.Logger.Debug("Unable to unmarshal show from cache", zap.String("tivoName", tivo.Name), zap.Error(err))
+			return false
+		}
+		newTivo.Shows = append(newTivo.Shows, show)
 	}
 	logz.Logger.Debug("Successfully loaded all shows from cache", zap.String("tivoName", tivo.Name))
 	tivoMap.Store(tivo.Name, &newTivo)
