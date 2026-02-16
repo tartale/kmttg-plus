@@ -53,21 +53,21 @@ func NewHttpClient(tivo *model.Tivo) (*HttpClient, error) {
 	tivoHttpAddress := fmt.Sprintf("http://%s", tivo.Address)
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodOptions, tivoHttpAddress, nil)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not create http OPTIONS request", err)
+		return nil, fmt.Errorf("could not create http OPTIONS request: %w", err)
 	}
 	resp, err := newHttpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not execute http OPTIONS request", err)
+		return nil, fmt.Errorf("could not execute http OPTIONS request: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: error response for http OPTIONS request", httpx.GetResponseError(resp))
+		return nil, fmt.Errorf("error response for http OPTIONS request: %w", httpx.GetResponseError(resp))
 	}
 	sidCookieIndex := slices.IndexFunc(resp.Cookies(), func(c *http.Cookie) bool {
 		return c.Name == "sid"
 	})
 	if sidCookieIndex < 0 {
-		return nil, fmt.Errorf("%w: session ID cookie not found", errorz.ErrResponse)
+		return nil, fmt.Errorf("session ID cookie not found: %w", errorz.ErrResponse)
 	}
 	newHttpClient.sessionCookie = resp.Cookies()[sidCookieIndex]
 

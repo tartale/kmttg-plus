@@ -20,8 +20,7 @@ func NewFilters(ctx context.Context) ([]*model.ShowFilter, error) {
 
 	val, err := gqlgen.GetArgValue[[]*model.ShowFilter](ctx, apicontext.ShowFiltersKey)
 	if err != nil && errors.Is(err, generics.ErrNotCasted) {
-		return nil, fmt.Errorf("%w '%s'; expected type: %s", errorz.ErrInvalidArgument,
-			apicontext.ShowFiltersKey.Name, "[ShowFilter]")
+		return nil, fmt.Errorf("'%s'; expected type: %s: %w", apicontext.ShowFiltersKey.Name, "[ShowFilter]", errorz.ErrInvalidArgument)
 	}
 	if err != nil && errors.Is(err, errorz.ErrNotFound) {
 		return nil, nil
@@ -70,7 +69,7 @@ func GetImageDimensions(ctx context.Context) (*apicontext.ImageDimensions, error
 	}
 
 	if *width <= 0 || *height <= 0 {
-		return nil, fmt.Errorf("%w: image height and width must both be positive integers", errorz.ErrInvalidArgument)
+		return nil, fmt.Errorf("image height and width must both be positive integers: %w", errorz.ErrInvalidArgument)
 	}
 
 	result.Height = *height
@@ -83,7 +82,7 @@ func getDimension(ctx context.Context, key gqlgen.ArgKey) (*int, error) {
 
 	value, err := gqlgen.GetArgValue[int](ctx, key)
 	if errors.Is(err, gqlgen.ErrArgumentNotFound) {
-		return nil, fmt.Errorf("%w: must provide both image height and width", errorz.ErrBadRequest)
+		return nil, fmt.Errorf("must provide both image height and width: %w", errorz.ErrBadRequest)
 	}
 	if err != nil && !errors.Is(err, gqlgen.ErrFieldNotFound) {
 		return nil, err

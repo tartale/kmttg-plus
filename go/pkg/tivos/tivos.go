@@ -172,7 +172,7 @@ func GetShowForID(recordingID string) (model.Show, error) {
 	})
 
 	if result == nil {
-		return nil, fmt.Errorf("%w: show ID '%s'", liberrorz.ErrNotFound, recordingID)
+		return nil, fmt.Errorf("show ID '%s': %w", recordingID, liberrorz.ErrNotFound)
 	}
 
 	return result, nil

@@ -26,8 +26,8 @@ func New(tivo *model.Tivo, objectID string, recording *message.RecordingItem, co
 		result = newMovie(tivo, objectID, recording, collection)
 
 	default:
-		panic(fmt.Errorf("%w: unexpected collection type for recording '%s': '%v'",
-			liberrorz.ErrFatal, recording.Title, recording.CollectionType))
+		panic(fmt.Errorf("unexpected collection type for recording '%s': '%v': %w",
+			recording.Title, recording.CollectionType, liberrorz.ErrFatal))
 	}
 
 	return result
@@ -147,7 +147,7 @@ func AsAPIType(show model.Show) model.Show {
 		return show.(*episode).Episode
 
 	default:
-		panic(fmt.Errorf("%w: unexpected show kind: %v", liberrorz.ErrFatal, show.GetKind()))
+		panic(fmt.Errorf("unexpected show kind: %v: %w", show.GetKind(), liberrorz.ErrFatal))
 	}
 }
 
@@ -238,8 +238,8 @@ func newMovie(tivo *model.Tivo, objectID string, recording *message.RecordingIte
 	if recording.CollectionType != message.CollectionTypeMovie &&
 		recording.CollectionType != message.CollectionTypeSpecial {
 
-		panic(fmt.Errorf("%w: unexpected collection type for recording '%s': '%v'",
-			liberrorz.ErrFatal, recording.Title, recording.CollectionType))
+		panic(fmt.Errorf("unexpected collection type for recording '%s': '%v': %w",
+			recording.Title, recording.CollectionType, liberrorz.ErrFatal))
 	}
 
 	return &movie{
@@ -294,8 +294,8 @@ type episode struct {
 
 func newEpisode(tivo *model.Tivo, objectID string, recording *message.RecordingItem, collection *message.CollectionItem) *episode {
 	if recording.CollectionType != message.CollectionTypeSeries {
-		panic(fmt.Errorf("%w: unexpected collection type for recording '%s': '%v'",
-			liberrorz.ErrFatal, recording.Title, recording.CollectionType))
+		panic(fmt.Errorf("unexpected collection type for recording '%s': '%v': %w",
+			recording.Title, recording.CollectionType, liberrorz.ErrFatal))
 	}
 
 	var episodeNumber int

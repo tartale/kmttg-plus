@@ -62,24 +62,24 @@ func getDownloadPaths(subtask *Subtask) (tmpPath, outputPath string) {
 func download(ctx context.Context, subtask *Subtask) error {
 	downloadURL, err := getDownloadURL(subtask.show)
 	if err != nil {
-		return fmt.Errorf("%w: unable get download URL", err)
+		return fmt.Errorf("unable get download URL: %w", err)
 	}
 	logz.LoggerX.Debugf("Download URL: %s", downloadURL.String())
 	client, err := client.NewHttpClient(shows.GetDetails(subtask.show).Tivo)
 	if err != nil {
-		return fmt.Errorf("%w: unable to create client for download subtask", err)
+		return fmt.Errorf("unable to create client for download subtask: %w", err)
 	}
 	req, err := client.NewRequestWithContext(ctx, http.MethodGet, downloadURL.String(), nil)
 	if err != nil {
-		return fmt.Errorf("%w: unable to create request for download subtask", err)
+		return fmt.Errorf("unable to create request for download subtask: %w", err)
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("%w: unable to execute request for download subtask", err)
+		return fmt.Errorf("unable to execute request for download subtask: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: error response for download subtask", httpx.GetResponseError(resp))
+		return fmt.Errorf("error response for download subtask: %w", httpx.GetResponseError(resp))
 	}
 
 	tmpPath, downloadPath := getDownloadPaths(subtask)
@@ -87,14 +87,14 @@ func download(ctx context.Context, subtask *Subtask) error {
 	defer tmpFile.Close()
 	estimatedLength, err := primitives.ParseTo[int](resp.Header.Get("TiVo-Estimated-Length"))
 	if err != nil {
-		return fmt.Errorf("%w: could not get Tivo-Estimated-Length header", err)
+		return fmt.Errorf("could not get Tivo-Estimated-Length header: %w", err)
 	}
 	logz.LoggerX.Debugf("Initiating download/decode to temp file: %s", tmpPath)
 	progressWriter := NewProgressWriter(subtask, int64(estimatedLength))
 	multiWriter := io.MultiWriter(tmpFile, progressWriter)
 	err = decoder.Decode(ctx, resp.Body, multiWriter)
 	if err != nil {
-		return fmt.Errorf("%w: unable to decode download stream", err)
+		return fmt.Errorf("unable to decode download stream: %w", err)
 	}
 	subtask.Status.Progress = 100
 

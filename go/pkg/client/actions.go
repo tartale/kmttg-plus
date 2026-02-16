@@ -30,7 +30,7 @@ func (t *TivoClient) Authenticate(ctx context.Context) error {
 		return err
 	}
 	if authResponseBody.Status != message.StatusTypeSuccess {
-		return fmt.Errorf("%w: %s", errorz.ErrAuthenticationFailed, authResponseBody.Message)
+		return fmt.Errorf("%s: %w", authResponseBody.Message, errorz.ErrAuthenticationFailed)
 	}
 
 	return nil
@@ -73,7 +73,7 @@ func (t *TivoClient) getShowsPage(ctx context.Context) (shows []model.Show, next
 	}
 	if responseBody.Type != message.TypeRecordingFolderItemList {
 		logz.Logger.Warn("tivo error response", zap.Any("request", request), zap.Any("response", responseBody))
-		return nil, 0, fmt.Errorf("%w: unexpected response type: %s", errorz.ErrUnexpectedResponse, responseBody.Type)
+		return nil, 0, fmt.Errorf("unexpected response type: %s: %w", responseBody.Type, errorz.ErrUnexpectedResponse)
 	}
 	for _, recording := range responseBody.RecordingFolderItem {
 		show, err := t.getShowDetails(ctx, recording)
@@ -126,11 +126,11 @@ func (t *TivoClient) getRecordingDetails(ctx context.Context, recordingFolderIte
 	}
 	if responseBody.Type != message.TypeRecordingList {
 		logz.Logger.Error("tivo error response", zap.Any("responseBody", responseBody))
-		return nil, fmt.Errorf("%w: unexpected response type: %s", errorz.ErrUnexpectedResponse, responseBody.Type)
+		return nil, fmt.Errorf("unexpected response type: %s: %w", responseBody.Type, errorz.ErrUnexpectedResponse)
 	}
 	recordingCount := len(responseBody.Recording)
 	if recordingCount != 1 {
-		return nil, fmt.Errorf("%w: unexpected number of recordings in response: %d", errorz.ErrUnexpectedResponse, recordingCount)
+		return nil, fmt.Errorf("unexpected number of recordings in response: %d: %w", recordingCount, errorz.ErrUnexpectedResponse)
 	}
 	recording := responseBody.Recording[0]
 	recording.RecordingID = recordingFolderItem.ChildRecordingID
@@ -154,11 +154,11 @@ func (t *TivoClient) getCollectionDetails(ctx context.Context, collectionIDs []s
 	}
 	if responseBody.Type != message.TypeCollectionList {
 		logz.Logger.Error("tivo error response", zap.Any("responseBody", responseBody))
-		return nil, fmt.Errorf("%w: unexpected response type: %s", errorz.ErrUnexpectedResponse, responseBody.Type)
+		return nil, fmt.Errorf("unexpected response type: %s: %w", responseBody.Type, errorz.ErrUnexpectedResponse)
 	}
 	collectionCount := len(responseBody.Collection)
 	if collectionCount != len(collectionIDs) {
-		return nil, fmt.Errorf("%w: unexpected number of collection items in response: %d", errorz.ErrUnexpectedResponse, collectionCount)
+		return nil, fmt.Errorf("unexpected number of collection items in response: %d: %w", collectionCount, errorz.ErrUnexpectedResponse)
 	}
 
 	return &responseBody.Collection[0], nil
@@ -179,11 +179,11 @@ func (t *TivoClient) getObjectID(ctx context.Context, searchID string) (string, 
 	}
 	if responseBody.Type != message.TypeIdSet {
 		logz.Logger.Warn("tivo error response", zap.Any("responseBody", responseBody))
-		return "", fmt.Errorf("%w: unexpected response type: %s", errorz.ErrUnexpectedResponse, responseBody.Type)
+		return "", fmt.Errorf("unexpected response type: %s: %w", responseBody.Type, errorz.ErrUnexpectedResponse)
 	}
 	objectIdCount := len(responseBody.ObjectID)
 	if objectIdCount != 1 {
-		return "", fmt.Errorf("%w: unexpected number of objectID items in response: %d", errorz.ErrUnexpectedResponse, objectIdCount)
+		return "", fmt.Errorf("unexpected number of objectID items in response: %d: %w", objectIdCount, errorz.ErrUnexpectedResponse)
 	}
 
 	return responseBody.ObjectID[0], nil

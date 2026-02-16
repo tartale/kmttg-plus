@@ -95,7 +95,7 @@ func (st *Subtask) Run(ctx context.Context) error {
 		err = Play(ctx, st)
 
 	default:
-		err = fmt.Errorf("%w: invalid action '%s'", errorz.ErrInvalidArgument, st.Action)
+		err = fmt.Errorf("invalid action '%s': %w", st.Action, errorz.ErrInvalidArgument)
 	}
 	logz.Logger.Info("finished background task for show",
 		zap.String("task", st.Action.String()), zap.String("title", st.show.GetTitle()), zap.Error(err))
@@ -112,7 +112,7 @@ func (st *Subtask) Run(ctx context.Context) error {
 
 func (st *Subtask) activate(ctx context.Context) (taskAlreadyStarted bool) {
 	if st.activated {
-		panic(fmt.Errorf("%w: subtask was activated multiple times", errorz.ErrFatal))
+		panic(fmt.Errorf("subtask was activated multiple times: %w", errorz.ErrFatal))
 	}
 	existingSubtask, taskAlreadyStarted := activeSubtasks.LoadOrStore(st.GetID(), st)
 	if !taskAlreadyStarted {
