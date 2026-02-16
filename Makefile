@@ -6,15 +6,15 @@ DOCKER_RUN_ARGS = --rm -v $(CURDIR)/overrides:$(MOUNT_DIR)/overrides -v $(CURDIR
 
 clean:
 	docker rmi $(DOCKER_IMAGE)
-	cd java \
+	cd java; \
 	ant clean
 
 java-build:
-	cd java \
+	cd java; \
 	ant release
 
 java-run:
-	cd java \
+	cd java; \
 	./release/kmttg
 
 go-build:
@@ -37,4 +37,4 @@ push: image
 shell:
 	docker run -it $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE) /bin/bash
 
-.PHONY: clean java java-run go image image-run push shell
+.PHONY: clean java-build java-run go-build go-run image image-run push shell

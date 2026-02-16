@@ -11,12 +11,13 @@
 [] filtering
   [x] title/description
   [] watched
-[] configuration
+[] preferences
 [] jobs
   [x] download
   [x] decrypt
   [] encode
   [] play
+  [] persistence
 [] remove ads
   [] using tivo skip info
   [] using comskip info
