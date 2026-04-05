@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/puzpuzpuz/xsync"
+	"github.com/puzpuzpuz/xsync/v4"
 	"github.com/tartale/go/pkg/errorx"
 	liberrorz "github.com/tartale/go/pkg/errorz"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	tivoMap           = xsync.NewMapOf[*model.Tivo]()
+	tivoMap           = xsync.NewMap[string, *model.Tivo]()
 	loadFromCacheOnce sync.Once
 )
 
@@ -116,38 +116,44 @@ func LoadShows(ctx context.Context, tivoClient *client.TivoClient) ([]model.Show
 
 func List(ctx context.Context) []*model.Tivo {
 	var list []*model.Tivo
-	tivoFilterFn := apicontext.TivoFilterFn(ctx)
-	showFilterFn := apicontext.ShowFilterFn(ctx)
+	tivoFilter := apicontext.TivoFilter(ctx)
+	showFilter := apicontext.ShowFilter(ctx)
 	imageDimensions := apicontext.ShowImageDimensions(ctx)
 
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
-		if tivoFilterFn != nil && !tivoFilterFn(val) {
-			return true
-		}
-		tivo := *val
-		list = append(list, &tivo)
-
-		tivo.Shows = []model.Show{}
 		offsetCountdown := apicontext.ShowOffset(ctx)
 		limitCountdown := apicontext.ShowLimit(ctx)
-		for _, show := range val.Shows {
-			if limitCountdown == 0 {
-				break
-			}
-			if offsetCountdown > 0 {
-				offsetCountdown--
-				continue
-			}
-			if showFilterFn != nil && !showFilterFn(show) {
-				continue
-			}
-			show = shows.WithImageURL(show, imageDimensions)
-			tivo.Shows = append(tivo.Shows, shows.AsAPIType(show))
-			limitCountdown--
-		}
-
-		return true
+		showFilter.FilterAll(val.Shows)
 	})
+
+	// tivoMap.Range(func(key string, val *model.Tivo) bool {
+	// 	if tivoFilterFn != nil && !tivoFilterFn(val) {
+	// 		return true
+	// 	}
+	// 	tivo := *val
+	// 	list = append(list, &tivo)
+
+	// 	tivo.Shows = []model.Show{}
+	// 	offsetCountdown := apicontext.ShowOffset(ctx)
+	// 	limitCountdown := apicontext.ShowLimit(ctx)
+	// 	for _, show := range val.Shows {
+	// 		if limitCountdown == 0 {
+	// 			break
+	// 		}
+	// 		if offsetCountdown > 0 {
+	// 			offsetCountdown--
+	// 			continue
+	// 		}
+	// 		if showFilterFn != nil && !showFilterFn(show) {
+	// 			continue
+	// 		}
+	// 		show = shows.WithImageURL(show, imageDimensions)
+	// 		tivo.Shows = append(tivo.Shows, shows.AsAPIType(show))
+	// 		limitCountdown--
+	// 	}
+
+	// 	return true
+	// })
 
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Name < list[j].Name

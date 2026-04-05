@@ -1,4 +1,10 @@
 package model
 
-type TivoFilterFn = func(t *Tivo) bool
-type ShowFilterFn = func(s Show) bool
+import (
+	"github.com/tartale/go/pkg/filter"
+)
+
+type (
+	TivoFilterFn = filter.TypeFilter[*Tivo]
+	ShowFilterFn = filter.TypeFilter[*Show]
+)

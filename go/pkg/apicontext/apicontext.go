@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tartale/go/pkg/contexts"
+	"github.com/tartale/go/pkg/filter"
 	"github.com/tartale/go/pkg/gqlgen"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
 )
@@ -48,11 +49,11 @@ func (a APIContext) WithShowLimit(limit int) APIContext {
 	return Wrap(context.WithValue(a, ShowLimitKey, limit))
 }
 
-func (a APIContext) WithTivoFilterFn(fn model.TivoFilterFn) APIContext {
+func (a APIContext) WithTivoFilterFn(fn filter.TypeFilter[*model.Tivo]) APIContext {
 	return Wrap(context.WithValue(a, TivoFiltersKey, fn))
 }
 
-func (a APIContext) WithShowFilterFn(fn model.ShowFilterFn) APIContext {
+func (a APIContext) WithShowFilterFn(fn filter.TypeFilter[*model.Show]) APIContext {
 	return Wrap(context.WithValue(a, ShowFiltersKey, fn))
 }
 
@@ -82,17 +83,17 @@ func ShowLimit(ctx context.Context) int {
 	return DefaultLimit
 }
 
-func TivoFilterFn(ctx context.Context) model.TivoFilterFn {
+func TivoFilter(ctx context.Context) *model.TivoFilterFn {
 	if val := contexts.Value[model.TivoFilterFn](ctx, TivoFiltersKey); val != nil {
-		return *val
+		return val
 	}
 
 	return nil
 }
 
-func ShowFilterFn(ctx context.Context) model.ShowFilterFn {
+func ShowFilter(ctx context.Context) *model.ShowFilterFn {
 	if val := contexts.Value[model.ShowFilterFn](ctx, ShowFiltersKey); val != nil {
-		return *val
+		return val
 	}
 
 	return nil

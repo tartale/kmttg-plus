@@ -7,6 +7,7 @@ package resolvers
 import (
 	"context"
 
+	"github.com/tartale/go/pkg/filter"
 	"github.com/tartale/kmttg-plus/go/pkg/apicontext"
 	"github.com/tartale/kmttg-plus/go/pkg/jobs"
 	"github.com/tartale/kmttg-plus/go/pkg/model"
@@ -27,16 +28,16 @@ func (r *mutationResolver) StartJob(ctx context.Context, job model.Job) (*model.
 }
 
 // Tivos is the resolver for the tivos field.
-func (r *queryResolver) Tivos(ctx context.Context, filters []*model.TivoFilter) ([]*model.Tivo, error) {
-	tivoFilterFn := tivos.NewFilterFn(filters)
-	ctx = apicontext.Wrap(ctx).WithTivoFilterFn(tivoFilterFn)
+func (r *queryResolver) Tivos(ctx context.Context, tivoFilters []*model.TivoFilter) ([]*model.Tivo, error) {
+	tivoFilter := filter.TypeFilter[*model.Tivo]{Any: tivoFilters}
+	ctx = apicontext.Wrap(ctx).WithTivoFilter(tivoFilter)
 
 	showFilters, err := shows.NewFilters(ctx)
 	if err != nil {
 		return nil, err
 	}
-	showFilterFn := shows.NewFilterFn(showFilters)
-	ctx = apicontext.Wrap(ctx).WithShowFilterFn(showFilterFn)
+	showFilter := filter.TypeFilter[*model.Show]{Any: showFilters}
+	ctx = apicontext.Wrap(ctx).WithShowFilter(showFilter)
 
 	showImageDimensions, err := shows.GetImageDimensions(ctx)
 	if err != nil {
@@ -58,5 +59,7 @@ func (r *Resolver) Mutation() server.MutationResolver { return &mutationResolver
 // Query returns server.QueryResolver implementation.
 func (r *Resolver) Query() server.QueryResolver { return &queryResolver{r} }
 
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
+type (
+	mutationResolver struct{ *Resolver }
+	queryResolver    struct{ *Resolver }
+)
