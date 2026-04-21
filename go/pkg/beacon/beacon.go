@@ -29,6 +29,7 @@ func Listen(ctx context.Context) error {
 		case entry := <-entries:
 			tvo, err := newTivoFromServiceEntry(entry)
 			if err != nil {
+				logz.Logger.Warn("Unable to process service entry", zap.Strings("entryText", entry.Text), zap.Error(err))
 				continue
 			}
 			tivos.Load(tvo)
