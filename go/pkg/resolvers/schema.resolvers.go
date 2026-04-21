@@ -28,8 +28,8 @@ func (r *mutationResolver) StartJob(ctx context.Context, job model.Job) (*model.
 }
 
 // Tivos is the resolver for the tivos field.
-func (r *queryResolver) Tivos(ctx context.Context, tivoFilters []*model.TivoFilter) ([]*model.Tivo, error) {
-	tivoFilter := filter.TypeFilter[*model.Tivo]{Any: tivoFilters}
+func (r *queryResolver) Tivos(ctx context.Context, filters []*model.TivoFilter) ([]*model.Tivo, error) {
+	tivoFilter := filter.TypeFilter[*model.Tivo]{Any: filters}
 	ctx = apicontext.Wrap(ctx).WithTivoFilter(tivoFilter)
 
 	showFilters, err := shows.NewFilters(ctx)
@@ -59,7 +59,5 @@ func (r *Resolver) Mutation() server.MutationResolver { return &mutationResolver
 // Query returns server.QueryResolver implementation.
 func (r *Resolver) Query() server.QueryResolver { return &queryResolver{r} }
 
-type (
-	mutationResolver struct{ *Resolver }
-	queryResolver    struct{ *Resolver }
-)
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }

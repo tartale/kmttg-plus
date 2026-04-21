@@ -121,39 +121,33 @@ func List(ctx context.Context) []*model.Tivo {
 	imageDimensions := apicontext.ShowImageDimensions(ctx)
 
 	tivoMap.Range(func(key string, val *model.Tivo) bool {
+		if tivoFilter != nil && !tivoFilter.ShouldInclude(val) {
+			return true
+		}
+		tivo := *val
+		list = append(list, &tivo)
+
+		tivo.Shows = []model.Show{}
 		offsetCountdown := apicontext.ShowOffset(ctx)
 		limitCountdown := apicontext.ShowLimit(ctx)
-		showFilter.FilterAll(val.Shows)
+		for _, show := range val.Shows {
+			if limitCountdown == 0 {
+				break
+			}
+			if offsetCountdown > 0 {
+				offsetCountdown--
+				continue
+			}
+			if showFilter != nil && !showFilter.ShouldInclude(show) {
+				continue
+			}
+			show = shows.WithImageURL(show, imageDimensions)
+			tivo.Shows = append(tivo.Shows, shows.AsAPIType(show))
+			limitCountdown--
+		}
+
+		return true
 	})
-
-	// tivoMap.Range(func(key string, val *model.Tivo) bool {
-	// 	if tivoFilterFn != nil && !tivoFilterFn(val) {
-	// 		return true
-	// 	}
-	// 	tivo := *val
-	// 	list = append(list, &tivo)
-
-	// 	tivo.Shows = []model.Show{}
-	// 	offsetCountdown := apicontext.ShowOffset(ctx)
-	// 	limitCountdown := apicontext.ShowLimit(ctx)
-	// 	for _, show := range val.Shows {
-	// 		if limitCountdown == 0 {
-	// 			break
-	// 		}
-	// 		if offsetCountdown > 0 {
-	// 			offsetCountdown--
-	// 			continue
-	// 		}
-	// 		if showFilterFn != nil && !showFilterFn(show) {
-	// 			continue
-	// 		}
-	// 		show = shows.WithImageURL(show, imageDimensions)
-	// 		tivo.Shows = append(tivo.Shows, shows.AsAPIType(show))
-	// 		limitCountdown--
-	// 	}
-
-	// 	return true
-	// })
 
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Name < list[j].Name

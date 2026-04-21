@@ -49,11 +49,11 @@ func (a APIContext) WithShowLimit(limit int) APIContext {
 	return Wrap(context.WithValue(a, ShowLimitKey, limit))
 }
 
-func (a APIContext) WithTivoFilterFn(fn filter.TypeFilter[*model.Tivo]) APIContext {
+func (a APIContext) WithTivoFilter(fn filter.TypeFilter[*model.Tivo]) APIContext {
 	return Wrap(context.WithValue(a, TivoFiltersKey, fn))
 }
 
-func (a APIContext) WithShowFilterFn(fn filter.TypeFilter[*model.Show]) APIContext {
+func (a APIContext) WithShowFilter(fn filter.TypeFilter[*model.Show]) APIContext {
 	return Wrap(context.WithValue(a, ShowFiltersKey, fn))
 }
 
