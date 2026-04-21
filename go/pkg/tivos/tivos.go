@@ -222,6 +222,11 @@ func loadFromCache(tivo *model.Tivo) bool {
 }
 
 func storeToCache(tivo *model.Tivo) {
+	err := os.MkdirAll(config.Values.CacheDir, 0o755)
+	if err != nil {
+		logz.Logger.Debug("Unable to create cache directory", zap.String("tivoName", tivo.Name), zap.Error(err))
+		return
+	}
 	tivoCacheFile := path.Join(config.Values.CacheDir, tivo.Name+".json")
 	data, err := json.MarshalIndent(tivo, "", "  ")
 	if err != nil {

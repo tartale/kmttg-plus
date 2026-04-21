@@ -33,12 +33,13 @@ func (l nopLogger) IsDebug() bool {
 	return false
 }
 
-var Logger *zap.Logger
-var LoggerX loggerx
-var NopLogger nopLogger
+var (
+	Logger    *zap.Logger
+	LoggerX   loggerx
+	NopLogger nopLogger
+)
 
 func InitLoggers() error {
-
 	zConfig := zap.NewProductionConfig()
 	zConfig.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
 	zConfigLevel, err := zap.ParseAtomicLevel(config.Values.LogLevel)
@@ -49,7 +50,6 @@ func InitLoggers() error {
 
 	sLogger, err := zConfig.Build(
 		zap.AddCaller(),
-		zap.AddCallerSkip(2),
 	)
 	if err != nil {
 		return err
@@ -63,7 +63,6 @@ func InitLoggers() error {
 }
 
 func InitThirdPartyLoggers() error {
-
 	gologz.SetLoggerForName("github.com/tartale/go/pkg/jsontime", NopLogger)
 	gologz.SetLoggerForName("github.com/tartale/go/pkg/generics", LoggerX)
 
