@@ -1,6 +1,6 @@
 module github.com/tartale/kmttg-plus/go
 
-go 1.24
+go 1.25.0
 
 require (
 	github.com/99designs/gqlgen v0.17.36
@@ -17,13 +17,13 @@ require (
 	github.com/rs/cors v1.9.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
-	github.com/stretchr/testify v1.8.4
-	github.com/tartale/go v0.0.0-20260215040640-738ffdac353e
-	github.com/vektah/gqlparser/v2 v2.5.8
+	github.com/stretchr/testify v1.9.0
+	github.com/tartale/go v0.0.0-20260507214133-f98833819fee
+	github.com/vektah/gqlparser/v2 v2.5.15
 	go.uber.org/zap v1.24.0
-	golang.org/x/crypto v0.28.0
+	golang.org/x/crypto v0.48.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
-	golang.org/x/term v0.25.0
+	golang.org/x/term v0.40.0
 	mvdan.cc/gofumpt v0.6.0
 )
 
@@ -33,6 +33,8 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/elgs/gojq v0.0.0-20230628214826-df5c4045598e // indirect
+	github.com/elgs/gosplitargs v0.0.0-20230310130726-7d16e488436a // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
@@ -62,12 +64,12 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/net v0.30.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
-	golang.org/x/tools v0.26.0 // indirect
+	golang.org/x/mod v0.33.0 // indirect
+	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/tools v0.42.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
