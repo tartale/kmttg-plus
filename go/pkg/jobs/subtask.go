@@ -92,6 +92,9 @@ func (st *Subtask) Run(ctx context.Context) error {
 	case model.JobActionPlay:
 		err = Play(ctx, st)
 
+	case "no-op":
+		err = nil
+
 	default:
 		err = fmt.Errorf("invalid action '%s': %w", st.Action, errorz.ErrInvalidArgument)
 	}
