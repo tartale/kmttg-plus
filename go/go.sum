@@ -271,6 +271,10 @@ github.com/tartale/go v0.0.0-20260507214133-f98833819fee h1:Nfj6/oVFsoNgS/IPSilG
 github.com/tartale/go v0.0.0-20260507214133-f98833819fee/go.mod h1:kLoYb0T0pdHuhrVLK4wNgTH5BOCISBgvrw8Oiou2DQI=
 github.com/tartale/go v0.0.0-20260508002721-1555445774e9 h1:iMYI3KKVQVVPZz1hgltmZLeBx0vSdbtDxLiYxt7QXlU=
 github.com/tartale/go v0.0.0-20260508002721-1555445774e9/go.mod h1:kLoYb0T0pdHuhrVLK4wNgTH5BOCISBgvrw8Oiou2DQI=
+github.com/tartale/go v0.0.0-20260508005222-00642677af74 h1:FwpI78a6aOVeQpL2Q4j2Gx5lVxScwq0LuTe/+icqGEc=
+github.com/tartale/go v0.0.0-20260508005222-00642677af74/go.mod h1:kLoYb0T0pdHuhrVLK4wNgTH5BOCISBgvrw8Oiou2DQI=
+github.com/tartale/go v0.0.0-20260508035943-5434f8924a59 h1:oU++qrssz+rTkD6fTaxdiiMFnP+/QsKrp9ymeVP19XI=
+github.com/tartale/go v0.0.0-20260508035943-5434f8924a59/go.mod h1:kLoYb0T0pdHuhrVLK4wNgTH5BOCISBgvrw8Oiou2DQI=
 github.com/urfave/cli/v2 v2.25.7 h1:VAzn5oq403l5pHjc4OhD54+XGO9cdKVL/7lDjF+iKUs=
 github.com/urfave/cli/v2 v2.25.7/go.mod h1:8qnjx1vcq5s2/wpsqoZFndg2CE5tNFyrTvS6SinrnYQ=
 github.com/vektah/gqlparser/v2 v2.5.15 h1:fYdnU8roQniJziV5TDiFPm/Ff7pE8xbVSOJqbsdl88A=

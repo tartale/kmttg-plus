@@ -22,6 +22,10 @@ go-build:
 	cd go; \
 	make build
 
+go-test:
+	cd go; \
+	go test ./...
+
 go-run:
 	cd go; \
 	make run
