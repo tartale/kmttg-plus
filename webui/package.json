@@ -30,7 +30,6 @@
     "react-dom": "17.0.2",
     "react-router-dom": "^6.14.2",
     "react-scripts": "5.0.1",
-    "relay-runtime": "^15.0.0",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
@@ -40,6 +39,7 @@
     "deploy": "rm -rf ../go/dist/webui && cp -Rf build/. ../go/dist/webui",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
+    "relay": "relay-compiler",
     "graphql-codegen": "graphql-codegen --config codegen.ts",
     "watch-codegen": "graphql-codegen --config codegen.ts --watch 'src/services/**/*.graphql'"
   },
