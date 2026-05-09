@@ -5,10 +5,8 @@ import TableContainer from "@mui/material/TableContainer";
 import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import { useEffect, useState, useRef } from "react";
-import "./ShowListing.css";
 import { ShowHeader, ShowRow } from "./ShowRow";
 import { Show } from "../services/generated/graphql-types"
-import "./TivoStyle.css";
 import { useQuery, gql } from "@apollo/client";
 
 export type ShowSortField = 'kind' | 'title' | 'recordedOn';

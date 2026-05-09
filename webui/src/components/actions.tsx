@@ -1,6 +1,3 @@
-import { Show, ShowKind, Episode, Movie, Series} from "../services/generated/graphql-types"
-
-
 export const startJob = () => {
   fetch("http://localhost:8181/getMyShows?limit=50&tivo=Living%20Room&offset=0", {
     "credentials": "omit",
