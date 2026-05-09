@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React from "react";
 import StereoButton from "./StereoButton";
 import {
   useQuery,
@@ -13,22 +13,12 @@ const GET_TIVO_NAMES = gql`
 }`;
 
 function TivoSelectorComponent(props: any) {
-  const { names } = props
-  const [options, setOptions] = useState<string[]>([]);
+  const { names } = props;
 
-  const data = useLazyLoadQuery
-    <TivoSelectorQueryType>
-    (TivoSelectorQuery, {});
-  const names: string[] = data.tivos.map((tivo) => tivo.name);
-
-  useEffect(() => {
-    setOptions(names);
-  }, []);
-  
   return (
     <React.Fragment>
-      {options.map((option: string, index: number) => (
-        <StereoButton label={option} key={index} {...props}/>
+      {names.map((option: string, index: number) => (
+        <StereoButton label={option} key={index} {...props} />
       ))}
     </React.Fragment>
   );

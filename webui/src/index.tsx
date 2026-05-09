@@ -7,11 +7,9 @@ import reportWebVitals from "./reportWebVitals";
 const root = document.getElementById("root") as HTMLElement;
 
 ReactDOM.render(
-  <RelayEnvironmentProvider environment={RelayEnvironment}>
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  </RelayEnvironmentProvider>,
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
   root
 );
 

@@ -61,16 +61,17 @@ function ShowListingComponent(props: any) {
       }
     );
 
-    if (lastRowRef.current) {
-      observer.observe(lastRowRef.current);
+    const currentLastRow = lastRowRef.current;
+    if (currentLastRow) {
+      observer.observe(currentLastRow);
     }
 
     return () => {
-      if (lastRowRef.current) {
-        observer.unobserve(lastRowRef.current);
+      if (currentLastRow) {
+        observer.unobserve(currentLastRow);
       }
     };
-  }, [isLoadingMore]);
+  }, [isLoadingMore, loadMoreData]);
 
   return (
     <TableContainer
