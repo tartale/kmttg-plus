@@ -8,7 +8,7 @@ import { useState } from "react";
 const createApolloClient = () => {
  return new ApolloClient({
    link: new HttpLink({
-     uri: 'http://localhost:8080/api/query',
+     uri: 'http://localhost:8888/api/query',
    }),
    cache: new InMemoryCache(),
  });
