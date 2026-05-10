@@ -7,7 +7,7 @@ export default function Loading() {
   return (
     <Box sx={{ width: '100%' }}>
       <TiVoLogo style={{ width: "200px"}} />
-      <LinearProgress />
+      <LinearProgress/>
     </Box>
   );
 }

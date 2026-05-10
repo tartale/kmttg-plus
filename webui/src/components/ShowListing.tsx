@@ -9,6 +9,7 @@ import { ShowHeader, ShowRow } from "./ShowRow";
 import { Show } from "../services/generated/graphql-types"
 import "./TivoStyle.css";
 import { useQuery, gql } from '@apollo/client';
+import Loading from "./Loading";
 
 const GET_SHOWS = gql`
   query GetShows {
@@ -33,9 +34,10 @@ const GET_SHOWS = gql`
         ...on Series {
           episodes {
             id
+            kind
             seasonNumber
             episodeNumber
-            description
+            episodeDescription
             recordedOn
           }
         }
@@ -76,8 +78,12 @@ export default function ShowListing(props: any) {
     }
   }, [data]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (loading) return (
+    <Loading/>
+  );
+  if (error) return (
+    <div>Error: {error.message}</div>
+  );
 
   return (
     <TableContainer

@@ -58,7 +58,7 @@ function EpisodeRows(props: any) {
       {(show as Series).episodes?.map((episode) => (
         <ShowRow
           key={episode.id}
-          show={{ ...show, ...episode }} />
+          show={{ ...episode, description: episode.episodeDescription }} />
       ))}
     </React.Fragment>
   );
