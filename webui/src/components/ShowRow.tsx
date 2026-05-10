@@ -33,7 +33,7 @@ export function ShowRow(props: any) {
 
   return (
     <React.Fragment>
-      <TableRow key={show.recordingID} onClick={() => setOpen(!open)}>
+      <TableRow key={show.id} onClick={() => setOpen(!open)}>
         <IconCell width={"5%"} show={show} open={open} indent={indent} />
         <TitleCell width={"20%"} show={show} />
         <DescriptionCell show={show} />
@@ -57,7 +57,7 @@ function EpisodeRows(props: any) {
     <React.Fragment>
       {(show as Series).episodes?.map((episode) => (
         <ShowRow
-          key={episode.recordingID}
+          key={episode.id}
           show={{ ...show, ...episode }} />
       ))}
     </React.Fragment>
@@ -90,15 +90,9 @@ function TitleCell(props: any) {
 function DescriptionCell(props: any) {
   const { show } = props;
 
-  switch (show.kind) {
-    case ShowKind.Movie:
-    case ShowKind.Episode:
-      return (
-        <TableCell {...props} style={{ whiteSpace: 'normal' }}>{show.description}</TableCell>
-      );
-    default:
-      return (<TableCell {...props} style={{ whiteSpace: 'normal' }} />);
-  }
+  return (
+    <TableCell {...props} style={{ whiteSpace: 'normal' }}>{show.description}</TableCell>
+  );
 }
 
 function RecordedOnCell(props: any) {
