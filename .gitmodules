@@ -2,3 +2,9 @@
 	path = java
 	url = git@github.com:tartale/kmttg.git
 	branch = multi-platform-build
+[submodule "webui"]
+	path = webui
+	url = git@github.com:tartale/kmttg-webui.git
+[submodule "go"]
+	path = go
+	url = git@github.com:tartale/kmttg-go.git
