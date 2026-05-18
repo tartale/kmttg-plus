@@ -2,9 +2,6 @@
 .envrc
 .idea/
 .vscode
-app
 input/files
 output
 overrides
-project
-tools
