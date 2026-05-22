@@ -14,8 +14,6 @@ RUN curl -L -o ./tivodecode-ng.tar.gz https://github.com/wmcbrine/tivodecode-ng/
 VOLUME /sys/fs/cgroup
 
 RUN apk add --no-cache openrc avahi avahi-dev avahi-tools dbus \
- && echo " @testing https://dl-cdn.alpinelinux.org/alpine/edge/testing " >> /etc/apk/repositories \
- && apk add avahi2dns@testing \
  && mkdir -p /run/openrc \
  && touch /run/openrc/softlevel \
  && openrc
