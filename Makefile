@@ -13,7 +13,7 @@ DOCKER_RUN_ARGS = --rm --network=host --name kmttg-plus \
 
 NVM_DIR ?= $(HOME)/.nvm
 
-.PHONY: clean dist java-build java-run go-build go-test go-run go-install image image-run image-bg push shell webui
+.PHONY: clean dist java-build java-run go-build go-test go-install image image-run image-bg push run shell webui
 
 clean:
 	docker rmi $(DOCKER_IMAGE) || true
@@ -38,10 +38,6 @@ go-test:
 	cd go; \
 	make test
 
-go-run:
-	cd go; \
-	make run
-
 go-install:
 	cd go && $(MAKE) install DIST_DIR=$(DIST_DIR)
 
@@ -56,6 +52,10 @@ image-bg:
 
 push: image
 	docker push $(DOCKER_IMAGE)
+
+run:
+	cd go; \
+	make run
 
 shell:
 	docker run -it $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE) /bin/bash
