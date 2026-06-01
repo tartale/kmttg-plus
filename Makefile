@@ -15,6 +15,8 @@ clean:
 	cd java; \
 	ant clean
 
+dist: clean webui go-build go-test go-install 
+
 java-build:
 	cd java; \
 	ant release
@@ -54,4 +56,9 @@ push: image
 shell:
 	docker run -it $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE) /bin/bash
 
-.PHONY: clean java-build java-run go-build go-run go-install image image-run image-bg push shell
+webui:
+	cd webui; \
+	npm run build; \
+	npm run deploy
+
+.PHONY: clean dist java-build java-run go-build go-run go-install image image-run image-bg push shell
