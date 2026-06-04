@@ -8,15 +8,16 @@
 [] sorting
   [] by name
   [] by recording date
-[] filtering
+[] filtering/search
   [x] title/description
   [] watched
+  [] freeform text
 [] preferences
 [] jobs
   [x] download
   [x] decrypt
-  [] encode
-  [] play
+  [x] encode
+  [] play in browser
   [] persistence
 [] remove ads
   [] using tivo skip info
@@ -25,8 +26,8 @@
   [] skip during playback
 [] terminal
   [x] single tivo
-  [] multiple tivos
+  ~~[] multiple tivos~~
 [] cli
 [] file management
 [] cypress tests
-[] persistent cache
+[x] persistent cache
