@@ -13,8 +13,6 @@ DOCKER_RUN_ARGS = --rm --network=host --name kmttg-plus \
 
 NVM_DIR ?= $(HOME)/.nvm
 
-.PHONY: clean dist java-build java-run go-build go-test go-install image image-run image-bg push run shell webui
-
 clean:
 	docker rmi $(DOCKER_IMAGE) || true
 	rm -rf "$(KMTTG_CACHE_DIR)/*"
@@ -60,9 +58,20 @@ run:
 shell:
 	docker run -it $(DOCKER_RUN_ARGS) $(DOCKER_IMAGE) /bin/bash
 
+watch:
+	trap 'kill 0' EXIT; \
+	(cd go && $(MAKE) run) & \
+	(cd webui && \
+		{ [ ! -s "$(NVM_DIR)/nvm.sh" ] || { source "$(NVM_DIR)/nvm.sh" && nvm install; }; } && \
+		npm install && \
+		BROWSER=none npm start) & \
+	wait
+
 webui:
 	cd webui && \
 	{ [ ! -s "$(NVM_DIR)/nvm.sh" ] || { source "$(NVM_DIR)/nvm.sh" && nvm install; }; } && \
 	npm install && \
 	npm run build && \
 	DIST_DIR=$(DIST_DIR) npm run deploy
+
+.PHONY: clean dist java-build java-run go-build go-test go-install image image-run image-bg push run shell watch webui

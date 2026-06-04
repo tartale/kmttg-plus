@@ -3,13 +3,7 @@ FROM jlesage/handbrake
 RUN apk update
 RUN apk upgrade
 
-RUN apk add --no-cache g++ make curl
-RUN curl -L -o ./tivodecode-ng.tar.gz https://github.com/wmcbrine/tivodecode-ng/archive/refs/tags/0.5.tar.gz \
- && tar xvfz tivodecode-ng.tar.gz -C /opt/ && rm tivodecode-ng.tar.gz \
- && cd /opt/tivodecode-ng-0.5 \
- && ./configure \
- && make \
- && make install 
+RUN apk add --no-cache g++ make curl ffmpeg
 
 VOLUME /sys/fs/cgroup
 
