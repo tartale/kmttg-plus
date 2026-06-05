@@ -1,50 +1,31 @@
 # Claude Code Notes
 
-## go/pkg/shows — refactoring in progress
+## go/pkg/shows — refactoring complete
 
 The `shows` package wraps model types (`model.Movie`, `model.Series`, `model.Episode`) to carry
 TiVo-specific metadata (`Details`: raw recording/collection data, object ID, Tivo connection) without
-exposing it through the GraphQL API. The current approach defines three parallel wrapper structs
-(`movie`, `series`, `episode`) that embed the model type plus a `Details` field.
+exposing it through the GraphQL API.
 
-**Pain points with the current approach:**
-- Every function (`Clone`, `MarshalShowToJSON`, `UnmarshalShowFromJSON`, `AsApiType`, `WithImageURL`)
-  repeats a 3-case type switch on `GetKind()`
-- `series` has dual `Episodes` fields: `*model.Series.Episodes []*model.Episode` (API) and
-  `series.Episodes []*episode` (internal), requiring synchronization on conversion
-- `AsApiType()` exists only to strip the wrapper before returning data to the API
+**Current design (Option B — single `DetailedShow` wrapper):**
 
-**Options under consideration:**
-
-### Option A — Side-channel details store
-Drop wrapper types entirely. Return pure `model.Movie/Series/Episode` from `shows.New()` and
-register their `Details` in a package-level `sync.Map` keyed by show ID. `AsApiType()` disappears,
-the dual-Episodes problem goes away, no type switching in shows package.
-- Tradeoff: cache serialization needs rethinking (details currently live alongside model JSON);
-  store needs explicit lifecycle management (register on load, delete on cache clear).
-
-### Option B — Single `DetailedShow` wrapper (embedding model.Show interface)
-Replace three wrapper structs with one:
 ```go
 type DetailedShow struct {
-    model.Show  // embedded interface — delegates all Show methods automatically
-    Details Details
+    model.Show                        // embedded interface — delegates all Show methods
+    Details        Details            // TiVo metadata for this show
+    EpisodeDetails map[string]Details // per-episode metadata, keyed by episode ID; series only
 }
 ```
-`DetailedShow` satisfies `model.Show` automatically. `AsApiType()` becomes just `ds.Show`.
-- Tradeoff: JSON marshaling needs custom `MarshalJSON`/`UnmarshalJSON` to flatten the interface value.
-- Tradeoff: series episodes — `model.Series.Episodes` is `[]*model.Episode` with no Details;
-  per-episode Details need a separate field or a flat (non-nested) episode store.
-- Type assertions to concrete types are still needed downstream.
 
-### Option C — Generic wrapper (least invasive)
-```go
-type Annotated[T any] struct { Inner T; Details Details }
-```
-Collapses three structs into one generic type; type-switch boilerplate reduces to generic helpers.
-Can't embed a type parameter in Go so callers use `.Inner` instead of direct field access.
-Cache serialization stays the same. Less conceptual cleanup than A or B.
+- `AsApiType(show)` unwraps to `ds.Show` (the plain model type for API responses)
+- `GetDetails(show)` returns `&ds.Details` via a single type assertion, no switch
+- `NewFilterFn` unwraps `*DetailedShow` to its inner `model.Show` before passing to the
+  reflection-based filter package (which cannot see fields through an embedded interface)
+- `MarshalJSON` flattens the inner show's fields alongside `details` and `episodeDetails`
+  into one JSON object; `UnmarshalShowFromJSON` reconstructs the wrapper from that format
+- Series episodes: `model.Series.Episodes []*model.Episode` carries the API slice;
+  `EpisodeDetails` carries the corresponding per-episode TiVo metadata
+- `GetEpisodesForSeries` reconstructs per-episode `*DetailedShow` values on demand from
+  the series's `Episodes` slice and its `EpisodeDetails` map
 
-**Leading candidate:** Option B (`DetailedShow` embedding `model.Show`) with flat episode handling
-(episodes stored as top-level `DetailedShow` entries; `Series.Episodes` populated from those at
-API response time rather than carried inside the wrapper).
+**Test coverage:** `go/pkg/shows/shows_test.go` covers all public functions with unit tests
+and two integration tests (`TestIntegration_*`) that require `KMTTG_TEST_TIVO` to be set.
