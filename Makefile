@@ -60,7 +60,7 @@ shell:
 
 watch:
 	trap 'kill 0' EXIT; \
-	(cd go && $(MAKE) run) & \
+	(cd go && $(MAKE) dev) & \
 	(cd webui && \
 		{ [ ! -s "$(NVM_DIR)/nvm.sh" ] || { source "$(NVM_DIR)/nvm.sh" && nvm install; }; } && \
 		npm install && \
