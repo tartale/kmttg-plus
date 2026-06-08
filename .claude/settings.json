@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path'); if echo \"$f\" | grep -q '^/workspace/go/.*\\.go$'; then make -C /workspace go-build; fi",
+            "timeout": 120,
+            "statusMessage": "Running make go-build..."
+          }
+        ]
+      }
+    ]
+  }
+}

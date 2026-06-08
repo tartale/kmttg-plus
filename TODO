@@ -31,3 +31,6 @@
 [] file management
 [] cypress tests
 [x] persistent cache
+[] posters
+  [] change movie/series poster
+  [] add episode preview from a random clip
