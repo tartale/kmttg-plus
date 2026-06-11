@@ -42,9 +42,11 @@ Branch `playback` across three repos (started 2026-06-11 off master/main):
 - Fix in stream.go: audio copied only when aac AND 1–2 channels; otherwise `-c:a aac -ac 2` (stereo downmix). Live path also gets `-ac 2`. probeCodec generalized to `probeStream(ctx, path, selector, entry)`.
 - Verified: new pipeline output from user's actual MKV plays in sandbox Firefox. Tests: DescribeTable covers AC-3 stereo and AAC 5.1 → both must yield aac/2ch segments. 5/5 pass; make go-build passes (container now has go 1.25.10).
 
-**Known issues / next steps:**
-- User needs to rebuild on macOS + restart server, then retest playback in Firefox. Stale 5.1 sessions in the old server's map go away on restart; session dir is cleared on new session start.
-- Unrelated console warning to clean up sometime: React "non-boolean attribute `indent`" from IconCell→TableCell in ShowRow.tsx.
+**STATUS: WORKING (2026-06-11).** User rebuilt on macOS and confirmed playback works in Firefox. All changes committed & pushed on `playback` branches (go 5bed9e7, webui 79cd302, parent a46575b).
+
+**Possible follow-ups (not started):**
+- React console warning: "non-boolean attribute `indent`" from IconCell→TableCell in ShowRow.tsx.
+- Optional enhancement: capability-based audio (5.1 passthrough for Chrome/Safari instead of always downmixing to stereo).
 - `make go-build` requires Go 1.25.10 via goenv; sandbox has 1.26.4, used `go build ./...` instead.
 
 **Why:** tartale is building a TiVo DVR management tool; this branch is for playback-related features.
