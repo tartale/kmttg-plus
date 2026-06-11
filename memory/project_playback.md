@@ -44,8 +44,9 @@ Branch `playback` across three repos (started 2026-06-11 off master/main):
 
 **STATUS: WORKING (2026-06-11).** User rebuilt on macOS and confirmed playback works in Firefox. All changes committed & pushed on `playback` branches (go 5bed9e7, webui 79cd302, parent a46575b).
 
+**Console cleanup done (webui 752e873):** ShowRow cells no longer leak custom props (show/open/indent) to the td element; VideoPlayer logs non-fatal HLS errors at debug level.
+
 **Possible follow-ups (not started):**
-- React console warning: "non-boolean attribute `indent`" from IconCell→TableCell in ShowRow.tsx.
 - Optional enhancement: capability-based audio (5.1 passthrough for Chrome/Safari instead of always downmixing to stereo).
 - `make go-build` requires Go 1.25.10 via goenv; sandbox has 1.26.4, used `go build ./...` instead.
 
