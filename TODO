@@ -22,17 +22,14 @@
   [x] use info from tivo skip data
   [] use info from comskip ad detection
   [x] allow user override via UI
-  [] persistence from video file
-[] remove ads
-  [] cut using chapter info
-  [] auto-skip during playback
-[] terminal
+  [x] persistence from video file
+[x] terminal
   [x] single tivo
-  ~~[] multiple tivos~~
 [] cypress tests
 [x] persistent cache
-[] posters
-  [] change movie/series poster
-  [] add episode preview from a random clip (non-ad)
-[] multi-user support
+[x] posters
+  [x] change movie/series poster
+  [x] add episode preview from a random clip (non-ad)
+[] audio effects
+[] multi-tenant support
 [] published app

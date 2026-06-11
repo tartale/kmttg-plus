@@ -16,13 +16,13 @@ My main purpose for doing this is to learn new skills, and keep my current skill
 
 > You stood on the shoulders of geniuses to accomplish something as fast as you could, and before you even knew what you had, you patented it, and packaged it, and slapped it on a plastic lunchbox.
 
-Most credit goes to Kevin Moye, the original developer of KMTTG, which was a tool that I use all the time. His hard work gave Tivo users a path forward to preserving their recordings. Additional credit to other developers that took up the mantle when Kevin retired.
+Most credit goes to Kevin Moye, the original developer of KMTTG, which is a tool that I still use all the time. His hard work gave Tivo users a path forward to preserving their recordings. Additional credit to other developers that took up the mantle when Kevin retired.
 
 
 https://sourceforge.net/projects/kmttg/
 
+https://github.com/lart2150/kmttg  (plus others!)
+
 https://github.com/drnay/docker-kmttg
 
 https://github.com/imro2/docker-kmttg
-
-https://github.com/jlesage/docker-handbrake
