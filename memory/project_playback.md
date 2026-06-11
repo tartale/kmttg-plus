@@ -42,7 +42,9 @@ Branch `playback` across three repos (started 2026-06-11 off master/main):
 - Fix in stream.go: audio copied only when aac AND 1–2 channels; otherwise `-c:a aac -ac 2` (stereo downmix). Live path also gets `-ac 2`. probeCodec generalized to `probeStream(ctx, path, selector, entry)`.
 - Verified: new pipeline output from user's actual MKV plays in sandbox Firefox. Tests: DescribeTable covers AC-3 stereo and AAC 5.1 → both must yield aac/2ch segments. 5/5 pass; make go-build passes (container now has go 1.25.10).
 
-**STATUS: WORKING (2026-06-11).** User rebuilt on macOS and confirmed playback works in Firefox. All changes committed & pushed on `playback` branches (go 5bed9e7, webui 79cd302, parent a46575b).
+**STATUS: FULLY WORKING (2026-06-11).** Both playback paths confirmed by user in Firefox: downloaded files AND live streams from the TiVo. All changes committed & pushed on `playback` branches (go cebb5fb, webui 752e873, parent a509b94).
+
+**Live-stream 400 fix (go cebb5fb):** TiVo rejects cookieless download requests with 400. streamFromTivo must use httpClient.NewRequestWithContext (attaches the `sid` session cookie from the OPTIONS handshake), not plain http.NewRequestWithContext. URL builder deduped into shows.GetDownloadURL (shared by download job + streamer).
 
 **Console cleanup done (webui 752e873):** ShowRow cells no longer leak custom props (show/open/indent) to the td element; VideoPlayer logs non-fatal HLS errors at debug level.
 
