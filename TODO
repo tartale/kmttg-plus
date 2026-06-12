@@ -40,3 +40,4 @@
   [] use path instead of tools dir
 [] integration with sonarr/radarr/plex/prowl
 [] containerization
+[] automation
