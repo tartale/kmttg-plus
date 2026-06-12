@@ -20,8 +20,9 @@
   [x] encode
   [x] play in browser
 [] chapters
-  [x] use info from tivo skip data
   [] use info from comskip ad detection
+  [] smarter initialization (e.g. black frame detection, audio pattern changes)
+  [x] use info from tivo skip data
   [x] allow user override via UI
   [x] persistence from video file
 [x] terminal
