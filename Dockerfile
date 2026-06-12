@@ -4,21 +4,13 @@ RUN apk update \
  && apk upgrade \
  && apk add \
   avahi \
-  avahi-dev \
   avahi-tools \
   bash \
   curl \
   dbus \
   doas \
   ffmpeg \
-  mkvtoolnix \
-  openrc
-
-VOLUME /sys/fs/cgroup
-
-RUN mkdir -p /run/openrc \
- && touch /run/openrc/softlevel \
- && openrc
+  mkvtoolnix
 
 RUN adduser -D kmttg -s /bin/bash \
  && echo 'permit nopass :wheel' >> /etc/doas.conf \
