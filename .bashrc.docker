@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
 
-echo "Setting profile for docker"
+echo "Setting up kmttg-plus container"
 
 alias ll='ls -la'
 export MOUNT_DIR="/mnt/kmttg"
 export USER_ID=$(id -u kmttg)
 export GROUP_ID=$(id -g kmttg)
-export KMTTG_TOOLS_DIR="/usr/local/bin"
 export KMTTG_OUTPUT_DIR="${MOUNT_DIR}/output"
 
 umask 000
-doas rc-service dbus restart
-doas rc-update add avahi-daemon
-sleep 1
-doas rc-service avahi-daemon start
+
+# Start D-Bus system daemon (required by avahi)
+doas mkdir -p /run/dbus
+doas dbus-daemon --system --fork
+
+# Start avahi-daemon for mDNS TiVo discovery
+# --no-chroot: avahi's chroot jail requires capabilities containers don't have
+doas avahi-daemon --daemonize --no-chroot
+
 doas chmod -R a+rwx /mnt/kmttg

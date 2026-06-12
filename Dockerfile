@@ -4,21 +4,13 @@ RUN apk update \
  && apk upgrade \
  && apk add \
   avahi \
-  avahi-dev \
   avahi-tools \
   bash \
   curl \
   dbus \
   doas \
   ffmpeg \
-  mkvtoolnix \
-  openrc
-
-VOLUME /sys/fs/cgroup
-
-RUN mkdir -p /run/openrc \
- && touch /run/openrc/softlevel \
- && openrc
+  mkvtoolnix
 
 RUN adduser -D kmttg -s /bin/bash \
  && echo 'permit nopass :wheel' >> /etc/doas.conf \
@@ -34,6 +26,7 @@ COPY --chown=kmttg:kmttg dist/kmttg.sh /home/kmttg/app
 ARG KMTTG_VERSION="v0.0.1"
 ENV KMTTG_LOG_LEVEL="DEBUG"
 ENV KMTTG_MEDIA_ACCESS_KEY=""
+ENV KMTTG_WEBUI_DIR=""
 
 EXPOSE 7676
 USER kmttg
