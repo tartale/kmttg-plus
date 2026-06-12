@@ -21,7 +21,7 @@
   [x] play in browser
 [] chapters
   [] use info from comskip ad detection
-  [] smarter initialization (e.g. black frame detection, audio pattern changes)
+  [] smarter initialization (e.g. black frame detection, audio pattern changes), including when adding a chapter
   [x] use info from tivo skip data
   [x] allow user override via UI
   [x] persistence from video file
@@ -32,12 +32,12 @@
 [x] posters
   [x] change movie/series poster
   [x] add episode preview from a random clip (non-ad)
-[] sound effects
+[x] sound effects
 [] enhancements
-  [] chapter dialog
-    [] one-second jump with arrow, single frame with shift-arrow
-    [] smooth scrolling when user selects a frame
-    [] remove support for scrolling/gestures for panning
+  [x] chapter dialog
+    [x] one-second jump with arrow, single frame with shift-arrow
+    [x] smooth scrolling when user selects a frame
+    [x] remove support for scrolling/gestures for panning
   [x] use path instead of tools dir
   [] fancier startup progress window
 [] integration with sonarr/radarr/plex/prowl
