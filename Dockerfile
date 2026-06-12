@@ -34,6 +34,7 @@ COPY --chown=kmttg:kmttg dist/kmttg.sh /home/kmttg/app
 ARG KMTTG_VERSION="v0.0.1"
 ENV KMTTG_LOG_LEVEL="DEBUG"
 ENV KMTTG_MEDIA_ACCESS_KEY=""
+ENV KMTTG_WEBUI_DIR=""
 
 EXPOSE 7676
 USER kmttg
