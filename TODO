@@ -38,6 +38,7 @@
     [] smooth scrolling when user selects a frame
     [] remove support for scrolling/gestures for panning
   [] use path instead of tools dir
+  [] fancier startup progress window
 [] integration with sonarr/radarr/plex/prowl
 [] containerization
 [] automation
