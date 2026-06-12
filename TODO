@@ -38,3 +38,5 @@
     [] smooth scrolling when user selects a frame
     [] remove support for scrolling/gestures for panning
 [] integration with sonarr/radarr/plex/prowl
+[] use path instead of tools dir
+
