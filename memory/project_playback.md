@@ -1,6 +1,6 @@
 ---
 name: project-playback
-description: "Active branch: playback — new feature work off master/main"
+description: "playback branch: merged to master 2026-06-12; chapter skip added post-merge"
 metadata:
   type: project
 ---
@@ -48,8 +48,16 @@ Branch `playback` across three repos (started 2026-06-11 off master/main):
 
 **Console cleanup done (webui 752e873):** ShowRow cells no longer leak custom props (show/open/indent) to the td element; VideoPlayer logs non-fatal HLS errors at debug level.
 
-**Possible follow-ups (not started):**
-- Optional enhancement: capability-based audio (5.1 passthrough for Chrome/Safari instead of always downmixing to stereo).
-- `make go-build` requires Go 1.25.10 via goenv; sandbox has 1.26.4, used `go build ./...` instead.
+**Merged to master 2026-06-12.** All three repos on master/main.
 
-**Why:** tartale is building a TiVo DVR management tool; this branch is for playback-related features.
+**Chapter skip navigation added post-merge (2026-06-12):**
+- `VideoPlayer.tsx`: ⏮/⏭ buttons in DialogTitle, visible only when show has chapters.
+- Chapter skip bug (forward only worked once): root cause was `WaitForPlaylist` returning after the first HLS segment appeared. hls.js got a partial manifest; forward seeks to later chapters failed silently because those segments weren't listed yet. Fix: `Session.IsFile` flag; for file sessions `WaitForPlaylist` blocks on `session.done` (all segments + `#EXT-X-ENDLIST` present before browser loads manifest). Stream-copy is ~50x realtime so delay is acceptable.
+- Keyboard shortcuts `[` / `]` for prev/next chapter work in native fullscreen (document-level listener).
+- `seekTargetRef`: tracks intended seek position so rapid button clicks advance correctly even if `video.currentTime` hasn't caught up with hls.js yet.
+- `currentChapterIdx` state (driven by `timeupdate`, only re-renders on chapter change): disables prev at chapter 0, next at last chapter.
+- Silenced `bufferSeekOverHole` and `bufferStalledError` — both are routine hls.js auto-recovery for small buffer gaps at segment start; never actionable.
+- Listener cleanup via `videoCleanupRef`: `seeked`/`timeupdate` handlers properly removed on player re-init.
+- Chapter data: shows typically have 2–5 chapters. Chapters come from MKV via ffprobe (`readChaptersFromFile`); only entries titled "Chapter N" are used. A show with only 2 chapters (e.g., [0s, 5s]) correctly disables forward after the first jump.
+
+**Why:** tartale is building a TiVo DVR management tool; playback branch added browser HLS streaming + chapter navigation.
