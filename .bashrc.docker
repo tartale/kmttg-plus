@@ -7,8 +7,7 @@ export MOUNT_DIR="/mnt/kmttg"
 export USER_ID=$(id -u kmttg)
 export GROUP_ID=$(id -g kmttg)
 export KMTTG_TOOLS_DIR="/usr/local/bin"
-export KMTTG_OUTPUT_DIR="/${MOUNT_DIR}/output"
-export KMTTG_CACHE_DIR="${KMTTG_OUTPUT_DIR}/cache"
+export KMTTG_OUTPUT_DIR="${MOUNT_DIR}/output"
 
 umask 000
 doas rc-service dbus restart
