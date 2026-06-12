@@ -1,10 +1,5 @@
-[x] mRPC API
-[x] graphQL API
-[x] beacon
-[x] get tivos
-[x] get recordings
-[x] show metadata
-[x] paging 
+[] integration with sonarr/radarr/plex/prowl
+[] automated downloads
 [] sorting
   [] by name
   [] by recording date
@@ -14,20 +9,27 @@
   [] freeform text
 [] settings
 [] persistence
+[] cypress tests
+[] chapters
+  [] use info from comskip ad detection
+  [] smarter initialization (e.g. black frame detection, audio pattern changes), including when adding a chapter
+[x] mRPC API
+[x] graphQL API
+[x] beacon
+[x] get tivos
+[x] get recordings
+[x] show metadata
+[x] paging 
 [x] jobs
   [x] download
   [x] decrypt
   [x] encode
   [x] play in browser
-[] chapters
-  [] use info from comskip ad detection
-  [] smarter initialization (e.g. black frame detection, audio pattern changes), including when adding a chapter
   [x] use info from tivo skip data
   [x] allow user override via UI
   [x] persistence from video file
 [x] terminal
   [x] single tivo
-[] cypress tests
 [x] persistent cache
 [x] posters
   [x] change movie/series poster
@@ -40,6 +42,4 @@
     [x] remove support for scrolling/gestures for panning
   [x] use path instead of tools dir
   [x] fancier startup progress window
-[] integration with sonarr/radarr/plex/prowl
-[] containerization
-[] automated downloads
+[x] containerization
