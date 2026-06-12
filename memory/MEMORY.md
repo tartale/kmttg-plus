@@ -3,6 +3,7 @@
 - [Project: kmttg-plus add-skip-segments branch](project_add_skip_segments.md) — merged to master: chapter preview, add/remove, save/reset, Chapter N model
 - [Project: kmttg-plus add-episode-poster branch](project_add_episode_poster.md) — merged to master: episode poster from MKV, custom poster paste/upload
 - [Project: kmttg-plus ui-enhancements branch](project_ui_enhancements.md) — merged to master: accent bracket, app header/tabs, sticky header
-- [Project: kmttg-plus playback branch](project_playback.md) — active: new branch off master for playback features
+- [Project: kmttg-plus playback branch](project_playback.md) — COMPLETE: merged to master/main 2026-06-12
+- [Project: kmttg-plus audio-effects branch](project_audio_effects.md) — active as of 2026-06-12; scope TBD
 - [TiVo clipMetadata technical notes](reference_tivo_clip_metadata.md) — segment offsets are broadcast-clock time; silence detection used for offset calibration; sync mark hashes are proprietary/unusable
 - [User preferences](user_preferences.md) — working style and preferences observed in this session

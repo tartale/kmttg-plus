@@ -1,6 +1,6 @@
 ---
 name: project-playback
-description: "playback branch: merged to master 2026-06-12; chapter skip added post-merge"
+description: "playback branch: COMPLETE — fully merged to master/main 2026-06-12"
 metadata:
   type: project
 ---
