@@ -1,18 +1,16 @@
+[] settings
 [] integration with sonarr/radarr/plex/prowl
 [] automated downloads
-[] sorting
-  [] by name
-  [] by recording date
 [] filtering/search
-  [x] title/description
-  [] watched
-  [] freeform text
-[] settings
-[] persistence
 [] cypress tests
 [] chapters
   [] use info from comskip ad detection
   [] smarter initialization (e.g. black frame detection, audio pattern changes), including when adding a chapter
+[x] github actions
+[x] sorting
+  [x] by name
+  [x] by recording date
+[x] persistence
 [x] mRPC API
 [x] graphQL API
 [x] beacon
