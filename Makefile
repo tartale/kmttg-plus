@@ -6,7 +6,7 @@ KMTTG_VERSION    ?= v0.0.1
 KMTTG_PORT       ?= 7676
 MOUNT_DIR        = /mnt/kmttg
 DOCKER_IMAGE_TAG ?= local
-DOCKER_IMAGE     = tartale/kmttg-plus:$(DOCKER_IMAGE_TAG)
+DOCKER_IMAGE     = ghcr.io/tartale/kmttg-plus:$(DOCKER_IMAGE_TAG)
 DOCKER_RUN_ARGS  = --rm --network=host --name kmttg-plus --platform linux/amd64 \
 	-v /var/run/dbus:/var/run/dbus \
 	-v $(CURDIR)/output:$(MOUNT_DIR)/output:rw \
