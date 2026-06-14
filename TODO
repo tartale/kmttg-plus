@@ -1,5 +1,5 @@
 [] settings
-[] integration with sonarr/radarr/plex/prowl
+[] integration with plex
 [] automated downloads
 [] filtering/search
 [] cypress tests
